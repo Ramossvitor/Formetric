@@ -1,7 +1,7 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
-import { ComingSoonPage } from './pages/ComingSoonPage'
 import { DiaryPage } from './pages/DiaryPage'
 import { FoodDetailPage } from './pages/FoodDetailPage'
 import { FoodsPage } from './pages/FoodsPage'
@@ -17,6 +17,9 @@ import { RecipesPage } from './pages/RecipesPage'
 import { TdeeSettingsPage } from './pages/TdeeSettingsPage'
 import './App.css'
 
+const WeightProgressPage = lazy(() => import('./pages/WeightProgressPage').then((module) => ({ default: module.WeightProgressPage })))
+const WorkoutsPage = lazy(() => import('./pages/WorkoutsPage').then((module) => ({ default: module.WorkoutsPage })))
+
 function App() {
   return (
     <Routes>
@@ -27,15 +30,14 @@ function App() {
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<HomePage />} />
           <Route element={<DiaryPage />} path="diary" />
+          <Route element={<Navigate replace to="/progress/weight" />} path="progress" />
           <Route
-            element={
-              <ComingSoonPage
-                description="Compare peso, avaliações e tendências ao longo do tempo."
-                eyebrow="Histórico corporal"
-                title="Evolução"
-              />
-            }
-            path="progress"
+            element={<Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando peso…</p></div>}><WeightProgressPage /></Suspense>}
+            path="progress/weight"
+          />
+          <Route
+            element={<Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando treinos…</p></div>}><WorkoutsPage /></Suspense>}
+            path="workouts"
           />
           <Route element={<ProfilePage />} path="profile" />
           <Route element={<FoodsPage />} path="foods" />

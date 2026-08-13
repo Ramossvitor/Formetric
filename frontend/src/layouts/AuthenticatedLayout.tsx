@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
@@ -8,13 +9,17 @@ import { Icon, type IconName } from '../components/Icon'
 const navigation: Array<{ label: string; icon: IconName; to: string }> = [
   { label: 'Hoje', icon: 'home', to: '/' },
   { label: 'Diário', icon: 'book', to: '/diary' },
-  { label: 'Evolução', icon: 'trend', to: '/progress' },
+  { label: 'Evolução', icon: 'trend', to: '/progress/weight' },
   { label: 'Perfil', icon: 'settings', to: '/profile' },
 ]
 
 const catalogNavigation: Array<{ label: string; icon: IconName; to: string }> = [
   { label: 'Alimentos', icon: 'food', to: '/foods' },
   { label: 'Receitas', icon: 'recipe', to: '/recipes' },
+]
+
+const trackingNavigation: Array<{ label: string; icon: IconName; to: string }> = [
+  { label: 'Treinos', icon: 'activity', to: '/workouts' },
 ]
 
 function initials(name: string) {
@@ -27,10 +32,19 @@ function initials(name: string) {
 }
 
 export function AuthenticatedLayout() {
-  const navigate = useNavigate()
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
   const { data: session } = useQuery(sessionQuery)
   const logout = useLogout()
   const user = session?.user
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setQuickAddOpen(false)
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [])
 
   return (
     <div className="app-shell">
@@ -45,6 +59,17 @@ export function AuthenticatedLayout() {
             <NavLink
               className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
               end={item.to === '/'}
+              key={item.to}
+              to={item.to}
+            >
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+          <span className="nav-section-label">Acompanhamento</span>
+          {trackingNavigation.map((item) => (
+            <NavLink
+              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
               key={item.to}
               to={item.to}
             >
@@ -111,7 +136,7 @@ export function AuthenticatedLayout() {
               <span>{item.label}</span>
             </NavLink>
           ))}
-          <button aria-label="Abrir cadastro rápido" className="quick-add" onClick={() => navigate('/diary?action=quick')} type="button">
+          <button aria-expanded={quickAddOpen} aria-label="Abrir cadastro rápido" className="quick-add" onClick={() => setQuickAddOpen(true)} type="button">
             <span><Icon name="plus" size={26} /></span>
             <small>Adicionar</small>
           </button>
@@ -126,6 +151,24 @@ export function AuthenticatedLayout() {
             </NavLink>
           ))}
         </nav>
+
+        {quickAddOpen ? (
+          <div className="shell-dialog-backdrop" onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setQuickAddOpen(false)
+          }}>
+            <section aria-labelledby="quick-add-title" aria-modal="true" className="quick-add-menu surface-card" role="dialog">
+              <div className="dialog-heading">
+                <div><p className="eyebrow">Cadastro rápido</p><h2 id="quick-add-title">O que deseja registrar?</h2></div>
+                <button aria-label="Fechar" className="icon-button dialog-close" onClick={() => setQuickAddOpen(false)} type="button">×</button>
+              </div>
+              <div className="shell-quick-actions">
+                <Link onClick={() => setQuickAddOpen(false)} to="/diary?action=quick"><Icon name="food" /><span><strong>Alimentação ou água</strong><small>Abrir cadastro do diário</small></span></Link>
+                <Link onClick={() => setQuickAddOpen(false)} to="/workouts?action=new"><Icon name="activity" /><span><strong>Treino</strong><small>Registrar uma sessão</small></span></Link>
+                <Link onClick={() => setQuickAddOpen(false)} to="/progress/weight?action=new"><Icon name="scale" /><span><strong>Peso</strong><small>Adicionar a pesagem do dia</small></span></Link>
+              </div>
+            </section>
+          </div>
+        ) : null}
       </div>
     </div>
   )
