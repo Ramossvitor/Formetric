@@ -21,7 +21,10 @@ class SpaForwardController {
             "/recipes",
             "/recipes/**",
             "/diary",
-            "/progress"
+            "/workouts",
+            "/workouts/**",
+            "/progress",
+            "/progress/**"
     })
     String forwardKnownClientRoute() {
         return "forward:/index.html";

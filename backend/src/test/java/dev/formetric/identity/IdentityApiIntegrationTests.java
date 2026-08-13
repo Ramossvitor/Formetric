@@ -217,7 +217,10 @@ class IdentityApiIntegrationTests {
                 "/foods/new",
                 "/recipes/00000000-0000-0000-0000-000000000001",
                 "/diary",
-                "/progress")) {
+                "/workouts",
+                "/workouts/00000000-0000-0000-0000-000000000001",
+                "/progress",
+                "/progress/weight")) {
             mockMvc.perform(get(clientRoute).cookie(ownerCookie))
                     .andExpect(status().isOk())
                     .andExpect(forwardedUrl("/index.html"));
