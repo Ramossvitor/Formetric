@@ -29,6 +29,8 @@
   --purple: #9b7bc0;
   --purple-soft: #f1ebf8;
   --success: #3b8955;
+  --danger: #b33f4a;
+  --danger-soft: #fcecef;
   --shadow: 0 12px 32px rgba(34, 59, 47, 0.06);
   --shadow-floating: 0 16px 40px rgba(21, 47, 36, 0.14);
 
@@ -67,7 +69,9 @@ a {
 }
 
 button:focus-visible,
-a:focus-visible {
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: 3px;
 }
@@ -104,6 +108,8 @@ a:focus-visible {
     --purple: #b394d3;
     --purple-soft: #2e2539;
     --success: #79c28e;
+    --danger: #f08a94;
+    --danger-soft: #382126;
     --shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
     --shadow-floating: 0 18px 44px rgba(0, 0, 0, 0.4);
   }
