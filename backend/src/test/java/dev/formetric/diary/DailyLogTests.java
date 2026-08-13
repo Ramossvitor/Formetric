@@ -44,6 +44,23 @@ class DailyLogTests {
     }
 
     @Test
+    void dayWithFoodCannotBeMisclassifiedAsFasting() {
+        DailyLog log = DailyLog.create(UUID.randomUUID(), LocalDate.of(2026, 8, 12), NOW);
+        Meal meal = log.addMeal("Almoço", 0, null, NOW);
+        meal.addItem(snapshot("Arroz", "130", "2", "28", "0.3", "1", "2", "1"),
+                0, DataQuality.EXACT, null, NOW);
+
+        DiaryValidationException exception = assertThrows(
+                DiaryValidationException.class,
+                () -> log.close(true, NOW.plusSeconds(1)));
+
+        assertThat(exception.field()).isEqualTo("fastingConfirmed");
+        assertThat(log.status()).isEqualTo(DailyLogStatus.OPEN);
+        assertThat(log.stateEvents()).extracting(event -> event.eventType().name())
+                .containsExactly("CREATED");
+    }
+
+    @Test
     void totalsUseStoredSnapshotsAndKeepUnknownSodiumUnknown() {
         DailyLog log = DailyLog.create(UUID.randomUUID(), LocalDate.of(2026, 8, 12), NOW);
         Meal meal = log.addMeal("Almoço", 0, null, NOW);

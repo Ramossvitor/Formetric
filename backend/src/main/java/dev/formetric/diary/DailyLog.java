@@ -113,8 +113,12 @@ class DailyLog {
 
     void close(boolean fastingConfirmed, Instant now) {
         requireOpen();
-        boolean hasTrackedData = !waterLogs.isEmpty()
-                || meals.stream().anyMatch(meal -> !meal.items().isEmpty());
+        boolean hasFood = meals.stream().anyMatch(meal -> !meal.items().isEmpty());
+        if (hasFood && fastingConfirmed) {
+            throw new DiaryValidationException(
+                    "fastingConfirmed", "Um dia com alimentos registrados não pode ser confirmado como jejum.");
+        }
+        boolean hasTrackedData = !waterLogs.isEmpty() || hasFood;
         if (!hasTrackedData && !fastingConfirmed) {
             throw new DiaryValidationException(
                     "fastingConfirmed", "Confirme explicitamente o jejum para fechar um dia sem alimentos.");
