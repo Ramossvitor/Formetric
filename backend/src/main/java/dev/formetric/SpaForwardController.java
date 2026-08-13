@@ -10,7 +10,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 class SpaForwardController {
 
-    @GetMapping({"/login", "/accept-invite", "/profile", "/settings", "/settings/**"})
+    @GetMapping({
+            "/login",
+            "/accept-invite",
+            "/profile",
+            "/settings",
+            "/settings/**",
+            "/foods",
+            "/foods/**",
+            "/recipes",
+            "/recipes/**",
+            "/diary",
+            "/progress"
+    })
     String forwardKnownClientRoute() {
         return "forward:/index.html";
     }

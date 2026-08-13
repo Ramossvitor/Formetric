@@ -6,9 +6,11 @@ export type IconName =
   | 'calendar'
   | 'chevron'
   | 'droplet'
+  | 'food'
   | 'home'
   | 'logout'
   | 'plus'
+  | 'recipe'
   | 'scale'
   | 'settings'
   | 'sparkle'
@@ -25,6 +27,12 @@ const iconPaths: Record<IconName, ReactNode> = {
   ),
   chevron: <path d="m9 18 6-6-6-6" />,
   droplet: <path d="M12 3s6 6.1 6 11a6 6 0 0 1-12 0c0-4.9 6-11 6-11Z" />,
+  food: (
+    <>
+      <path d="M5 11h14a7 7 0 0 1-14 0Zm7-5v5m-3-3v3m6-3v3" />
+      <path d="M4 19h16" />
+    </>
+  ),
   home: (
     <>
       <path d="m3 11 9-8 9 8" />
@@ -33,6 +41,12 @@ const iconPaths: Record<IconName, ReactNode> = {
   ),
   logout: <path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4m5-4 4-3-4-3m4 3H9" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  recipe: (
+    <>
+      <path d="M7 5h10l1 16H6L7 5Z" />
+      <path d="M9 5V3h6v2m-5 5h4m-4 4h4" />
+    </>
+  ),
   scale: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="4" />

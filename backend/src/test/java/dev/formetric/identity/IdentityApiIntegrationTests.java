@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import dev.formetric.TestcontainersConfiguration;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -202,6 +203,8 @@ class IdentityApiIntegrationTests {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/settings/security"))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/foods/new"))
+                .andExpect(status().isUnauthorized());
 
         Cookie ownerCookie = loginOwner();
         mockMvc.perform(get("/profile").cookie(ownerCookie))
@@ -210,6 +213,15 @@ class IdentityApiIntegrationTests {
         mockMvc.perform(get("/settings/security").cookie(ownerCookie))
                 .andExpect(status().isOk())
                 .andExpect(forwardedUrl("/index.html"));
+        for (String clientRoute : List.of(
+                "/foods/new",
+                "/recipes/00000000-0000-0000-0000-000000000001",
+                "/diary",
+                "/progress")) {
+            mockMvc.perform(get(clientRoute).cookie(ownerCookie))
+                    .andExpect(status().isOk())
+                    .andExpect(forwardedUrl("/index.html"));
+        }
 
         mockMvc.perform(get("/api/not-a-client-route"))
                 .andExpect(status().isUnauthorized());

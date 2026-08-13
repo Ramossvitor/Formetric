@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
@@ -12,6 +12,11 @@ const navigation: Array<{ label: string; icon: IconName; to: string }> = [
   { label: 'Perfil', icon: 'settings', to: '/profile' },
 ]
 
+const catalogNavigation: Array<{ label: string; icon: IconName; to: string }> = [
+  { label: 'Alimentos', icon: 'food', to: '/foods' },
+  { label: 'Receitas', icon: 'recipe', to: '/recipes' },
+]
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -22,6 +27,7 @@ function initials(name: string) {
 }
 
 export function AuthenticatedLayout() {
+  const navigate = useNavigate()
   const { data: session } = useQuery(sessionQuery)
   const logout = useLogout()
   const user = session?.user
@@ -46,12 +52,23 @@ export function AuthenticatedLayout() {
               <span>{item.label}</span>
             </NavLink>
           ))}
+          <span className="nav-section-label">Biblioteca</span>
+          {catalogNavigation.map((item) => (
+            <NavLink
+              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              key={item.to}
+              to={item.to}
+            >
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
         </nav>
 
-        <button className="primary-action" type="button">
+        <Link className="primary-action" to="/foods/new">
           <Icon name="plus" />
-          Novo registro
-        </button>
+          Novo alimento
+        </Link>
 
         <div className="sidebar-profile">
           <span className="avatar" aria-hidden="true">{initials(user?.displayName ?? '')}</span>
@@ -94,7 +111,7 @@ export function AuthenticatedLayout() {
               <span>{item.label}</span>
             </NavLink>
           ))}
-          <button aria-label="Abrir cadastro rápido" className="quick-add" type="button">
+          <button aria-label="Abrir cadastro rápido" className="quick-add" onClick={() => navigate('/diary?action=quick')} type="button">
             <span><Icon name="plus" size={26} /></span>
             <small>Adicionar</small>
           </button>

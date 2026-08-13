@@ -226,6 +226,25 @@ export function ProfilePage() {
           </Link>
         </nav>
       </section>
+
+      <section className="profile-card settings-card surface-card" aria-labelledby="catalog-settings-title">
+        <div className="section-heading profile-section-heading">
+          <div>
+            <p className="eyebrow">Biblioteca</p>
+            <h2 id="catalog-settings-title">Alimentos e receitas</h2>
+          </div>
+        </div>
+        <nav aria-label="Biblioteca de alimentos" className="settings-link-list">
+          <Link className="settings-link" to="/foods">
+            <span><strong>Alimentos</strong><small>Dados nutricionais, favoritos, porções e versões.</small></span>
+            <span aria-hidden="true">›</span>
+          </Link>
+          <Link className="settings-link" to="/recipes">
+            <span><strong>Receitas</strong><small>Ingredientes e cálculos por rendimento e porção.</small></span>
+            <span aria-hidden="true">›</span>
+          </Link>
+        </nav>
+      </section>
     </main>
   )
 }
