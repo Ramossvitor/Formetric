@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './auth/ProtectedRoute'
+import { UnexpectedUnauthorizedBoundary } from './auth/UnexpectedUnauthorizedBoundary'
 import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
 import { DiaryPage } from './pages/DiaryPage'
 import { FoodDetailPage } from './pages/FoodDetailPage'
@@ -32,7 +33,7 @@ function LazyRoute({ label, children }: { label: string; children: ReactNode }) 
 
 function App() {
   return (
-    <Routes>
+    <UnexpectedUnauthorizedBoundary><Routes>
       <Route element={<LoginPage />} path="/login" />
       <Route element={<InviteAcceptancePage />} path="/accept-invite" />
 
@@ -69,7 +70,7 @@ function App() {
       </Route>
 
       <Route element={<Navigate replace to="/" />} path="*" />
-    </Routes>
+    </Routes></UnexpectedUnauthorizedBoundary>
   )
 }
 

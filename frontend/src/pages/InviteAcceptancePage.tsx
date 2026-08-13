@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLayoutEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { getErrorMessage } from '../api/http'
+import { getErrorMessage, resetUnexpectedUnauthorized } from '../api/http'
 import { acceptInvite } from '../auth/api'
 import { sessionQuery } from '../auth/queries'
 import { inviteSchema, type InviteFormValues } from '../auth/schemas'
@@ -45,6 +45,7 @@ export function InviteAcceptancePage() {
   const invitationMutation = useMutation({
     mutationFn: acceptInvite,
     onSuccess: (session) => {
+      resetUnexpectedUnauthorized()
       queryClient.clear()
       queryClient.setQueryData(sessionQuery.queryKey, session)
       navigate('/', { replace: true })

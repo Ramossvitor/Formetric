@@ -2,8 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { getErrorMessage } from '../api/http'
+import { getErrorMessage, resetUnexpectedUnauthorized } from '../api/http'
 import { login } from '../auth/api'
+import { safePrivateDestination } from '../auth/navigation'
 import { FullPageStatus } from '../auth/ProtectedRoute'
 import { sessionQuery } from '../auth/queries'
 import { loginSchema, type LoginFormValues } from '../auth/schemas'
@@ -12,10 +13,7 @@ import { Brand } from '../components/Brand'
 interface LoginLocationState {
   from?: string
   invitationAccepted?: boolean
-}
-
-function safeDestination(destination?: string) {
-  return destination?.startsWith('/') && !destination.startsWith('//') ? destination : '/'
+  sessionExpired?: boolean
 }
 
 export function LoginPage() {
@@ -35,9 +33,10 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (authenticatedSession) => {
+      resetUnexpectedUnauthorized()
       queryClient.clear()
       queryClient.setQueryData(sessionQuery.queryKey, authenticatedSession)
-      navigate(safeDestination(locationState.from), { replace: true })
+      navigate(safePrivateDestination(locationState.from), { replace: true })
     },
   })
 
@@ -57,7 +56,7 @@ export function LoginPage() {
   }
 
   if (session.data) {
-    return <Navigate replace to="/" />
+    return <Navigate replace to={safePrivateDestination(locationState.from)} />
   }
 
   return (
@@ -73,6 +72,11 @@ export function LoginPage() {
         {locationState.invitationAccepted ? (
           <p className="form-success" role="status">
             Conta criada com sucesso. Entre com seu e-mail e sua senha.
+          </p>
+        ) : null}
+        {locationState.sessionExpired ? (
+          <p className="form-error" role="status">
+            Sua sessÃ£o expirou. Entre novamente para continuar.
           </p>
         ) : null}
 

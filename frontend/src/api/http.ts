@@ -37,6 +37,44 @@ interface CsrfToken {
 
 let csrfToken: CsrfToken | null = null
 let csrfRequest: Promise<CsrfToken> | null = null
+let unauthorizedIncidentActive = false
+const unauthorizedListeners = new Set<() => void>()
+
+const locallyHandledUnauthorizedPaths = new Set([
+  '/api/v1/auth/session',
+  '/api/v1/auth/login',
+  '/api/v1/invites/accept',
+])
+
+function pathnameOf(path: string) {
+  try {
+    return new URL(path, 'https://formetric.local').pathname
+  } catch {
+    return path.split(/[?#]/, 1)[0]
+  }
+}
+
+function reportUnexpectedUnauthorized(path: string) {
+  if (locallyHandledUnauthorizedPaths.has(pathnameOf(path))) return
+
+  clearCsrfToken()
+  if (unauthorizedIncidentActive || unauthorizedListeners.size === 0) return
+
+  unauthorizedIncidentActive = true
+  for (const listener of unauthorizedListeners) listener()
+}
+
+export function subscribeToUnexpectedUnauthorized(listener: () => void) {
+  unauthorizedListeners.add(listener)
+  return () => {
+    unauthorizedListeners.delete(listener)
+  }
+}
+
+/** Starts a fresh authenticated lifecycle after login or invitation acceptance. */
+export function resetUnexpectedUnauthorized() {
+  unauthorizedIncidentActive = false
+}
 
 async function parseProblem(response: Response): Promise<ProblemDetails | undefined> {
   const contentType = response.headers.get('content-type') ?? ''
@@ -59,6 +97,7 @@ async function requestCsrfToken(): Promise<CsrfToken> {
   })
 
   if (!response.ok) {
+    if (response.status === 401) reportUnexpectedUnauthorized('/api/v1/auth/csrf')
     throw new ApiError(response.status, await parseProblem(response))
   }
 
@@ -107,6 +146,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   })
 
   if (!response.ok) {
+    if (response.status === 401) reportUnexpectedUnauthorized(path)
     if (csrf && retryCsrf && response.status === 403) {
       clearCsrfToken()
       return apiRequest<T>(path, { ...options, retryCsrf: false })
