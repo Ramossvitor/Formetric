@@ -4,6 +4,7 @@ import dev.formetric.identity.CurrentUserProvider;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,27 @@ public class ActivityDataProvider {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Optional<DateBounds> bounds() {
+        UUID userId = currentUserProvider.requireCurrentUser().id();
+        List<LocalDate> earliestCandidates = java.util.stream.Stream.of(
+                        workouts.findFirstByUserIdOrderByDateAsc(userId).map(Workout::date),
+                        weightLogs.findFirstByUserIdOrderByDateAsc(userId).map(WeightLog::date))
+                .flatMap(Optional::stream)
+                .toList();
+        List<LocalDate> latestCandidates = java.util.stream.Stream.of(
+                        workouts.findFirstByUserIdOrderByDateDesc(userId).map(Workout::date),
+                        weightLogs.findFirstByUserIdOrderByDateDesc(userId).map(WeightLog::date))
+                .flatMap(Optional::stream)
+                .toList();
+        if (earliestCandidates.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new DateBounds(
+                earliestCandidates.stream().min(LocalDate::compareTo).orElseThrow(),
+                latestCandidates.stream().max(LocalDate::compareTo).orElseThrow()));
+    }
+
     public record WorkoutData(
             UUID id,
             LocalDate date,
@@ -63,5 +85,8 @@ public class ActivityDataProvider {
     }
 
     public record WeightData(LocalDate date, BigDecimal weightKg) {
+    }
+
+    public record DateBounds(LocalDate earliestDate, LocalDate latestDate) {
     }
 }
