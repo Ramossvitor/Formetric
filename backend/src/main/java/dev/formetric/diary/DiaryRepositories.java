@@ -33,15 +33,25 @@ class DiaryIdempotencyKey {
     @EmbeddedId private DiaryIdempotencyId id;
     @Column(nullable = false, length = 32) private String operation;
     @Column(name = "log_date", nullable = false) private LocalDate logDate;
+    @Column(name = "payload_fingerprint", nullable = false, length = 64) private String payloadFingerprint;
     @Column(name = "resource_id") private UUID resourceId;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     protected DiaryIdempotencyKey() {}
-    DiaryIdempotencyKey(UUID userId, UUID requestId, String operation, LocalDate logDate, UUID resourceId, Instant at) {
+    DiaryIdempotencyKey(
+            UUID userId,
+            UUID requestId,
+            String operation,
+            LocalDate logDate,
+            String payloadFingerprint,
+            UUID resourceId,
+            Instant at) {
         this.id = new DiaryIdempotencyId(userId, requestId); this.operation = operation;
-        this.logDate = logDate; this.resourceId = resourceId; this.createdAt = at;
+        this.logDate = logDate; this.payloadFingerprint = payloadFingerprint;
+        this.resourceId = resourceId; this.createdAt = at;
     }
     String operation() { return operation; }
     LocalDate logDate() { return logDate; }
+    String payloadFingerprint() { return payloadFingerprint; }
     UUID resourceId() { return resourceId; }
 }
 

@@ -156,7 +156,7 @@ record CreateMealRequest(
 
 record UpdateMealRequest(
         @NotBlank @Size(max = 80) String name,
-        @PositiveOrZero int position,
+        @PositiveOrZero Integer position,
         LocalTime mealTime) {}
 
 record UpsertMealItemRequest(

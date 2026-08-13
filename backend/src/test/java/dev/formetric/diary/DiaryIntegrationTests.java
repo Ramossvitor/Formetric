@@ -14,11 +14,13 @@ import dev.formetric.catalog.NutrientAmounts;
 import dev.formetric.catalog.NutritionQuality;
 import dev.formetric.identity.AuthenticatedUser;
 import dev.formetric.identity.CurrentUserProvider;
+import dev.formetric.identity.CurrentUserZoneIdProvider;
 import dev.formetric.identity.UserRole;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -67,6 +69,7 @@ class DiaryIntegrationTests {
     @Autowired private DiaryService diaryService;
     @Autowired private JdbcTemplate jdbcTemplate;
     @MockitoBean private CurrentUserProvider currentUserProvider;
+    @MockitoBean private CurrentUserZoneIdProvider currentUserZoneIdProvider;
     @MockitoBean private CatalogNutritionProvider catalogNutritionProvider;
 
     @BeforeEach
@@ -75,6 +78,7 @@ class DiaryIntegrationTests {
         insertUser(USER_ONE, "diary-one@example.test");
         insertUser(USER_TWO, "diary-two@example.test");
         authenticate(USER_ONE);
+        when(currentUserZoneIdProvider.requireCurrentUserZoneId()).thenReturn(ZoneId.of("America/Sao_Paulo"));
         when(catalogNutritionProvider.resolve(
                 eq(CatalogItemType.FOOD), eq(VERSION_ID), any(BigDecimal.class), any(CatalogUnit.class), any()))
                 .thenAnswer(invocation -> resolvedSnapshot(invocation.getArgument(2), invocation.getArgument(3)));
@@ -163,6 +167,77 @@ class DiaryIntegrationTests {
         DailyLogResponse duplicated = diaryService.copyDay(nextDay.plusDays(1), new CopyDayRequest(nextDay, UUID.randomUUID()));
         assertThat(duplicated.meals()).hasSize(1);
         assertThat(duplicated.totals().kcal()).isEqualByComparingTo("300.000");
+    }
+
+    @Test
+    void requestIdRejectsDifferentPayloadButAcceptsEquivalentDecimalRepresentation() {
+        UUID mealRequestId = UUID.randomUUID();
+        DailyLogResponse original = diaryService.addMeal(
+                DATE, new CreateMealRequest("Almoço", null, null, mealRequestId));
+
+        DailyLogResponse replay = diaryService.addMeal(
+                DATE, new CreateMealRequest("Almoço", null, null, mealRequestId));
+
+        assertThat(replay.meals()).hasSize(1);
+        assertThat(replay.id()).isEqualTo(original.id());
+        assertThrows(DiaryConflictException.class, () -> diaryService.addMeal(
+                DATE, new CreateMealRequest("Jantar", null, null, mealRequestId)));
+
+        UUID mealId = original.meals().getFirst().id();
+        UUID itemRequestId = UUID.randomUUID();
+        diaryService.addItem(DATE, mealId, new UpsertMealItemRequest(
+                CatalogItemType.FOOD, VERSION_ID, new BigDecimal("2.0"), CatalogUnit.SLICE, SERVING_ID,
+                null, null, null, itemRequestId));
+        DailyLogResponse equivalentReplay = diaryService.addItem(DATE, mealId, new UpsertMealItemRequest(
+                CatalogItemType.FOOD, VERSION_ID, new BigDecimal("2.000"), CatalogUnit.SLICE, SERVING_ID,
+                null, null, null, itemRequestId));
+
+        assertThat(equivalentReplay.meals().getFirst().items()).hasSize(1);
+    }
+
+    @Test
+    void updateMealWithoutPositionPreservesItsCurrentPosition() {
+        UUID firstId = diaryService.addMeal(
+                DATE, new CreateMealRequest("Primeira", 3, null, null)).meals().getFirst().id();
+
+        DailyLogResponse updated = diaryService.updateMeal(
+                DATE, firstId, new UpdateMealRequest("Renomeada", null, null));
+
+        assertThat(updated.meals().getFirst().name()).isEqualTo("Renomeada");
+        assertThat(updated.meals().getFirst().position()).isEqualTo(3);
+    }
+
+    @Test
+    void waterTimestampMustBelongToDiaryDateInProfileTimeZone() {
+        assertThrows(DiaryValidationException.class, () -> diaryService.addWater(
+                DATE,
+                new CreateWaterRequest(
+                        Instant.parse("2026-08-12T02:30:00Z"), new BigDecimal("250"), UUID.randomUUID())));
+
+        DailyLogResponse response = diaryService.addWater(
+                DATE,
+                new CreateWaterRequest(
+                        Instant.parse("2026-08-12T03:30:00Z"), new BigDecimal("250"), UUID.randomUUID()));
+
+        assertThat(response.waterLogs()).hasSize(1);
+    }
+
+    @Test
+    void copyDayPreservesCivilWaterTimeAcrossDaylightSavingTransition() {
+        ZoneId newYork = ZoneId.of("America/New_York");
+        when(currentUserZoneIdProvider.requireCurrentUserZoneId()).thenReturn(newYork);
+        LocalDate sourceDate = LocalDate.of(2026, 3, 7);
+        LocalDate targetDate = LocalDate.of(2026, 3, 9);
+        Instant sourceInstant = sourceDate.atTime(1, 30).atZone(newYork).toInstant();
+        diaryService.addWater(sourceDate, new CreateWaterRequest(sourceInstant, new BigDecimal("500"), null));
+
+        DailyLogResponse copied = diaryService.copyDay(
+                targetDate, new CopyDayRequest(sourceDate, UUID.randomUUID()));
+
+        Instant copiedInstant = copied.waterLogs().getFirst().loggedAt();
+        assertThat(copiedInstant.atZone(newYork).toLocalDate()).isEqualTo(targetDate);
+        assertThat(copiedInstant.atZone(newYork).toLocalTime()).isEqualTo(sourceInstant.atZone(newYork).toLocalTime());
+        assertThat(copiedInstant).isEqualTo(Instant.parse("2026-03-09T05:30:00Z"));
     }
 
     @Test

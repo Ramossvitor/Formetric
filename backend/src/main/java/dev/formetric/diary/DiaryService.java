@@ -4,13 +4,15 @@ import dev.formetric.catalog.CatalogNutritionProvider;
 import dev.formetric.catalog.CatalogNutritionResolutionException;
 import dev.formetric.catalog.CatalogNutritionSnapshot;
 import dev.formetric.identity.CurrentUserProvider;
+import dev.formetric.identity.CurrentUserZoneIdProvider;
 import dev.formetric.planning.PlanningDataProvider;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -27,6 +29,7 @@ class DiaryService {
     private final CatalogNutritionProvider catalogNutritionProvider;
     private final PlanningDataProvider planningDataProvider;
     private final CurrentUserProvider currentUserProvider;
+    private final CurrentUserZoneIdProvider currentUserZoneIdProvider;
     private final Clock clock;
     private final JdbcTemplate jdbcTemplate;
 
@@ -36,6 +39,7 @@ class DiaryService {
             CatalogNutritionProvider catalogNutritionProvider,
             PlanningDataProvider planningDataProvider,
             CurrentUserProvider currentUserProvider,
+            CurrentUserZoneIdProvider currentUserZoneIdProvider,
             Clock clock,
             JdbcTemplate jdbcTemplate) {
         this.dailyLogs = dailyLogs;
@@ -43,6 +47,7 @@ class DiaryService {
         this.catalogNutritionProvider = catalogNutritionProvider;
         this.planningDataProvider = planningDataProvider;
         this.currentUserProvider = currentUserProvider;
+        this.currentUserZoneIdProvider = currentUserZoneIdProvider;
         this.clock = clock;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -56,7 +61,9 @@ class DiaryService {
     @Transactional
     DailyLogResponse addMeal(LocalDate date, CreateMealRequest request) {
         UUID userId = currentUserProvider.requireCurrentUser().id();
-        return idempotent(userId, date, request.requestId(), "ADD_MEAL", () -> {
+        String fingerprint = DiaryIdempotencyFingerprint.of(
+                "ADD_MEAL", date, request.name(), request.position(), request.mealTime());
+        return idempotent(userId, date, request.requestId(), "ADD_MEAL", fingerprint, () -> {
             DailyLog log = findOrCreate(userId, date);
             int position = request.position() == null ? log.nextMealPosition() : request.position();
             log.addMeal(request.name(), position, request.mealTime(), clock.instant());
@@ -67,7 +74,9 @@ class DiaryService {
     @Transactional
     DailyLogResponse updateMeal(LocalDate date, UUID mealId, UpdateMealRequest request) {
         DailyLog log = requireOwnedForUpdate(date);
-        log.mealById(mealId).update(request.name(), request.position(), request.mealTime(), clock.instant());
+        Meal meal = log.mealById(mealId);
+        int position = request.position() == null ? meal.position() : request.position();
+        meal.update(request.name(), position, request.mealTime(), clock.instant());
         return response(log);
     }
 
@@ -88,7 +97,10 @@ class DiaryService {
     @Transactional
     DailyLogResponse addItem(LocalDate date, UUID mealId, UpsertMealItemRequest request) {
         UUID userId = currentUserProvider.requireCurrentUser().id();
-        return idempotent(userId, date, request.requestId(), "ADD_ITEM", () -> {
+        String fingerprint = DiaryIdempotencyFingerprint.of(
+                "ADD_ITEM", date, mealId, request.itemType(), request.versionId(), request.quantity(), request.unit(),
+                request.servingOptionId(), request.position(), request.dataQuality(), request.uncertaintyKcal());
+        return idempotent(userId, date, request.requestId(), "ADD_ITEM", fingerprint, () -> {
             DailyLog log = requireLogForUpdate(userId, date);
             Meal meal = log.mealById(mealId);
             ResolvedItem resolved = resolve(request);
@@ -136,7 +148,11 @@ class DiaryService {
     @Transactional
     DailyLogResponse addWater(LocalDate date, CreateWaterRequest request) {
         UUID userId = currentUserProvider.requireCurrentUser().id();
-        return idempotent(userId, date, request.requestId(), "ADD_WATER", () -> {
+        ZoneId timeZone = currentUserZoneIdProvider.requireCurrentUserZoneId();
+        validateWaterDate(date, request.loggedAt(), timeZone);
+        String fingerprint = DiaryIdempotencyFingerprint.of(
+                "ADD_WATER", date, request.loggedAt(), request.volumeMl());
+        return idempotent(userId, date, request.requestId(), "ADD_WATER", fingerprint, () -> {
             DailyLog log = findOrCreate(userId, date);
             log.addWater(request.loggedAt(), request.volumeMl(), clock.instant());
             return log;
@@ -146,6 +162,7 @@ class DiaryService {
     @Transactional
     DailyLogResponse updateWater(LocalDate date, UUID waterId, UpdateWaterRequest request) {
         DailyLog log = requireOwnedForUpdate(date);
+        validateWaterDate(date, request.loggedAt(), currentUserZoneIdProvider.requireCurrentUserZoneId());
         log.waterById(waterId).update(request.loggedAt(), request.volumeMl(), clock.instant());
         return response(log);
     }
@@ -175,7 +192,9 @@ class DiaryService {
     @Transactional
     DailyLogResponse copyMeal(LocalDate targetDate, CopyMealRequest request) {
         UUID userId = currentUserProvider.requireCurrentUser().id();
-        return idempotent(userId, targetDate, request.requestId(), "COPY_MEAL", () -> {
+        String fingerprint = DiaryIdempotencyFingerprint.of(
+                "COPY_MEAL", targetDate, request.sourceDate(), request.sourceMealId());
+        return idempotent(userId, targetDate, request.requestId(), "COPY_MEAL", fingerprint, () -> {
             DailyLog source = requireLog(userId, request.sourceDate());
             Meal sourceMeal = source.mealById(request.sourceMealId());
             DailyLog target = findOrCreate(userId, targetDate);
@@ -190,7 +209,9 @@ class DiaryService {
         if (targetDate.equals(request.sourceDate())) {
             throw new DiaryValidationException("sourceDate", "A origem deve ser diferente do dia de destino.");
         }
-        return idempotent(userId, targetDate, request.requestId(), "COPY_DAY", () -> {
+        ZoneId timeZone = currentUserZoneIdProvider.requireCurrentUserZoneId();
+        String fingerprint = DiaryIdempotencyFingerprint.of("COPY_DAY", targetDate, request.sourceDate());
+        return idempotent(userId, targetDate, request.requestId(), "COPY_DAY", fingerprint, () -> {
             DailyLog source = requireLog(userId, request.sourceDate());
             DailyLog target = findOrCreate(userId, targetDate);
             target.requireOpen();
@@ -199,8 +220,8 @@ class DiaryService {
             }
             Instant now = clock.instant();
             source.meals().forEach(meal -> target.copyMeal(meal, now));
-            long days = ChronoUnit.DAYS.between(request.sourceDate(), targetDate);
-            source.waterLogs().forEach(water -> target.addWater(water.loggedAt().plus(days, ChronoUnit.DAYS), water.volumeMl(), now));
+            source.waterLogs().forEach(water -> target.addWater(
+                    moveToDatePreservingLocalTime(water.loggedAt(), targetDate, timeZone), water.volumeMl(), now));
             return target;
         });
     }
@@ -235,14 +256,21 @@ class DiaryService {
     }
 
     private DailyLogResponse idempotent(
-            UUID userId, LocalDate date, UUID requestId, String operation, Supplier<DailyLog> action) {
+            UUID userId,
+            LocalDate date,
+            UUID requestId,
+            String operation,
+            String payloadFingerprint,
+            Supplier<DailyLog> action) {
         if (requestId != null) {
             acquireIdempotencyLock(userId, requestId);
             var existing = idempotencyKeys.findById(new DiaryIdempotencyId(userId, requestId));
             if (existing.isPresent()) {
                 DiaryIdempotencyKey key = existing.get();
-                if (!operation.equals(key.operation()) || !date.equals(key.logDate())) {
-                    throw new DiaryConflictException("O requestId já foi utilizado em outra operação.");
+                if (!operation.equals(key.operation())
+                        || !date.equals(key.logDate())
+                        || !payloadFingerprint.equals(key.payloadFingerprint())) {
+                    throw new DiaryConflictException("O requestId já foi utilizado com outro alvo ou payload.");
                 }
                 return response(requireLog(userId, date));
             }
@@ -252,7 +280,7 @@ class DiaryService {
         if (requestId != null) {
             try {
                 idempotencyKeys.saveAndFlush(new DiaryIdempotencyKey(
-                        userId, requestId, operation, date, log.id(), clock.instant()));
+                        userId, requestId, operation, date, payloadFingerprint, log.id(), clock.instant()));
             } catch (DataIntegrityViolationException exception) {
                 throw new DiaryConflictException("O requestId já foi processado por outra requisição.");
             }
@@ -266,6 +294,18 @@ class DiaryService {
                 "select pg_advisory_xact_lock(hashtextextended(?, 0)) is null",
                 Boolean.class,
                 key);
+    }
+
+    private static void validateWaterDate(LocalDate diaryDate, Instant loggedAt, ZoneId timeZone) {
+        if (loggedAt == null || !loggedAt.atZone(timeZone).toLocalDate().equals(diaryDate)) {
+            throw new DiaryValidationException(
+                    "loggedAt", "O horário da água deve pertencer à data do diário no fuso do perfil.");
+        }
+    }
+
+    private static Instant moveToDatePreservingLocalTime(Instant source, LocalDate targetDate, ZoneId timeZone) {
+        LocalDateTime targetLocalDateTime = LocalDateTime.of(targetDate, source.atZone(timeZone).toLocalTime());
+        return targetLocalDateTime.atZone(timeZone).toInstant();
     }
 
     private DailyLog findOrCreate(UUID userId, LocalDate date) {

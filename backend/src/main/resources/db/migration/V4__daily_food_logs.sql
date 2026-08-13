@@ -113,12 +113,16 @@ CREATE TABLE diary_idempotency_keys (
     request_id UUID NOT NULL,
     operation VARCHAR(32) NOT NULL,
     log_date DATE NOT NULL,
+    payload_fingerprint VARCHAR(64) NOT NULL,
     resource_id UUID,
     created_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (user_id, request_id),
     CONSTRAINT ck_diary_idempotency_operation CHECK (operation IN (
         'ADD_MEAL', 'ADD_ITEM', 'ADD_WATER', 'COPY_MEAL', 'COPY_DAY'
-    ))
+    )),
+    CONSTRAINT ck_diary_idempotency_fingerprint CHECK (
+        payload_fingerprint ~ '^[0-9a-f]{64}$'
+    )
 );
 
 CREATE INDEX ix_diary_idempotency_created_at ON diary_idempotency_keys (created_at);
