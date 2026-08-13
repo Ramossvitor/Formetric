@@ -33,6 +33,7 @@ CREATE TABLE food_items (
 
 CREATE UNIQUE INDEX uq_food_items_external_identity
     ON food_items (owner_user_id, external_source, external_id)
+    NULLS NOT DISTINCT
     WHERE external_source IS NOT NULL;
 CREATE INDEX ix_food_items_owner ON food_items (owner_user_id, archived);
 

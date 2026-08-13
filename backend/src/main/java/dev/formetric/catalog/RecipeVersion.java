@@ -55,6 +55,7 @@ class RecipeVersion {
 
     void addIngredient(RecipeIngredient ingredient) { ingredients.add(ingredient); }
     UUID id() { return id; }
+    UUID recipeId() { return recipe.id(); }
     int versionNumber() { return versionNumber; }
     String name() { return name; }
     String notes() { return notes; }

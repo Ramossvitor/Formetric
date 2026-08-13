@@ -102,6 +102,7 @@ class FoodVersion {
     }
 
     UUID id() { return id; }
+    UUID foodId() { return food.id(); }
     int versionNumber() { return versionNumber; }
     String name() { return name; }
     String brand() { return brand; }

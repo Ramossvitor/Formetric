@@ -6,8 +6,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -53,11 +55,11 @@ class CatalogService {
         Page<FoodItem> result = foodRepository.search(
                 userId, safeQuery == null ? "" : safeQuery, safeQuery != null,
                 favoriteOnly, includeArchived, PageRequest.of(page, size));
-        Set<UUID> favorites = foodFavorites(userId, result.getContent().stream().map(FoodItem::id).toList());
-        return CatalogPage.from(result, food -> {
-            initializeFood(food);
-            return new FoodView(food, favorites.contains(food.id()));
-        });
+        List<UUID> ids = result.getContent().stream().map(FoodItem::id).toList();
+        Map<UUID, FoodVersion> currentVersions = currentFoodVersions(ids);
+        Set<UUID> favorites = foodFavorites(userId, ids);
+        return CatalogPage.from(result, food -> FoodView.summary(
+                food, requireCurrentFoodVersion(currentVersions, food.id()), favorites.contains(food.id())));
     }
 
     @Transactional(readOnly = true)
@@ -65,7 +67,7 @@ class CatalogService {
         UUID userId = userId();
         FoodItem food = requireVisibleFood(id, userId);
         initializeFood(food);
-        return new FoodView(food, foodFavoriteRepository.existsByUserIdAndFoodId(userId, id));
+        return FoodView.detail(food, foodFavoriteRepository.existsByUserIdAndFoodId(userId, id));
     }
 
     FoodView createFood(
@@ -84,7 +86,7 @@ class CatalogService {
                 stripToNull(externalId),
                 now);
         food.addVersion(new FoodVersion(food, 1, normalized, now), now);
-        return new FoodView(foodRepository.save(food), false);
+        return FoodView.detail(foodRepository.save(food), false);
     }
 
     FoodView addFoodVersion(UUID id, FoodVersionDefinition definition) {
@@ -94,7 +96,7 @@ class CatalogService {
         Instant now = clock.instant();
         food.addVersion(new FoodVersion(food, food.nextVersionNumber(), normalize(definition), now), now);
         foodRepository.save(food);
-        return new FoodView(food, foodFavoriteRepository.existsByUserIdAndFoodId(userId, id));
+        return FoodView.detail(food, foodFavoriteRepository.existsByUserIdAndFoodId(userId, id));
     }
 
     void favoriteFood(UUID id, boolean favorite) {
@@ -123,11 +125,11 @@ class CatalogService {
         Page<Recipe> result = recipeRepository.search(
                 userId, safeQuery == null ? "" : safeQuery, safeQuery != null,
                 favoriteOnly, includeArchived, PageRequest.of(page, size));
-        Set<UUID> favorites = recipeFavorites(userId, result.getContent().stream().map(Recipe::id).toList());
-        return CatalogPage.from(result, recipe -> {
-            initializeRecipe(recipe);
-            return new RecipeView(recipe, favorites.contains(recipe.id()));
-        });
+        List<UUID> ids = result.getContent().stream().map(Recipe::id).toList();
+        Map<UUID, RecipeVersion> currentVersions = currentRecipeVersions(ids);
+        Set<UUID> favorites = recipeFavorites(userId, ids);
+        return CatalogPage.from(result, recipe -> RecipeView.summary(
+                recipe, requireCurrentRecipeVersion(currentVersions, recipe.id()), favorites.contains(recipe.id())));
     }
 
     @Transactional(readOnly = true)
@@ -135,7 +137,7 @@ class CatalogService {
         UUID userId = userId();
         Recipe recipe = requireRecipe(id, userId);
         initializeRecipe(recipe);
-        return new RecipeView(recipe, recipeFavoriteRepository.existsByUserIdAndRecipeId(userId, id));
+        return RecipeView.detail(recipe, recipeFavoriteRepository.existsByUserIdAndRecipeId(userId, id));
     }
 
     RecipeView createRecipe(RecipeVersionDefinition definition) {
@@ -145,7 +147,7 @@ class CatalogService {
         Recipe recipe = new Recipe(userId, now);
         RecipeVersion version = buildRecipeVersion(recipe, 1, normalized, userId, now);
         recipe.addVersion(version, now);
-        return new RecipeView(recipeRepository.save(recipe), false);
+        return RecipeView.detail(recipeRepository.save(recipe), false);
     }
 
     RecipeView addRecipeVersion(UUID id, RecipeVersionDefinition definition) {
@@ -157,7 +159,7 @@ class CatalogService {
                 recipe, recipe.nextVersionNumber(), normalize(definition), userId, now);
         recipe.addVersion(version, now);
         recipeRepository.save(recipe);
-        return new RecipeView(recipe, recipeFavoriteRepository.existsByUserIdAndRecipeId(userId, id));
+        return RecipeView.detail(recipe, recipeFavoriteRepository.existsByUserIdAndRecipeId(userId, id));
     }
 
     RecipeView duplicateRecipe(UUID id) {
@@ -361,6 +363,38 @@ class CatalogService {
         return ids.isEmpty() ? Set.of() : new HashSet<>(recipeFavoriteRepository.findFavoriteIds(userId, ids));
     }
 
+    private Map<UUID, FoodVersion> currentFoodVersions(List<UUID> ids) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return foodVersionRepository.findCurrentByFoodIds(ids).stream().collect(Collectors.toMap(
+                FoodVersion::foodId, version -> version, (first, ignored) -> first));
+    }
+
+    private Map<UUID, RecipeVersion> currentRecipeVersions(List<UUID> ids) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return recipeVersionRepository.findCurrentByRecipeIds(ids).stream().collect(Collectors.toMap(
+                RecipeVersion::recipeId, version -> version, (first, ignored) -> first));
+    }
+
+    private FoodVersion requireCurrentFoodVersion(Map<UUID, FoodVersion> versions, UUID foodId) {
+        FoodVersion version = versions.get(foodId);
+        if (version == null) {
+            throw new IllegalStateException("Alimento listado sem versão atual.");
+        }
+        return version;
+    }
+
+    private RecipeVersion requireCurrentRecipeVersion(Map<UUID, RecipeVersion> versions, UUID recipeId) {
+        RecipeVersion version = versions.get(recipeId);
+        if (version == null) {
+            throw new IllegalStateException("Receita listada sem versão atual.");
+        }
+        return version;
+    }
+
     private void initializeFood(FoodItem food) {
         food.versions().forEach(version -> version.servings().size());
     }
@@ -468,8 +502,27 @@ class CatalogService {
     }
 }
 
-record FoodView(FoodItem food, boolean favorite) {}
-record RecipeView(Recipe recipe, boolean favorite) {}
+record FoodView(FoodItem food, FoodVersion currentVersion, List<FoodVersion> versions, boolean favorite) {
+    static FoodView summary(FoodItem food, FoodVersion currentVersion, boolean favorite) {
+        return new FoodView(food, currentVersion, List.of(), favorite);
+    }
+
+    static FoodView detail(FoodItem food, boolean favorite) {
+        List<FoodVersion> versions = food.versions();
+        return new FoodView(food, versions.getFirst(), versions, favorite);
+    }
+}
+
+record RecipeView(Recipe recipe, RecipeVersion currentVersion, List<RecipeVersion> versions, boolean favorite) {
+    static RecipeView summary(Recipe recipe, RecipeVersion currentVersion, boolean favorite) {
+        return new RecipeView(recipe, currentVersion, List.of(), favorite);
+    }
+
+    static RecipeView detail(Recipe recipe, boolean favorite) {
+        List<RecipeVersion> versions = recipe.versions();
+        return new RecipeView(recipe, versions.getFirst(), versions, favorite);
+    }
+}
 
 record CatalogPage<T>(List<T> content, int page, int size, long totalElements, int totalPages) {
     static <S, T> CatalogPage<T> from(Page<S> source, java.util.function.Function<S, T> mapper) {

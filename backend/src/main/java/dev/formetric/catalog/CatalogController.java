@@ -255,7 +255,7 @@ record FoodSummaryResponse(
     static FoodSummaryResponse from(FoodView view) {
         FoodItem food = view.food();
         return new FoodSummaryResponse(food.id(), food.origin(), food.externalSource(), food.externalId(),
-                food.archived(), view.favorite(), FoodVersionResponse.from(food.currentVersion()),
+                food.archived(), view.favorite(), FoodVersionResponse.from(view.currentVersion()),
                 food.createdAt(), food.updatedAt());
     }
 }
@@ -267,8 +267,8 @@ record FoodDetailResponse(
     static FoodDetailResponse from(FoodView view) {
         FoodItem food = view.food();
         return new FoodDetailResponse(food.id(), food.origin(), food.externalSource(), food.externalId(),
-                food.archived(), view.favorite(), FoodVersionResponse.from(food.currentVersion()),
-                food.versions().stream().map(FoodVersionResponse::from).toList(),
+                food.archived(), view.favorite(), FoodVersionResponse.from(view.currentVersion()),
+                view.versions().stream().map(FoodVersionResponse::from).toList(),
                 food.createdAt(), food.updatedAt());
     }
 }
@@ -304,7 +304,7 @@ record RecipeSummaryResponse(
     static RecipeSummaryResponse from(RecipeView view) {
         Recipe recipe = view.recipe();
         return new RecipeSummaryResponse(recipe.id(), recipe.archived(), view.favorite(),
-                RecipeVersionResponse.from(recipe.currentVersion()), recipe.createdAt(), recipe.updatedAt());
+                RecipeVersionResponse.from(view.currentVersion()), recipe.createdAt(), recipe.updatedAt());
     }
 }
 
@@ -314,8 +314,8 @@ record RecipeDetailResponse(
     static RecipeDetailResponse from(RecipeView view) {
         Recipe recipe = view.recipe();
         return new RecipeDetailResponse(recipe.id(), recipe.archived(), view.favorite(),
-                RecipeVersionResponse.from(recipe.currentVersion()),
-                recipe.versions().stream().map(RecipeVersionResponse::from).toList(),
+                RecipeVersionResponse.from(view.currentVersion()),
+                view.versions().stream().map(RecipeVersionResponse::from).toList(),
                 recipe.createdAt(), recipe.updatedAt());
     }
 }

@@ -125,9 +125,9 @@ class CatalogIntegrationTests {
         authenticate(USER_ONE);
 
         assertEquals("Pão francês", service.listFoods("pao frances", false, false, 0, 20)
-                .content().getFirst().food().currentVersion().name());
+                .content().getFirst().currentVersion().name());
         assertEquals("Whey Protein", service.listFoods("whey bodybuilder", false, false, 0, 20)
-                .content().getFirst().food().currentVersion().name());
+                .content().getFirst().currentVersion().name());
         assertTrue(service.listFoods("banana secreta", false, false, 0, 20).content().isEmpty());
         assertThrows(CatalogNutritionResolutionException.class, () -> nutritionProvider.resolve(
                 CatalogItemType.FOOD, privateFood.food().currentVersion().id(), decimal("100"), CatalogUnit.G, null));
@@ -215,6 +215,17 @@ class CatalogIntegrationTests {
                 INSERT INTO food_items
                     (id, owner_user_id, origin, archived, created_at, updated_at)
                 VALUES (?, NULL, 'USER', false, now(), now())
+                """, UUID.randomUUID()));
+
+        jdbc.update("""
+                INSERT INTO food_items
+                    (id, owner_user_id, origin, external_source, external_id, archived, created_at, updated_at)
+                VALUES (?, NULL, 'SYSTEM', 'taco', '1234', false, now(), now())
+                """, UUID.randomUUID());
+        assertThrows(DataIntegrityViolationException.class, () -> jdbc.update("""
+                INSERT INTO food_items
+                    (id, owner_user_id, origin, external_source, external_id, archived, created_at, updated_at)
+                VALUES (?, NULL, 'SYSTEM', 'taco', '1234', false, now(), now())
                 """, UUID.randomUUID()));
 
         FoodView food = service.createFood(FoodOrigin.USER, null, null,

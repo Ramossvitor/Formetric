@@ -70,6 +70,18 @@ interface FoodVersionRepository extends JpaRepository<FoodVersion, UUID> {
             select distinct version from FoodVersion version
             join fetch version.food food
             left join fetch version.servings
+            where food.id in :foodIds
+              and version.versionNumber = (
+                select max(candidate.versionNumber)
+                from FoodVersion candidate
+                where candidate.food = food)
+            """)
+    List<FoodVersion> findCurrentByFoodIds(@Param("foodIds") Collection<UUID> foodIds);
+
+    @Query("""
+            select distinct version from FoodVersion version
+            join fetch version.food food
+            left join fetch version.servings
             where version.id = :id and (food.ownerUserId = :userId or food.ownerUserId is null)
             """)
     Optional<FoodVersion> findVisibleById(@Param("id") UUID id, @Param("userId") UUID userId);
@@ -128,6 +140,19 @@ interface RecipeRepository extends JpaRepository<Recipe, UUID> {
 }
 
 interface RecipeVersionRepository extends JpaRepository<RecipeVersion, UUID> {
+    @Query("""
+            select distinct version from RecipeVersion version
+            join fetch version.recipe recipe
+            left join fetch version.ingredients ingredient
+            left join fetch ingredient.foodVersion
+            where recipe.id in :recipeIds
+              and version.versionNumber = (
+                select max(candidate.versionNumber)
+                from RecipeVersion candidate
+                where candidate.recipe = recipe)
+            """)
+    List<RecipeVersion> findCurrentByRecipeIds(@Param("recipeIds") Collection<UUID> recipeIds);
+
     @Query("""
             select distinct version from RecipeVersion version
             join fetch version.recipe recipe
