@@ -9,7 +9,7 @@ import { Icon, type IconName } from '../components/Icon'
 const navigation: Array<{ label: string; icon: IconName; to: string }> = [
   { label: 'Hoje', icon: 'home', to: '/' },
   { label: 'Diário', icon: 'book', to: '/diary' },
-  { label: 'Evolução', icon: 'trend', to: '/progress/weight' },
+  { label: 'Evolução', icon: 'trend', to: '/progress/evaluations' },
   { label: 'Perfil', icon: 'settings', to: '/profile' },
 ]
 
@@ -19,6 +19,7 @@ const catalogNavigation: Array<{ label: string; icon: IconName; to: string }> = 
 ]
 
 const trackingNavigation: Array<{ label: string; icon: IconName; to: string }> = [
+  { label: 'Peso', icon: 'scale', to: '/progress/weight' },
   { label: 'Treinos', icon: 'activity', to: '/workouts' },
 ]
 
@@ -165,6 +166,7 @@ export function AuthenticatedLayout() {
                 <Link onClick={() => setQuickAddOpen(false)} to="/diary?action=quick"><Icon name="food" /><span><strong>Alimentação ou água</strong><small>Abrir cadastro do diário</small></span></Link>
                 <Link onClick={() => setQuickAddOpen(false)} to="/workouts?action=new"><Icon name="activity" /><span><strong>Treino</strong><small>Registrar uma sessão</small></span></Link>
                 <Link onClick={() => setQuickAddOpen(false)} to="/progress/weight?action=new"><Icon name="scale" /><span><strong>Peso</strong><small>Adicionar a pesagem do dia</small></span></Link>
+                <Link onClick={() => setQuickAddOpen(false)} to="/progress/evaluations/new"><Icon name="trend" /><span><strong>Avaliação corporal</strong><small>Criar um snapshot de medidas</small></span></Link>
               </div>
             </section>
           </div>

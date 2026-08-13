@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
@@ -19,6 +19,14 @@ import './App.css'
 
 const WeightProgressPage = lazy(() => import('./pages/WeightProgressPage').then((module) => ({ default: module.WeightProgressPage })))
 const WorkoutsPage = lazy(() => import('./pages/WorkoutsPage').then((module) => ({ default: module.WorkoutsPage })))
+const BodyEvaluationsPage = lazy(() => import('./pages/BodyEvaluationsPage').then((module) => ({ default: module.BodyEvaluationsPage })))
+const NewBodyEvaluationPage = lazy(() => import('./pages/NewBodyEvaluationPage').then((module) => ({ default: module.NewBodyEvaluationPage })))
+const BodyEvaluationDetailPage = lazy(() => import('./pages/BodyEvaluationDetailPage').then((module) => ({ default: module.BodyEvaluationDetailPage })))
+const BodyEvaluationComparisonPage = lazy(() => import('./pages/BodyEvaluationComparisonPage').then((module) => ({ default: module.BodyEvaluationComparisonPage })))
+
+function LazyRoute({ label, children }: { label: string; children: ReactNode }) {
+  return <Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando {label}…</p></div>}>{children}</Suspense>
+}
 
 function App() {
   return (
@@ -30,11 +38,15 @@ function App() {
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<HomePage />} />
           <Route element={<DiaryPage />} path="diary" />
-          <Route element={<Navigate replace to="/progress/weight" />} path="progress" />
+          <Route element={<Navigate replace to="/progress/evaluations" />} path="progress" />
           <Route
             element={<Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando peso…</p></div>}><WeightProgressPage /></Suspense>}
             path="progress/weight"
           />
+          <Route element={<LazyRoute label="avaliações"><BodyEvaluationsPage /></LazyRoute>} path="progress/evaluations" />
+          <Route element={<LazyRoute label="nova avaliação"><NewBodyEvaluationPage /></LazyRoute>} path="progress/evaluations/new" />
+          <Route element={<LazyRoute label="comparação"><BodyEvaluationComparisonPage /></LazyRoute>} path="progress/evaluations/compare" />
+          <Route element={<LazyRoute label="avaliação"><BodyEvaluationDetailPage /></LazyRoute>} path="progress/evaluations/:id" />
           <Route
             element={<Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando treinos…</p></div>}><WorkoutsPage /></Suspense>}
             path="workouts"

@@ -245,6 +245,22 @@ export function ProfilePage() {
           </Link>
         </nav>
       </section>
+
+      <section className="profile-card settings-card surface-card" aria-labelledby="body-settings-title">
+        <div className="section-heading profile-section-heading">
+          <div><p className="eyebrow">Evolução</p><h2 id="body-settings-title">Corpo e medidas</h2></div>
+        </div>
+        <nav aria-label="Acompanhamento corporal" className="settings-link-list">
+          <Link className="settings-link" to="/progress/evaluations">
+            <span><strong>Avaliações corporais</strong><small>Snapshots, protocolos, laudos e comparações.</small></span>
+            <span aria-hidden="true">›</span>
+          </Link>
+          <Link className="settings-link" to="/progress/weight">
+            <span><strong>Histórico de peso</strong><small>Pesagens, médias móveis e tendência.</small></span>
+            <span aria-hidden="true">›</span>
+          </Link>
+        </nav>
+      </section>
     </main>
   )
 }
