@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { clearCsrfToken } from '../api/http'
+import { analyticsQueryKey } from '../analytics/queries'
 import type { WeightLog, WeightOverview, Workout } from './api'
 
 const session = {
@@ -61,11 +62,12 @@ function notFound() {
 
 function renderApp(route: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}><App /></MemoryRouter>
     </QueryClientProvider>,
   )
+  return { ...view, queryClient }
 }
 
 beforeEach(() => {
@@ -112,7 +114,9 @@ describe('treinos', () => {
       throw new Error(`Requisição não esperada: ${path}`)
     })
     const user = userEvent.setup()
-    renderApp('/workouts')
+    const analyticsKey = [...analyticsQueryKey, 'monthly', '2026-08'] as const
+    const { queryClient } = renderApp('/workouts')
+    queryClient.setQueryData(analyticsKey, { workouts: { sessionCount: 0 } })
 
     await user.click((await screen.findAllByRole('button', { name: 'Registrar treino' }))[0])
     const dialog = screen.getByRole('dialog', { name: 'Registrar treino' })
@@ -138,6 +142,7 @@ describe('treinos', () => {
 
     resolveRetry(jsonResponse(workouts[0], { status: 201 }))
     expect(await screen.findByRole('heading', { name: 'Treino idempotente' })).toBeInTheDocument()
+    expect(queryClient.getQueryState(analyticsKey)?.isInvalidated).toBe(true)
   })
 
   it('valida grupos de musculação no campo e restaura o foco ao fechar', async () => {

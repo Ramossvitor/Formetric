@@ -7,6 +7,7 @@ import { dateDaysAgo, formatDate, formatNumber, formatSignedWeight, localIsoDate
 import { weightLogsQueryKey, weightOverviewQuery } from '../activity/queries'
 import { WeightForm } from '../activity/WeightForm'
 import { getErrorMessage } from '../api/http'
+import { invalidateAnalytics } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 
 interface DateRange {
@@ -34,13 +35,21 @@ export function WeightProgressPage() {
   const save = useMutation({
     mutationFn: ({ date, input }: { date: string; input: WeightLogInput }) => upsertWeightLog(date, input),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: weightLogsQueryKey })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: weightLogsQueryKey }),
+        invalidateAnalytics(queryClient),
+      ])
       setEditor(null)
     },
   })
   const remove = useMutation({
     mutationFn: deleteWeightLog,
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey: weightLogsQueryKey }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: weightLogsQueryKey }),
+        invalidateAnalytics(queryClient),
+      ])
+    },
   })
 
   useEffect(() => {

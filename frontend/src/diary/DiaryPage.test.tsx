@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { clearCsrfToken } from '../api/http'
+import { analyticsQueryKey } from '../analytics/queries'
 
 const session = {
   authenticated: true,
@@ -65,7 +66,8 @@ function notFound() {
 
 function renderDiary(route = '/diary?date=2026-08-12') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  return render(<QueryClientProvider client={queryClient}><MemoryRouter initialEntries={[route]}><App /></MemoryRouter></QueryClientProvider>)
+  const view = render(<QueryClientProvider client={queryClient}><MemoryRouter initialEntries={[route]}><App /></MemoryRouter></QueryClientProvider>)
+  return { ...view, queryClient }
 }
 
 beforeEach(() => {
@@ -86,7 +88,9 @@ describe('diário', () => {
       throw new Error(`Requisição não esperada: ${path}`)
     })
     const user = userEvent.setup()
-    renderDiary()
+    const analyticsKey = [...analyticsQueryKey, 'daily', '2026-08-12'] as const
+    const { queryClient } = renderDiary()
+    queryClient.setQueryData(analyticsKey, { nutrition: { caloriesKcal: 0 } })
 
     expect(await screen.findByRole('heading', { name: 'Nenhum registro neste dia' })).toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Adicionar refeição' }).at(-1)!)
@@ -97,6 +101,7 @@ describe('diário', () => {
     const call = fetchMock.mock.calls.find(([path, init]) => path === '/api/v1/daily-logs/2026-08-12/meals' && init?.method === 'POST')
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({ name: 'Almoço', mealTime: null, position: null, requestId: '11111111-1111-4111-8111-111111111111' })
     expect(new Headers(call?.[1]?.headers).get('X-XSRF-TOKEN')).toBe('diary-csrf')
+    expect(queryClient.getQueryState(analyticsKey)?.isInvalidated).toBe(true)
   })
 
   it('adiciona item usando servingOptionId e snapshot retornado', async () => {

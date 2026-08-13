@@ -23,6 +23,8 @@ const BodyEvaluationsPage = lazy(() => import('./pages/BodyEvaluationsPage').the
 const NewBodyEvaluationPage = lazy(() => import('./pages/NewBodyEvaluationPage').then((module) => ({ default: module.NewBodyEvaluationPage })))
 const BodyEvaluationDetailPage = lazy(() => import('./pages/BodyEvaluationDetailPage').then((module) => ({ default: module.BodyEvaluationDetailPage })))
 const BodyEvaluationComparisonPage = lazy(() => import('./pages/BodyEvaluationComparisonPage').then((module) => ({ default: module.BodyEvaluationComparisonPage })))
+const MonthlyAnalyticsPage = lazy(() => import('./pages/MonthlyAnalyticsPage').then((module) => ({ default: module.MonthlyAnalyticsPage })))
+const AnalyticsChartsPage = lazy(() => import('./pages/AnalyticsChartsPage').then((module) => ({ default: module.AnalyticsChartsPage })))
 
 function LazyRoute({ label, children }: { label: string; children: ReactNode }) {
   return <Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando {label}…</p></div>}>{children}</Suspense>
@@ -47,6 +49,9 @@ function App() {
           <Route element={<LazyRoute label="nova avaliação"><NewBodyEvaluationPage /></LazyRoute>} path="progress/evaluations/new" />
           <Route element={<LazyRoute label="comparação"><BodyEvaluationComparisonPage /></LazyRoute>} path="progress/evaluations/compare" />
           <Route element={<LazyRoute label="avaliação"><BodyEvaluationDetailPage /></LazyRoute>} path="progress/evaluations/:id" />
+          <Route element={<Navigate replace to="/analytics/monthly" />} path="analytics" />
+          <Route element={<LazyRoute label="resumo mensal"><MonthlyAnalyticsPage /></LazyRoute>} path="analytics/monthly" />
+          <Route element={<LazyRoute label="gráficos"><AnalyticsChartsPage /></LazyRoute>} path="analytics/charts" />
           <Route
             element={<Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando treinos…</p></div>}><WorkoutsPage /></Suspense>}
             path="workouts"

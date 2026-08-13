@@ -7,6 +7,7 @@ import { dateDaysAgo, formatDate, formatDuration, formatNumber, localIsoDate, mo
 import { workoutsQuery, workoutsQueryKey } from '../activity/queries'
 import { WorkoutForm } from '../activity/WorkoutForm'
 import { getErrorMessage } from '../api/http'
+import { invalidateAnalytics } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 
 interface DateRange {
@@ -35,13 +36,21 @@ export function WorkoutsPage() {
       ? updateWorkout(command.workout, command.input)
       : createWorkout(command.input, command.requestId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: workoutsQueryKey })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: workoutsQueryKey }),
+        invalidateAnalytics(queryClient),
+      ])
       setEditor(null)
     },
   })
   const remove = useMutation({
     mutationFn: deleteWorkout,
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey: workoutsQueryKey }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: workoutsQueryKey }),
+        invalidateAnalytics(queryClient),
+      ])
+    },
   })
 
   useEffect(() => {

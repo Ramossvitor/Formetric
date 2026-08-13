@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { ApiError, getErrorMessage } from '../api/http'
+import { invalidateAnalytics } from '../analytics/queries'
 import { createTdeePeriod } from '../planning/api'
 import { formatValidity, todayAsLocalIsoDate } from '../planning/format'
 import { PlanningError, PlanningLoading } from '../planning/PlanningState'
@@ -32,7 +33,10 @@ export function TdeeSettingsPage() {
   const createPeriod = useMutation({
     mutationFn: createTdeePeriod,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tdeePeriodsQueryKey })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tdeePeriodsQueryKey }),
+        invalidateAnalytics(queryClient),
+      ])
       reset({ validFrom: today, kcalPerDay: defaultTdee })
     },
     onError: (error) => {

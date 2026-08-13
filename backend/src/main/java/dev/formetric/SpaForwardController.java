@@ -23,6 +23,8 @@ class SpaForwardController {
             "/diary",
             "/workouts",
             "/workouts/**",
+            "/analytics",
+            "/analytics/**",
             "/progress",
             "/progress/**"
     })

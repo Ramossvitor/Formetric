@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { ApiError, getErrorMessage } from '../api/http'
+import { invalidateAnalytics } from '../analytics/queries'
 import { createNutritionGoalPeriod } from '../planning/api'
 import { formatValidity, goalSummaries, todayAsLocalIsoDate } from '../planning/format'
 import { PlanningError, PlanningLoading } from '../planning/PlanningState'
@@ -56,7 +57,10 @@ export function NutritionGoalsPage() {
   const createPeriod = useMutation({
     mutationFn: createNutritionGoalPeriod,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: nutritionGoalPeriodsQueryKey })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: nutritionGoalPeriodsQueryKey }),
+        invalidateAnalytics(queryClient),
+      ])
       reset({ validFrom: today, ...nutritionDefaults })
     },
     onError: (error) => {

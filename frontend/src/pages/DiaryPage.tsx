@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
+import { invalidateAnalytics } from '../analytics/queries'
 import { qualityLabels, unitLabels } from '../catalog/format'
 import {
   addMealItem,
@@ -72,6 +73,7 @@ export function DiaryPage() {
 
   function commit(log: DailyLog) {
     queryClient.setQueryData(queryKey, log)
+    void invalidateAnalytics(queryClient)
   }
 
   const addMeal = useMutation({

@@ -1,94 +1,136 @@
+import { useQuery } from '@tanstack/react-query'
+import { type CSSProperties, type ReactNode, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { getErrorMessage } from '../api/http'
+import type { DailyAnalytics, GoalProgress, NutrientType } from '../analytics/api'
+import { diaryStatusLabels, formatDuration, formatLongDate, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels } from '../analytics/format'
+import { analyticsBoundsQuery, dailyAnalyticsQuery } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 
-const macros = [
-  { label: 'Proteína', value: '162', target: '175 g', progress: 93, tone: 'green' },
-  { label: 'Carboidratos', value: '178', target: '210 g', progress: 85, tone: 'blue' },
-  { label: 'Gorduras', value: '58', target: '65 g', progress: 89, tone: 'orange' },
-  { label: 'Fibras', value: '24', target: '30 g', progress: 80, tone: 'purple' },
+const macroDefinitions: Array<{
+  nutrient: Exclude<NutrientType, 'WATER'>
+  key: 'proteinG' | 'carbohydrateG' | 'fatG' | 'fiberG'
+  tone: string
+}> = [
+  { nutrient: 'PROTEIN', key: 'proteinG', tone: 'green' },
+  { nutrient: 'CARBOHYDRATE', key: 'carbohydrateG', tone: 'blue' },
+  { nutrient: 'FAT', key: 'fatG', tone: 'orange' },
+  { nutrient: 'FIBER', key: 'fiberG', tone: 'purple' },
 ]
 
-export function HomePage() {
-  return (
-    <main id="conteudo">
-      <header className="page-heading">
-        <div>
-          <p className="eyebrow">Resumo diário</p>
-          <h1>Hoje</h1>
-          <p className="heading-copy">Uma visão clara do seu progresso.</p>
-        </div>
-        <button className="date-button" type="button">
-          <Icon name="calendar" />
-          Selecionar data
-          <Icon name="chevron" size={16} />
-        </button>
-      </header>
+function DailyStatus({ data }: { data: DailyAnalytics }) {
+  const detail = data.diaryStatus === 'OPEN'
+    ? 'Os valores são parciais e ainda não entram no histórico.'
+    : data.diaryStatus === 'CLOSED'
+      ? data.fastingConfirmed ? 'Jejum confirmado e elegível para o histórico.' : 'Valores confirmados no histórico.'
+      : 'Registre ou confirme o diário para calcular o dia.'
 
-      <div className="demo-notice" role="note">
-        <span className="notice-icon"><Icon name="sparkle" size={16} /></span>
-        <span><strong>Prévia da interface.</strong> Todos os valores abaixo são ilustrativos.</span>
+  return (
+    <div className={`analytics-context analytics-context-${data.diaryStatus.toLowerCase()}`} role="note">
+      <strong>{diaryStatusLabels[data.diaryStatus]}</strong>
+      <span>{detail}</span>
+    </div>
+  )
+}
+
+function MissingValue({ children }: { children: ReactNode }) {
+  return <span className="analytics-missing">{children}</span>
+}
+
+function MacroRow({ data, goal, nutrient, nutritionKey, tone }: {
+  data: DailyAnalytics
+  goal: GoalProgress | undefined
+  nutrient: Exclude<NutrientType, 'WATER'>
+  nutritionKey: 'proteinG' | 'carbohydrateG' | 'fatG' | 'fiberG'
+  tone: string
+}) {
+  const value = data.nutrition[nutritionKey]
+  const state = goal?.bandLabel ?? (goal ? 'Fora das faixas configuradas' : 'Sem meta configurada')
+
+  return (
+    <div className="macro-item">
+      <div className="macro-meta">
+        <span>{nutrientLabels[nutrient]}</span>
+        <span>{value == null ? 'Não informado' : <><strong>{formatNumber(value, 1)}</strong> g</>}</span>
       </div>
+      <div className="daily-goal-state">
+        <span aria-hidden="true" className={`goal-state-dot ${goal?.attained === true ? 'attained' : goal?.attained === false ? 'not-attained' : tone}`} />
+        <span>{state}</span>
+        {goal?.attained != null ? <strong>{goal.attained ? 'atingida' : 'fora da meta'}</strong> : null}
+      </div>
+    </div>
+  )
+}
+
+function DailyDashboard({ data }: { data: DailyAnalytics }) {
+  const calories = data.nutrition.caloriesKcal
+  const caloriePercent = calories != null && data.calorieTargetKcal != null && data.calorieTargetKcal > 0
+    ? Math.min(100, Math.max(0, (calories / data.calorieTargetKcal) * 100))
+    : 0
+  const waterGoal = data.goalProgress.find((goal) => goal.nutrient === 'WATER')
+  const waterLiters = data.nutrition.waterMl == null ? null : data.nutrition.waterMl / 1000
+  const balance = data.energyBalanceKcal ?? data.projectedEnergyBalanceKcal
+  const projected = data.projectedEnergyBalanceKcal != null
+  const workoutLabel = data.workouts.sessionCount === 0
+    ? 'Nenhum treino'
+    : data.workouts.modalities.length > 0
+      ? data.workouts.modalities.map(formatWorkoutModality).join(' · ')
+      : `${data.workouts.sessionCount} sessão${data.workouts.sessionCount === 1 ? '' : 'ões'}`
+
+  return (
+    <>
+      <DailyStatus data={data} />
 
       <section aria-labelledby="resumo-nutricional" className="nutrition-card surface-card">
         <div className="calorie-summary">
           <div className="section-heading">
-            <div>
-              <p className="eyebrow">Consumido</p>
-              <h2 id="resumo-nutricional">Nutrição de hoje</h2>
-            </div>
-            <span className="status-chip">No ritmo</span>
+            <div><p className="eyebrow">Consumido</p><h2 id="resumo-nutricional">Nutrição do dia</h2></div>
+            <span className={`status-chip daily-status-${data.diaryStatus.toLowerCase()}`}>{diaryStatusLabels[data.diaryStatus]}</span>
           </div>
 
           <div
-            aria-label="1.850 de 2.500 quilocalorias consumidas"
-            aria-valuemax={2500}
+            aria-label={calories == null ? 'Calorias não informadas' : `${formatNumber(calories)} quilocalorias consumidas`}
+            aria-valuemax={data.calorieTargetKcal ?? undefined}
             aria-valuemin={0}
-            aria-valuenow={1850}
-            className="calorie-progress"
-            role="progressbar"
+            aria-valuenow={calories ?? undefined}
+            className={`calorie-progress ${data.calorieTargetKcal == null ? 'without-target' : ''}`}
+            role={calories == null ? undefined : 'progressbar'}
+            style={{ '--calorie-progress': `${caloriePercent}%` } as CSSProperties}
           >
             <div className="calorie-progress-inner">
-              <strong>1.850</strong>
-              <span>de 2.500 kcal</span>
+              {calories == null ? <MissingValue>Sem registro</MissingValue> : <strong>{formatNumber(calories)}</strong>}
+              <span>{data.calorieTargetKcal == null ? 'meta não configurada' : `de ${formatNumber(data.calorieTargetKcal)} kcal`}</span>
             </div>
           </div>
 
           <div className="energy-balance">
             <span className="balance-icon"><Icon name="trend" size={18} /></span>
             <span>
-              <small>Saldo previsto</small>
-              <strong>−1.150 kcal</strong>
+              <small>{projected ? 'Saldo previsto' : 'Saldo fechado'}</small>
+              {balance == null
+                ? <MissingValue>{data.energyBalanceAvailability === 'MISSING_TDEE' ? 'Configure o TDEE' : 'Ainda indisponível'}</MissingValue>
+                : <strong>{formatSigned(balance, 'kcal')}</strong>}
             </span>
-            <span className="estimate-label">estimativa</span>
+            <span className="estimate-label">{projected ? 'projeção' : data.historicalEligible ? 'confirmado' : 'pendente'}</span>
           </div>
+          <p className="daily-tdee">TDEE vigente: {data.tdeeKcal == null ? <strong>não configurado</strong> : <strong>{formatNumber(data.tdeeKcal)} kcal</strong>}</p>
         </div>
 
         <div className="macro-summary">
           <div className="section-heading compact">
-            <div>
-              <p className="eyebrow">Macronutrientes</p>
-              <h2>Metas do dia</h2>
-            </div>
-            <button className="text-button" type="button">Ver diário</button>
+            <div><p className="eyebrow">Nutrientes</p><h2>Classificação das metas</h2></div>
+            <Link className="text-button" to={`/diary?date=${data.date}`}>Ver diário</Link>
           </div>
-
           <div className="macro-list">
-            {macros.map((macro) => (
-              <div className="macro-item" key={macro.label}>
-                <div className="macro-meta">
-                  <span>{macro.label}</span>
-                  <span><strong>{macro.value}</strong> / {macro.target}</span>
-                </div>
-                <div
-                  aria-label={`${macro.label}: ${macro.progress}% da meta`}
-                  aria-valuemax={100}
-                  aria-valuemin={0}
-                  aria-valuenow={macro.progress}
-                  className="linear-progress"
-                  role="progressbar"
-                >
-                  <span className={`progress-fill ${macro.tone}`} style={{ width: `${macro.progress}%` }} />
-                </div>
-              </div>
+            {macroDefinitions.map((macro) => (
+              <MacroRow
+                data={data}
+                goal={data.goalProgress.find((goal) => goal.nutrient === macro.nutrient)}
+                key={macro.nutrient}
+                nutrient={macro.nutrient}
+                nutritionKey={macro.key}
+                tone={macro.tone}
+              />
             ))}
           </div>
         </div>
@@ -96,73 +138,82 @@ export function HomePage() {
 
       <section aria-labelledby="panorama" className="overview-section">
         <div className="section-title-row">
-          <div>
-            <p className="eyebrow">Panorama</p>
-            <h2 id="panorama">O restante do seu dia</h2>
-          </div>
-          <button className="text-button desktop-only" type="button">Ver detalhes</button>
+          <div><p className="eyebrow">Panorama</p><h2 id="panorama">Demais registros do dia</h2></div>
+          <Link className="text-button desktop-only" to="/analytics/monthly">Ver mês</Link>
         </div>
-
         <div className="overview-grid">
           <article className="metric-card water-card">
             <div className="metric-icon blue"><Icon name="droplet" /></div>
             <div className="metric-copy">
               <span className="metric-label">Água</span>
-              <strong>3,3 <small>/ 4,4 L</small></strong>
-              <span className="metric-note">Faltam 1,1 L para a meta</span>
+              {waterLiters == null ? <MissingValue>Não registrada</MissingValue> : <strong>{formatNumber(waterLiters, 2)} <small>L</small></strong>}
+              <span className="metric-note">{waterGoal?.bandLabel ?? 'Meta não configurada'}{waterGoal?.attained === true ? ' · atingida' : ''}</span>
             </div>
-            <button aria-label="Adicionar água" className="card-action" type="button">
-              <Icon name="plus" size={18} />
-            </button>
-            <div aria-hidden="true" className="water-progress"><span /></div>
+            <Link aria-label="Registrar água no diário" className="card-action" to={`/diary?date=${data.date}&action=quick`}><Icon name="plus" size={18} /></Link>
           </article>
 
           <article className="metric-card">
             <div className="metric-icon orange"><Icon name="activity" /></div>
             <div className="metric-copy">
               <span className="metric-label">Treino</span>
-              <strong className="metric-title">Peito + Bíceps</strong>
-              <span className="metric-note">1h10 · concluído</span>
+              <strong className="metric-title">{workoutLabel}</strong>
+              <span className="metric-note">{data.workouts.sessionCount === 0 ? 'Nenhuma sessão registrada' : `${formatDuration(data.workouts.totalDurationMinutes)} · ${data.workouts.sessionCount} sessão${data.workouts.sessionCount === 1 ? '' : 'ões'}`}</span>
             </div>
-            <span className="complete-mark" aria-label="Concluído">✓</span>
+            <Link aria-label="Abrir treinos" className="card-action ghost" to="/workouts"><Icon name="chevron" size={18} /></Link>
           </article>
 
           <article className="metric-card">
             <div className="metric-icon purple"><Icon name="scale" /></div>
             <div className="metric-copy">
               <span className="metric-label">Peso</span>
-              <strong>89,8 <small>kg</small></strong>
-              <span className="metric-note positive">↓ 0,4 kg nos últimos 7 dias</span>
+              {data.weightKg == null ? <MissingValue>Não registrado</MissingValue> : <strong>{formatNumber(data.weightKg, 2)} <small>kg</small></strong>}
+              <span className="metric-note">Pesagem oficial nesta data</span>
             </div>
-            <button aria-label="Ver evolução do peso" className="card-action ghost" type="button">
-              <Icon name="chevron" size={18} />
-            </button>
+            <Link aria-label="Ver evolução do peso" className="card-action ghost" to="/progress/weight"><Icon name="chevron" size={18} /></Link>
           </article>
 
-          <article className="metric-card cycle-card">
-            <div className="metric-copy cycle-copy">
-              <span className="metric-label">Ciclo atual</span>
-              <strong>28 de 35 dias</strong>
-              <span className="metric-note">91,5 kg → 89,8 kg</span>
+          <article className="metric-card analytics-links-card">
+            <div className="metric-icon green"><Icon name="trend" /></div>
+            <div className="metric-copy">
+              <span className="metric-label">Análises</span>
+              <strong className="metric-title">Entenda a evolução</strong>
+              <span className="metric-note">Consolidados e séries históricas</span>
             </div>
-            <div
-              aria-label="Ciclo atual: 28 de 35 dias"
-              aria-valuemax={35}
-              aria-valuemin={0}
-              aria-valuenow={28}
-              className="cycle-progress"
-              role="progressbar"
-            >
-              <span />
-            </div>
-            <span className="cycle-percent">80%</span>
+            <div className="analytics-card-links"><Link to="/analytics/monthly">Mês</Link><Link to="/analytics/charts">Gráficos</Link></div>
           </article>
         </div>
       </section>
+    </>
+  )
+}
 
-      <p className="preview-footnote">
-        Esta tela é uma demonstração visual; nenhum dado foi registrado ou calculado.
-      </p>
+export function HomePage() {
+  const [selectedDate, setSelectedDate] = useState<string>()
+  const bounds = useQuery(analyticsBoundsQuery)
+  const date = selectedDate ?? bounds.data?.today
+  const daily = useQuery(dailyAnalyticsQuery(date))
+  const pending = bounds.isPending || (Boolean(date) && daily.isPending)
+  const error = bounds.error ?? daily.error
+
+  return (
+    <main id="conteudo">
+      <header className="page-heading analytics-page-heading">
+        <div>
+          <p className="eyebrow">Resumo diário</p>
+          <h1>{date === bounds.data?.today ? 'Hoje' : date ? formatLongDate(date) : 'Hoje'}</h1>
+          <p className="heading-copy">Dados registrados, cálculos do sistema e disponibilidade explícita.</p>
+        </div>
+        <label className="analytics-date-control">
+          <span>Data do resumo</span>
+          <input max={bounds.data?.today} onChange={(event) => setSelectedDate(event.target.value)} type="date" value={date ?? ''} />
+        </label>
+      </header>
+
+      {pending ? (
+        <div className="catalog-state" role="status"><span className="route-spinner" /><p>Calculando o resumo diário…</p></div>
+      ) : error ? (
+        <div className="catalog-state" role="alert"><p>{getErrorMessage(error)}</p><button className="secondary-button" onClick={() => { if (bounds.isError) void bounds.refetch(); else void daily.refetch() }} type="button">Tentar novamente</button></div>
+      ) : daily.data ? <DailyDashboard data={daily.data} /> : null}
     </main>
   )
 }

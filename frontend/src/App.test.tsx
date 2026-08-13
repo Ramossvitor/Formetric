@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter } from 'react-router-dom'
 import App from './App'
 import { clearCsrfToken } from './api/http'
 import type { AuthSession } from './auth/api'
@@ -15,6 +15,32 @@ const authenticatedSession = {
     displayName: 'Vitor Ramos',
     role: 'USER',
   },
+}
+
+const analyticsBounds = { earliestDate: null, latestDate: null, today: '2026-08-13' }
+
+const emptyDailyAnalytics = {
+  date: '2026-08-13',
+  diaryStatus: 'MISSING',
+  fastingConfirmed: false,
+  historicalEligible: false,
+  foodItemCount: 0,
+  waterEntryCount: 0,
+  nutrition: { caloriesKcal: null, proteinG: null, carbohydrateG: null, fatG: null, fiberG: null, waterMl: null },
+  tdeeKcal: null,
+  energyBalanceKcal: null,
+  projectedEnergyBalanceKcal: null,
+  energyBalanceAvailability: 'MISSING_LOG',
+  calorieTargetKcal: null,
+  goalProgress: [],
+  weightKg: null,
+  workouts: { sessionCount: 0, trainingDays: 0, totalDurationMinutes: 0, sessionsPerWeek: null, modalities: [] },
+}
+
+function analyticsResponse(path: string) {
+  if (path === '/api/v1/analytics/bounds') return jsonResponse(analyticsBounds)
+  if (path === '/api/v1/analytics/daily?date=2026-08-13') return jsonResponse(emptyDailyAnalytics)
+  return undefined
 }
 
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
@@ -32,21 +58,43 @@ function unauthorizedResponse() {
   )
 }
 
-function renderApp(route: string) {
+function renderApp(route: string, prepare?: (queryClient: QueryClient) => void) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   })
+  prepare?.(queryClient)
 
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>
         <App />
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  return { ...view, queryClient }
+}
+
+function renderBrowserApp(route: string, prepare?: (queryClient: QueryClient) => void) {
+  window.history.replaceState(null, '', route)
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+  prepare?.(queryClient)
+
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>,
+  )
+  return { ...view, queryClient }
 }
 
 function LogoutHarness() {
@@ -62,6 +110,7 @@ function LogoutHarness() {
 beforeEach(() => {
   clearCsrfToken()
   vi.restoreAllMocks()
+  window.history.replaceState(null, '', '/')
 })
 
 describe('autenticação', () => {
@@ -84,6 +133,8 @@ describe('autenticação', () => {
       const path = String(input)
 
       if (path === '/api/v1/auth/session') return unauthorizedResponse()
+      const analytics = analyticsResponse(path)
+      if (analytics) return analytics
       if (path === '/api/v1/auth/csrf') {
         return jsonResponse({ token: 'csrf-login-token', headerName: 'X-XSRF-TOKEN' })
       }
@@ -95,7 +146,11 @@ describe('autenticação', () => {
     })
     const user = userEvent.setup()
 
-    renderApp('/login')
+    const oldPrivateKey = ['analytics', 'monthly', 'old-account'] as const
+    const { queryClient } = renderApp('/login', (client) => {
+      client.setQueryData(oldPrivateKey, { netBalanceKcal: -9999 })
+      client.setQueryData(['profile'], { displayName: 'Conta anterior' })
+    })
     await screen.findByRole('heading', { name: 'Acesse sua conta' })
     await user.type(screen.getByLabelText('E-mail'), 'vitor@example.com')
     await user.type(screen.getByLabelText('Senha'), 'senha-super-segura')
@@ -113,12 +168,17 @@ describe('autenticação', () => {
       }),
     )
     expect(new Headers(loginCall?.[1]?.headers).get('X-XSRF-TOKEN')).toBe('csrf-login-token')
+    expect(queryClient.getQueryData(oldPrivateKey)).toBeUndefined()
+    expect(queryClient.getQueryData(['profile'])).toBeUndefined()
+    expect(queryClient.getQueryData(sessionQuery.queryKey)).toEqual(authenticatedSession)
   })
 
   it('aceita um convite usando o token da URL sem persistir a senha', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
 
+      const analytics = analyticsResponse(path)
+      if (analytics) return analytics
       if (path === '/api/v1/auth/csrf') {
         return jsonResponse({ token: 'csrf-invite-token', headerName: 'X-XSRF-TOKEN' })
       }
@@ -130,7 +190,13 @@ describe('autenticação', () => {
     })
     const user = userEvent.setup()
 
-    renderApp('/accept-invite?token=convite-unico')
+    const oldPrivateKey = ['analytics', 'daily', 'old-account'] as const
+    const { queryClient } = renderBrowserApp('/accept-invite#token=convite-unico', (client) => {
+      client.setQueryData(oldPrivateKey, { weightKg: 123 })
+      client.setQueryData(['activity', 'weight-logs'], [{ weightKg: 123 }])
+    })
+    await waitFor(() => expect(window.location.hash).toBe(''))
+    expect(window.location.search).toBe('')
     await user.type(screen.getByLabelText('Nome'), 'Vitor Ramos')
     await user.type(screen.getByLabelText('Senha', { selector: '#new-password' }), 'senha-super-segura')
     await user.type(screen.getByLabelText('Confirmar senha'), 'senha-super-segura')
@@ -151,17 +217,39 @@ describe('autenticação', () => {
       }),
     )
     expect(new Headers(acceptCall?.[1]?.headers).get('X-XSRF-TOKEN')).toBe('csrf-invite-token')
+    expect(fetchMock.mock.calls.every(([path]) => !String(path).includes('convite-unico'))).toBe(true)
     expect(window.localStorage).toHaveLength(0)
     expect(window.sessionStorage).toHaveLength(0)
+    expect(queryClient.getQueryData(oldPrivateKey)).toBeUndefined()
+    expect(queryClient.getQueryData(['activity', 'weight-logs'])).toBeUndefined()
+    expect(queryClient.getQueryData(sessionQuery.queryKey)).toEqual(authenticatedSession)
   })
 
-  it('mantém a home visual disponível após autenticação', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse(authenticatedSession))
+  it('ignora e remove tokens de convite enviados pela query string', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+
+    renderBrowserApp('/accept-invite?token=token-legado')
+
+    expect(await screen.findByRole('heading', { name: 'Link incompleto' })).toBeInTheDocument()
+    await waitFor(() => expect(window.location.search).toBe(''))
+    expect(window.location.hash).toBe('')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('mantém a home baseada em dados disponível após autenticação', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(authenticatedSession)
+      const analytics = analyticsResponse(path)
+      if (analytics) return analytics
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
 
     renderApp('/')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
-    expect(screen.getByRole('note')).toHaveTextContent('Todos os valores abaixo são ilustrativos')
+    expect(await screen.findByRole('note')).toHaveTextContent('Registre ou confirme o diário')
+    expect(screen.getByText('TDEE vigente:')).toHaveTextContent('não configurado')
     expect(screen.getByRole('button', { name: 'Abrir cadastro rápido' })).toBeInTheDocument()
     await waitFor(() => expect(screen.getAllByRole('link', { name: 'Hoje' })).toHaveLength(2))
   })

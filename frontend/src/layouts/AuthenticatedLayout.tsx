@@ -19,6 +19,7 @@ const catalogNavigation: Array<{ label: string; icon: IconName; to: string }> = 
 ]
 
 const trackingNavigation: Array<{ label: string; icon: IconName; to: string }> = [
+  { label: 'Análises', icon: 'trend', to: '/analytics/monthly' },
   { label: 'Peso', icon: 'scale', to: '/progress/weight' },
   { label: 'Treinos', icon: 'activity', to: '/workouts' },
 ]

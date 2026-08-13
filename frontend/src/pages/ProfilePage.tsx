@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { ApiError, getErrorMessage } from '../api/http'
+import { invalidateAnalytics } from '../analytics/queries'
 import { getProfile, updateProfile } from '../auth/api'
 import { FullPageStatus } from '../auth/ProtectedRoute'
 import { sessionQuery, useLogout } from '../auth/queries'
@@ -68,6 +69,7 @@ export function ProfilePage() {
         birthDate: updatedProfile.birthDate ?? '',
         formulaSex: updatedProfile.formulaSex ?? '',
       })
+      void invalidateAnalytics(queryClient)
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) return

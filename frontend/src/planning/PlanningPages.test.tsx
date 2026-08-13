@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { clearCsrfToken } from '../api/http'
+import { analyticsQueryKey } from '../analytics/queries'
 
 const session = {
   authenticated: true,
@@ -73,13 +74,14 @@ function renderRoute(route: string) {
     },
   })
 
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>
         <App />
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  return { ...view, queryClient }
 }
 
 beforeEach(() => {
@@ -134,7 +136,9 @@ describe('planejamento', () => {
     })
     const user = userEvent.setup()
 
-    renderRoute('/settings/nutrition-goals')
+    const analyticsKey = [...analyticsQueryKey, 'daily', '2026-08-12'] as const
+    const { queryClient } = renderRoute('/settings/nutrition-goals')
+    queryClient.setQueryData(analyticsKey, { goalProgress: [] })
     await screen.findByRole('heading', { name: 'Definir metas' })
     const proteinInput = screen.getByLabelText('Proteína mínima')
     await user.clear(proteinInput)
@@ -173,6 +177,7 @@ describe('planejamento', () => {
       ],
     })
     expect(new Headers(createCall?.[1]?.headers).get('X-XSRF-TOKEN')).toBe('planning-csrf')
+    expect(queryClient.getQueryState(analyticsKey)?.isInvalidated).toBe(true)
   })
 
   it('carrega e cria períodos de TDEE', async () => {

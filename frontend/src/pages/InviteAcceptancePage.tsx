@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLayoutEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { acceptInvite } from '../auth/api'
 import { sessionQuery } from '../auth/queries'
@@ -11,8 +12,28 @@ import { Brand } from '../components/Brand'
 export function InviteAcceptancePage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const token = searchParams.get('token')?.trim() ?? ''
+  const location = useLocation()
+  const [{ token, cleanLocation, shouldReplace }] = useState(() => {
+    const fragment = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : location.hash)
+    const query = new URLSearchParams(location.search)
+    const hadLegacyQueryToken = query.has('token')
+    query.delete('token')
+    const cleanSearch = query.toString()
+
+    return {
+      token: fragment.get('token')?.trim() ?? '',
+      cleanLocation: {
+        pathname: location.pathname,
+        search: cleanSearch ? `?${cleanSearch}` : '',
+        hash: '',
+      },
+      shouldReplace: Boolean(location.hash) || hadLegacyQueryToken,
+    }
+  })
+
+  useLayoutEffect(() => {
+    if (shouldReplace) navigate(cleanLocation, { replace: true })
+  }, [cleanLocation, navigate, shouldReplace])
   const {
     register,
     handleSubmit,
@@ -24,6 +45,7 @@ export function InviteAcceptancePage() {
   const invitationMutation = useMutation({
     mutationFn: acceptInvite,
     onSuccess: (session) => {
+      queryClient.clear()
       queryClient.setQueryData(sessionQuery.queryKey, session)
       navigate('/', { replace: true })
     },
