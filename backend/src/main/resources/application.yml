@@ -1,12 +1,18 @@
 spring:
   application:
     name: formetric
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/formetric}
     username: ${DB_USERNAME:formetric}
     password: ${DB_PASSWORD:formetric_dev_only}
   flyway:
     enabled: true
+  session:
+    timeout: 30d
+    jdbc:
+      initialize-schema: never
   jpa:
     hibernate:
       ddl-auto: validate
@@ -48,3 +54,9 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
+
+formetric:
+  bootstrap:
+    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    admin-display-name: ${BOOTSTRAP_ADMIN_DISPLAY_NAME:Formetric Owner}
