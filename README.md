@@ -92,8 +92,16 @@ Execute o backend em um terminal:
 
 ```powershell
 cd backend
+$env:BOOTSTRAP_ADMIN_EMAIL="seu-email@exemplo.com"
+$env:BOOTSTRAP_ADMIN_PASSWORD="uma-senha-local-com-12-ou-mais-caracteres"
+$env:BOOTSTRAP_ADMIN_DISPLAY_NAME="Seu nome"
 .\mvnw.cmd spring-boot:run
 ```
+
+Essas variáveis criam o primeiro usuário `OWNER` de forma idempotente. Depois do
+primeiro acesso, remova-as do ambiente: novos usuários devem entrar somente por
+convites criados pelo proprietário. Use valores reais apenas no shell local, no
+arquivo `.env` ignorado ou no gerenciador de secrets do ambiente; nunca os versione.
 
 Execute o frontend em outro terminal:
 
@@ -105,6 +113,7 @@ npm run dev
 
 O frontend fica em `http://localhost:5173` e encaminha `/api` para o backend em
 `http://localhost:8080`. Swagger UI fica em `http://localhost:8080/swagger-ui.html`.
+O acesso é privado e não existe cadastro público.
 
 Para executar todas as verificações locais:
 

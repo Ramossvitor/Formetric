@@ -29,3 +29,8 @@ docker build -t formetric:dev .
 ```
 
 A configuração de produção, incluindo `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD`, deve ser fornecida ao container como variáveis de ambiente ou secrets da plataforma; ela nunca deve ser gravada na imagem.
+
+O primeiro proprietário também deve ser provisionado por secrets
+`BOOTSTRAP_ADMIN_EMAIL` e `BOOTSTRAP_ADMIN_PASSWORD`. O bootstrap é idempotente e
+essas variáveis devem ser removidas depois que a conta existir. Em produção,
+`SESSION_COOKIE_SECURE` deve ser `true`.
