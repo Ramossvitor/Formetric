@@ -31,11 +31,11 @@ final class PlanningRules {
 
     static List<NutrientTargetDefinition> validateAndNormalizeTargets(List<NutrientTargetDefinition> targets) {
         if (targets == null) {
-            throw new PlanningValidationException("nutrientTargets", "A lista de metas é obrigatória.");
+            throw new PlanningValidationException("targets", "A lista de metas é obrigatória.");
         }
         if (targets.size() > NutrientType.values().length) {
             throw new PlanningValidationException(
-                    "nutrientTargets", "Cada nutriente pode aparecer no máximo uma vez.");
+                    "targets", "Cada nutriente pode aparecer no máximo uma vez.");
         }
 
         Set<NutrientType> seen = EnumSet.noneOf(NutrientType.class);
@@ -43,11 +43,19 @@ final class PlanningRules {
         for (NutrientTargetDefinition target : targets) {
             if (target == null || target.nutrient() == null || target.unit() == null) {
                 throw new PlanningValidationException(
-                        "nutrientTargets", "Nutriente e unidade são obrigatórios.");
+                        "targets", "Nutriente e unidade são obrigatórios.");
             }
             if (!seen.add(target.nutrient())) {
                 throw new PlanningValidationException(
-                        "nutrientTargets", "Não é permitido repetir o nutriente " + target.nutrient() + ".");
+                        "targets", "Não é permitido repetir o nutriente " + target.nutrient() + ".");
+            }
+            NutritionUnit expectedUnit = target.nutrient() == NutrientType.WATER
+                    ? NutritionUnit.ML
+                    : NutritionUnit.G;
+            if (target.unit() != expectedUnit) {
+                throw new PlanningValidationException(
+                        "targets",
+                        "A unidade de " + target.nutrient() + " deve ser " + expectedUnit + ".");
             }
             normalized.add(new NutrientTargetDefinition(
                     target.nutrient(), target.unit(), validateAndOrderBands(target.bands())));
@@ -92,7 +100,8 @@ final class PlanningRules {
                     band.minimumInclusive(),
                     band.maximumInclusive(),
                     band.label().strip(),
-                    band.tone()));
+                    band.tone(),
+                    band.countsAsAttained()));
         }
 
         Set<Integer> positions = new HashSet<>();
@@ -142,5 +151,6 @@ record GoalBandDefinition(
         boolean minimumInclusive,
         boolean maximumInclusive,
         String label,
-        GoalTone tone) {
+        GoalTone tone,
+        boolean countsAsAttained) {
 }

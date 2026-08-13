@@ -14,14 +14,17 @@ public class PlanningDataProvider {
 
     private final TdeePeriodRepository tdeePeriods;
     private final NutritionGoalPeriodRepository goalPeriods;
+    private final NutrientTargetRepository nutrientTargets;
     private final CurrentUserProvider currentUserProvider;
 
     PlanningDataProvider(
             TdeePeriodRepository tdeePeriods,
             NutritionGoalPeriodRepository goalPeriods,
+            NutrientTargetRepository nutrientTargets,
             CurrentUserProvider currentUserProvider) {
         this.tdeePeriods = tdeePeriods;
         this.goalPeriods = goalPeriods;
+        this.nutrientTargets = nutrientTargets;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -34,7 +37,32 @@ public class PlanningDataProvider {
     @Transactional(readOnly = true)
     public Optional<EffectiveNutritionGoals> effectiveNutritionGoals(LocalDate date) {
         var userId = currentUserProvider.requireCurrentUser().id();
-        return goalPeriods.findEffective(userId, date).map(period -> new EffectiveNutritionGoals(
+        return goalPeriods.findEffective(userId, date).map(PlanningDataProvider::toGoals);
+    }
+
+    /** Loads the versioned planning windows once for a bounded analytics interval. */
+    @Transactional(readOnly = true)
+    public PlanningTimeline timeline(LocalDate from, LocalDate to) {
+        if (from == null || to == null || from.isAfter(to)) {
+            throw new IllegalArgumentException("A valid planning timeline interval is required");
+        }
+        var userId = currentUserProvider.requireCurrentUser().id();
+        List<EffectiveTdeePeriod> tdeeTimeline = tdeePeriods.findOverlapping(userId, from, to).stream()
+                .map(period -> new EffectiveTdeePeriod(
+                        period.id(), period.validFrom(), period.validTo(), period.kcalPerDay()))
+                .toList();
+        List<NutritionGoalPeriod> overlappingGoals = goalPeriods.findOverlappingWithTargets(userId, from, to);
+        if (!overlappingGoals.isEmpty()) {
+            nutrientTargets.fetchBandsForPeriods(overlappingGoals);
+        }
+        List<EffectiveNutritionGoals> goalTimeline = overlappingGoals.stream()
+                .map(PlanningDataProvider::toGoals)
+                .toList();
+        return new PlanningTimeline(tdeeTimeline, goalTimeline);
+    }
+
+    private static EffectiveNutritionGoals toGoals(NutritionGoalPeriod period) {
+        return new EffectiveNutritionGoals(
                 period.id(),
                 period.validFrom(),
                 period.validTo(),
@@ -51,9 +79,10 @@ public class PlanningDataProvider {
                                                 band.minimumInclusive(),
                                                 band.maximumInclusive(),
                                                 band.label(),
-                                                band.tone()))
+                                                band.tone(),
+                                                band.countsAsAttained()))
                                         .toList()))
-                        .toList()));
+                        .toList());
     }
 
     public record EffectiveNutritionGoals(
@@ -62,6 +91,35 @@ public class PlanningDataProvider {
             LocalDate validTo,
             BigDecimal calorieTarget,
             List<EffectiveNutrientTarget> targets) {
+    }
+
+    public record EffectiveTdeePeriod(
+            java.util.UUID id,
+            LocalDate validFrom,
+            LocalDate validTo,
+            BigDecimal kcalPerDay) {
+        public boolean contains(LocalDate date) {
+            return !date.isBefore(validFrom) && (validTo == null || date.isBefore(validTo));
+        }
+    }
+
+    public record PlanningTimeline(
+            List<EffectiveTdeePeriod> tdeePeriods,
+            List<EffectiveNutritionGoals> nutritionGoalPeriods) {
+
+        public Optional<BigDecimal> effectiveTdeeKcal(LocalDate date) {
+            return tdeePeriods.stream()
+                    .filter(period -> period.contains(date))
+                    .map(EffectiveTdeePeriod::kcalPerDay)
+                    .findFirst();
+        }
+
+        public Optional<EffectiveNutritionGoals> effectiveNutritionGoals(LocalDate date) {
+            return nutritionGoalPeriods.stream()
+                    .filter(period -> !date.isBefore(period.validFrom())
+                            && (period.validTo() == null || date.isBefore(period.validTo())))
+                    .findFirst();
+        }
     }
 
     public record EffectiveNutrientTarget(
@@ -77,6 +135,7 @@ public class PlanningDataProvider {
             boolean minInclusive,
             boolean maxInclusive,
             String label,
-            GoalTone tone) {
+            GoalTone tone,
+            boolean countsAsAttained) {
     }
 }

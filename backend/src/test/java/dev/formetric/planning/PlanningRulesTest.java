@@ -71,6 +71,34 @@ class PlanningRulesTest {
                 () -> PlanningRules.validateAndNormalizeTargets(List.of(protein, protein)));
     }
 
+    @Test
+    void enforcesCanonicalUnitsForWaterAndGramBasedNutrients() {
+        NutrientTargetDefinition waterInGrams = new NutrientTargetDefinition(
+                NutrientType.WATER,
+                NutritionUnit.G,
+                List.of(band(0, null, null, false, false)));
+
+        PlanningValidationException waterException = assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateAndNormalizeTargets(List.of(waterInGrams)));
+        assertEquals("targets", waterException.field());
+
+        for (NutrientType nutrient : List.of(
+                NutrientType.PROTEIN,
+                NutrientType.CARBOHYDRATE,
+                NutrientType.FAT,
+                NutrientType.FIBER)) {
+            NutrientTargetDefinition targetInMilliliters = new NutrientTargetDefinition(
+                    nutrient,
+                    NutritionUnit.ML,
+                    List.of(band(0, null, null, false, false)));
+            PlanningValidationException exception = assertThrows(
+                    PlanningValidationException.class,
+                    () -> PlanningRules.validateAndNormalizeTargets(List.of(targetInMilliliters)));
+            assertEquals("targets", exception.field());
+        }
+    }
+
     private static GoalBandDefinition band(
             int position,
             String minimum,
@@ -84,6 +112,7 @@ class PlanningRulesTest {
                 minimumInclusive,
                 maximumInclusive,
                 "Faixa " + position,
-                GoalTone.NEUTRAL);
+                GoalTone.NEUTRAL,
+                position > 0);
     }
 }

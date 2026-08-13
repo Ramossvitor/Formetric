@@ -329,10 +329,10 @@ class DiaryIntegrationTests {
         jdbcTemplate.update("""
                 INSERT INTO goal_bands
                     (id, nutrient_target_id, band_order, min_value, max_value,
-                     min_inclusive, max_inclusive, label, tone)
+                     min_inclusive, max_inclusive, label, tone, counts_as_attained)
                 VALUES
-                    (?, ?, 0, NULL, 175, FALSE, FALSE, 'Abaixo', 'WARNING'),
-                    (?, ?, 1, 175, NULL, TRUE, FALSE, 'Meta', 'POSITIVE')
+                    (?, ?, 0, NULL, 175, FALSE, FALSE, 'Abaixo', 'WARNING', FALSE),
+                    (?, ?, 1, 175, NULL, TRUE, FALSE, 'Meta', 'POSITIVE', TRUE)
                 """, UUID.randomUUID(), targetId, UUID.randomUUID(), targetId);
     }
 

@@ -33,6 +33,7 @@ const nutritionPeriod = {
           maxInclusive: false,
           label: 'Abaixo da meta',
           tone: 'WARNING',
+          countsAsAttained: false,
         },
         {
           position: 1,
@@ -42,6 +43,7 @@ const nutritionPeriod = {
           maxInclusive: false,
           label: 'Meta atingida',
           tone: 'POSITIVE',
+          countsAsAttained: true,
         },
       ],
     },
@@ -154,8 +156,20 @@ describe('planejamento', () => {
       nutrient: 'PROTEIN',
       unit: 'G',
       bands: [
-        expect.objectContaining({ position: 0, maxValue: 180, maxInclusive: false, tone: 'WARNING' }),
-        expect.objectContaining({ position: 1, minValue: 180, minInclusive: true, tone: 'POSITIVE' }),
+        expect.objectContaining({
+          position: 0,
+          maxValue: 180,
+          maxInclusive: false,
+          tone: 'WARNING',
+          countsAsAttained: false,
+        }),
+        expect.objectContaining({
+          position: 1,
+          minValue: 180,
+          minInclusive: true,
+          tone: 'POSITIVE',
+          countsAsAttained: true,
+        }),
       ],
     })
     expect(new Headers(createCall?.[1]?.headers).get('X-XSRF-TOKEN')).toBe('planning-csrf')

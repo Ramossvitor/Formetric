@@ -202,6 +202,9 @@ class GoalBand {
     @Column(nullable = false, length = 16)
     private GoalTone tone;
 
+    @Column(name = "counts_as_attained", nullable = false)
+    private boolean countsAsAttained;
+
     protected GoalBand() {
     }
 
@@ -214,7 +217,8 @@ class GoalBand {
             boolean minimumInclusive,
             boolean maximumInclusive,
             String label,
-            GoalTone tone) {
+            GoalTone tone,
+            boolean countsAsAttained) {
         this.id = id;
         this.nutrientTarget = nutrientTarget;
         this.position = position;
@@ -224,6 +228,7 @@ class GoalBand {
         this.maximumInclusive = maximumInclusive;
         this.label = label;
         this.tone = tone;
+        this.countsAsAttained = countsAsAttained;
     }
 
     static GoalBand create(NutrientTarget target, GoalBandDefinition definition) {
@@ -236,7 +241,8 @@ class GoalBand {
                 definition.minimumInclusive(),
                 definition.maximumInclusive(),
                 definition.label(),
-                definition.tone());
+                definition.tone(),
+                definition.countsAsAttained());
     }
 
     BigDecimal minimum() {
@@ -265,5 +271,9 @@ class GoalBand {
 
     GoalTone tone() {
         return tone;
+    }
+
+    boolean countsAsAttained() {
+        return countsAsAttained;
     }
 }

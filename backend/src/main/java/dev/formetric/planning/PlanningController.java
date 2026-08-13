@@ -131,11 +131,13 @@ record GoalBandRequest(
         @NotNull @Schema(description = "Whether the minimum boundary belongs to the band") Boolean minInclusive,
         @NotNull @Schema(description = "Whether the maximum boundary belongs to the band") Boolean maxInclusive,
         @NotBlank @Size(max = 40) @Schema(example = "Meta") String label,
-        @NotNull GoalTone tone) {
+        @NotNull GoalTone tone,
+        @NotNull @Schema(description = "Whether values in this band count as attaining the configured goal")
+        Boolean countsAsAttained) {
 
     GoalBandDefinition toDefinition() {
         return new GoalBandDefinition(
-                position, minValue, maxValue, minInclusive, maxInclusive, label, tone);
+                position, minValue, maxValue, minInclusive, maxInclusive, label, tone, countsAsAttained);
     }
 }
 
@@ -187,7 +189,8 @@ record GoalBandResponse(
         boolean minInclusive,
         boolean maxInclusive,
         String label,
-        GoalTone tone) {
+        GoalTone tone,
+        boolean countsAsAttained) {
 
     static GoalBandResponse from(GoalBand band) {
         return new GoalBandResponse(
@@ -197,7 +200,8 @@ record GoalBandResponse(
                 band.minimumInclusive(),
                 band.maximumInclusive(),
                 band.label(),
-                band.tone());
+                band.tone(),
+                band.countsAsAttained());
     }
 }
 

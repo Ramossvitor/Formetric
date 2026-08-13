@@ -12,6 +12,7 @@ export interface GoalBand {
   maxInclusive: boolean
   label: string
   tone: GoalTone
+  countsAsAttained: boolean
 }
 
 export interface NutrientTarget {
@@ -68,6 +69,7 @@ function minimumBands(minimum: number, achievedLabel: string): GoalBand[] {
       maxInclusive: false,
       label: 'Abaixo da meta',
       tone: 'WARNING',
+      countsAsAttained: false,
     },
     {
       position: 1,
@@ -77,6 +79,7 @@ function minimumBands(minimum: number, achievedLabel: string): GoalBand[] {
       maxInclusive: false,
       label: achievedLabel,
       tone: 'POSITIVE',
+      countsAsAttained: true,
     },
   ]
 }
@@ -91,6 +94,7 @@ function maximumBands(maximum: number, idealLabel: string): GoalBand[] {
       maxInclusive: true,
       label: idealLabel,
       tone: 'POSITIVE',
+      countsAsAttained: true,
     },
     {
       position: 1,
@@ -100,6 +104,7 @@ function maximumBands(maximum: number, idealLabel: string): GoalBand[] {
       maxInclusive: false,
       label: 'Acima do planejado',
       tone: 'WARNING',
+      countsAsAttained: false,
     },
   ]
 }

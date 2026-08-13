@@ -1,8 +1,10 @@
 package dev.formetric.planning;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import dev.formetric.identity.AuthenticatedUser;
@@ -81,6 +83,9 @@ class PlanningIntegrationTests {
         assertNull(history.getLast().validTo());
         assertEquals(first.id(), planningService.effectiveNutritionGoalPeriod(LocalDate.of(2026, 8, 31)).id());
         assertEquals(second.id(), planningService.effectiveNutritionGoalPeriod(LocalDate.of(2026, 9, 1)).id());
+        var bands = history.getLast().targets().getFirst().bands();
+        assertFalse(bands.getFirst().countsAsAttained());
+        assertTrue(bands.getLast().countsAsAttained());
     }
 
     @Test
@@ -127,9 +132,11 @@ class PlanningIntegrationTests {
                         NutritionUnit.G,
                         List.of(
                                 new GoalBandRequest(
-                                        0, null, new BigDecimal("175"), false, false, "Abaixo", GoalTone.WARNING),
+                                        0, null, new BigDecimal("175"), false, false,
+                                        "Abaixo", GoalTone.WARNING, false),
                                 new GoalBandRequest(
-                                        1, new BigDecimal("175"), null, true, false, "Meta", GoalTone.POSITIVE)))));
+                                        1, new BigDecimal("175"), null, true, false,
+                                        "Meta", GoalTone.POSITIVE, true)))));
     }
 
     private CreateTdeePeriodRequest tdeeRequest(String from, String to, String kcal) {
