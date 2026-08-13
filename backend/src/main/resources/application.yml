@@ -24,9 +24,14 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
 
 server:
   forward-headers-strategy: framework
+  max-http-request-header-size: 16KB
   servlet:
     session:
       cookie:
@@ -35,6 +40,12 @@ server:
         same-site: lax
         secure: ${SESSION_COOKIE_SECURE:false}
       timeout: 30d
+  tomcat:
+    max-http-form-post-size: 2MB
+    max-parameter-count: 1000
+    max-part-count: 50
+    max-part-header-size: 8KB
+    max-swallow-size: 2MB
 
 management:
   endpoints:

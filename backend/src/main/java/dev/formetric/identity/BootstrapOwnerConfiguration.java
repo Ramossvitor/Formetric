@@ -47,7 +47,7 @@ class BootstrapOwnerConfiguration implements ApplicationRunner {
         if (displayName.strip().length() < 2 || displayName.strip().length() > 100) {
             throw new IllegalStateException("BOOTSTRAP_ADMIN_DISPLAY_NAME must contain between 2 and 100 characters");
         }
-        AuthenticatedUser owner = identityService.bootstrapOwner(email, password, displayName);
-        LOGGER.info("Bootstrap owner account is ready: {}", owner.email());
+        identityService.bootstrapOwner(email, password, displayName);
+        LOGGER.info("Bootstrap owner account is ready");
     }
 }

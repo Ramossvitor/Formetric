@@ -49,6 +49,19 @@ class PlanningRulesTest {
     }
 
     @Test
+    void rejectsMoreThanTwentyBands() {
+        List<GoalBandDefinition> bands = java.util.stream.IntStream.range(0, 21)
+                .mapToObj(position -> band(position, null, null, false, false))
+                .toList();
+
+        PlanningValidationException exception = assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateAndOrderBands(bands));
+
+        assertEquals("bands", exception.field());
+    }
+
+    @Test
     void validatesHalfOpenDateIntervals() {
         assertDoesNotThrow(() -> PlanningRules.validateInterval(
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 9, 1)));

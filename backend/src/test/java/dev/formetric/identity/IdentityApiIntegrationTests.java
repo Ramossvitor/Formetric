@@ -2,6 +2,7 @@ package dev.formetric.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,7 +31,8 @@ import tools.jackson.databind.ObjectMapper;
 @SpringBootTest(properties = {
         "formetric.bootstrap.admin-email=owner@formetric.dev",
         "formetric.bootstrap.admin-password=a-secure-owner-password",
-        "formetric.bootstrap.admin-display-name=Formetric Owner"
+        "formetric.bootstrap.admin-display-name=Formetric Owner",
+        "server.servlet.session.cookie.secure=true"
 })
 @AutoConfigureMockMvc
 class IdentityApiIntegrationTests {
@@ -188,6 +190,57 @@ class IdentityApiIntegrationTests {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.title").value("Dados inválidos"))
                 .andExpect(jsonPath("$.fieldErrors").isArray());
+
+        mockMvc.perform(post("/api/v1/invites/accept")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token":"syntactically-valid-but-unknown-token",
+                                  "displayName":" x ",
+                                  "password":"a-secure-user-password"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("displayName"));
+    }
+
+    @Test
+    void securityHeadersSecureCookiesAndPrivilegedOperationalEndpointsAreEnforced() throws Exception {
+        mockMvc.perform(get("/login").header("X-Forwarded-Proto", "https"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Security-Policy",
+                        org.hamcrest.Matchers.containsString("script-src 'self'")))
+                .andExpect(header().string(
+                        "Content-Security-Policy",
+                        org.hamcrest.Matchers.containsString("img-src 'self' data: blob:")))
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(header().string(
+                        "Permissions-Policy",
+                        org.hamcrest.Matchers.containsString("camera=()")));
+
+        var secureSession = mockMvc.perform(get("/api/v1/auth/csrf")
+                        .header("X-Forwarded-Proto", "https"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(requiredSessionCookie(secureSession).getSecure()).isTrue();
+
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+        for (String privilegedEndpoint : List.of("/v3/api-docs", "/actuator/info")) {
+            mockMvc.perform(get(privilegedEndpoint))
+                    .andExpect(status().isUnauthorized());
+            mockMvc.perform(get(privilegedEndpoint).with(user("person").roles("USER")))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(get(privilegedEndpoint).with(user("owner").roles("OWNER")))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(get("/actuator/modulith"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/modulith").with(user("person").roles("USER")))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -200,11 +253,14 @@ class IdentityApiIntegrationTests {
                 .andExpect(forwardedUrl("/index.html"));
 
         mockMvc.perform(get("/profile"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
         mockMvc.perform(get("/settings/security"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
         mockMvc.perform(get("/foods/new"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
 
         Cookie ownerCookie = loginOwner();
         mockMvc.perform(get("/profile").cookie(ownerCookie))
@@ -219,6 +275,8 @@ class IdentityApiIntegrationTests {
                 "/diary",
                 "/workouts",
                 "/workouts/00000000-0000-0000-0000-000000000001",
+                "/analytics/monthly",
+                "/analytics/charts",
                 "/progress",
                 "/progress/weight")) {
             mockMvc.perform(get(clientRoute).cookie(ownerCookie))
@@ -257,6 +315,7 @@ class IdentityApiIntegrationTests {
         Cookie cookie = result.getResponse().getCookie("FORMETRIC_SESSION");
         assertThat(cookie).isNotNull();
         assertThat(cookie.isHttpOnly()).isTrue();
+        assertThat(cookie.getSecure()).isTrue();
         assertThat(cookie.getPath()).isEqualTo("/");
         return cookie;
     }

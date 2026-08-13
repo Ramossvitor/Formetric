@@ -28,9 +28,13 @@ O `Dockerfile` da raiz compila o frontend com Node.js 24, incorpora a SPA ao bac
 docker build -t formetric:dev .
 ```
 
-A configuração de produção, incluindo `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD`, deve ser fornecida ao container como variáveis de ambiente ou secrets da plataforma; ela nunca deve ser gravada na imagem.
+A configuração de produção usa `DB_POOLER_URL` para as conexões da aplicação,
+`DB_DIRECT_URL` para as migrações Flyway, `DB_USERNAME`, `DB_PASSWORD` e
+`PORT`. Esses valores devem ser fornecidos ao container como variáveis de
+ambiente ou secrets da plataforma; nunca devem ser gravados na imagem.
 
 O primeiro proprietário também deve ser provisionado por secrets
 `BOOTSTRAP_ADMIN_EMAIL` e `BOOTSTRAP_ADMIN_PASSWORD`. O bootstrap é idempotente e
-essas variáveis devem ser removidas depois que a conta existir. Em produção,
-`SESSION_COOKIE_SECURE` deve ser `true`.
+essas variáveis devem ser removidas depois que a conta existir. O perfil
+`prod` ativa cookie de sessão seguro, limita a sessão a 12 horas e desabilita a
+documentação HTTP.

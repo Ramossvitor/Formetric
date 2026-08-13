@@ -11,6 +11,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ContentSecurityPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.PermissionsPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
@@ -26,14 +30,33 @@ class SecurityConfiguration {
                                 "/index.html",
                                 "/login",
                                 "/accept-invite",
+                                "/profile",
+                                "/settings",
+                                "/settings/**",
+                                "/foods",
+                                "/foods/**",
+                                "/recipes",
+                                "/recipes/**",
+                                "/diary",
+                                "/workouts",
+                                "/workouts/**",
+                                "/analytics",
+                                "/analytics/**",
+                                "/progress",
+                                "/progress/**",
                                 "/assets/**",
                                 "/favicon.svg",
                                 "/error",
-                                "/actuator/health/**",
+                                "/actuator/health/**")
+                        .permitAll()
+                        .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/swagger-ui/**")
-                        .permitAll()
+                                "/swagger-ui/**",
+                                "/actuator/info",
+                                "/actuator/modulith",
+                                "/actuator/modulith/**")
+                        .hasRole("OWNER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/invites/accept")
@@ -50,6 +73,19 @@ class SecurityConfiguration {
                                 response, 401, "Não autenticado", "Autenticação necessária."))
                         .accessDeniedHandler((request, response, exception) -> writeProblem(
                                 response, 403, "Acesso negado", "Você não possui permissão para esta operação.")))
+                .headers(headers -> headers
+                        .addHeaderWriter(new ContentSecurityPolicyHeaderWriter(
+                                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+                                        + "script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                                        + "img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; "
+                                        + "form-action 'self'"))
+                        .addHeaderWriter(new ReferrerPolicyHeaderWriter(ReferrerPolicy.NO_REFERRER))
+                        .addHeaderWriter(new PermissionsPolicyHeaderWriter(
+                                "accelerometer=(), autoplay=(), camera=(), display-capture=(), "
+                                        + "encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), "
+                                        + "magnetometer=(), microphone=(), midi=(), payment=(), "
+                                        + "picture-in-picture=(), publickey-credentials-get=(), "
+                                        + "screen-wake-lock=(), usb=()")))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
@@ -67,7 +103,8 @@ class SecurityConfiguration {
     }
 
     @Bean
-    CookieSerializer sessionCookieSerializer(@Value("${SESSION_COOKIE_SECURE:false}") boolean secure) {
+    CookieSerializer sessionCookieSerializer(
+            @Value("${server.servlet.session.cookie.secure:false}") boolean secure) {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName("FORMETRIC_SESSION");
         serializer.setCookiePath("/");

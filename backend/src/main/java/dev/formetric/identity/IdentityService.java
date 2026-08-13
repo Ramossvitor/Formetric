@@ -75,6 +75,7 @@ class IdentityService {
 
     @Transactional
     AuthenticatedUser acceptInvite(String token, String displayName, String password) {
+        String normalizedDisplayName = normalizeDisplayName(displayName);
         Instant now = clock.instant();
         UserInvite invite = invites.findByTokenHashForUpdate(IdentitySupport.hashToken(token))
                 .orElseThrow(() -> new InvalidInviteException("Convite inválido."));
@@ -89,7 +90,7 @@ class IdentityService {
         }
 
         UserAccount account = UserAccount.create(invite.email(), passwordEncoder.encode(password), invite.role(), now);
-        UserProfile profile = UserProfile.defaults(account.id(), displayName.strip(), now);
+        UserProfile profile = UserProfile.defaults(account.id(), normalizedDisplayName, now);
         try {
             accounts.saveAndFlush(account);
             profiles.save(profile);
@@ -169,6 +170,15 @@ class IdentityService {
         } catch (RuntimeException exception) {
             throw new InvalidProfileException("timeZone", "Informe um fuso horário IANA válido.");
         }
+    }
+
+    private static String normalizeDisplayName(String value) {
+        String normalized = value == null ? "" : value.strip();
+        if (normalized.length() < 2 || normalized.length() > 100) {
+            throw new InvalidProfileException(
+                    "displayName", "O nome deve possuir entre 2 e 100 caracteres sem espaços externos.");
+        }
+        return normalized;
     }
 
     record CreateInviteCommand(String email, UserRole role, Duration validFor) {

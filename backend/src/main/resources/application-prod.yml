@@ -1,0 +1,55 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_POOLER_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 0
+      connection-timeout: 10s
+      validation-timeout: 5s
+      idle-timeout: 2m
+      max-lifetime: 25m
+  flyway:
+    url: ${DB_DIRECT_URL}
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  session:
+    timeout: 12h
+  lifecycle:
+    timeout-per-shutdown-phase: 8s
+
+server:
+  port: ${PORT}
+  shutdown: graceful
+  servlet:
+    session:
+      cookie:
+        secure: true
+      timeout: 12h
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+formetric:
+  bootstrap:
+    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    admin-display-name: ${BOOTSTRAP_ADMIN_DISPLAY_NAME:}

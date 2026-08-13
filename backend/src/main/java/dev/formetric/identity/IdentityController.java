@@ -11,7 +11,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,19 +37,16 @@ class AuthenticationController {
     private final IdentityService identityService;
     private final CurrentUserProvider currentUserProvider;
     private final LoginAttemptLimiter loginAttemptLimiter;
-    private final Clock clock;
     private final HttpSessionSecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
     AuthenticationController(
             IdentityService identityService,
             CurrentUserProvider currentUserProvider,
-            LoginAttemptLimiter loginAttemptLimiter,
-            Clock clock) {
+            LoginAttemptLimiter loginAttemptLimiter) {
         this.identityService = identityService;
         this.currentUserProvider = currentUserProvider;
         this.loginAttemptLimiter = loginAttemptLimiter;
-        this.clock = clock;
     }
 
     @GetMapping("/csrf")
@@ -64,16 +60,15 @@ class AuthenticationController {
             HttpServletRequest request,
             HttpServletResponse response) {
         String normalizedEmail = IdentitySupport.normalizeEmail(body.email());
-        String rateLimitKey = normalizedEmail + "|" + request.getRemoteAddr();
-        Instant now = clock.instant();
-        loginAttemptLimiter.checkAllowed(rateLimitKey, now);
+        String ipAddress = request.getRemoteAddr();
+        loginAttemptLimiter.checkAllowed(normalizedEmail, ipAddress);
         try {
             AuthenticatedUser user = identityService.authenticate(normalizedEmail, body.password());
-            loginAttemptLimiter.recordSuccess(rateLimitKey);
+            loginAttemptLimiter.recordSuccess(normalizedEmail);
             establishSession(user, request, response);
             return SessionResponse.from(user);
         } catch (InvalidCredentialsException exception) {
-            loginAttemptLimiter.recordFailure(rateLimitKey, now);
+            loginAttemptLimiter.recordFailure(normalizedEmail, ipAddress);
             throw exception;
         }
     }

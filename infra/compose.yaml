@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${FORMETRIC_DB_USER:-formetric}
       POSTGRES_PASSWORD: ${FORMETRIC_DB_PASSWORD:-formetric_dev_only}
     ports:
-      - "${FORMETRIC_DB_PORT:-5432}:5432"
+      - "127.0.0.1:${FORMETRIC_DB_PORT:-5432}:5432"
     volumes:
       - formetric-postgres-data:/var/lib/postgresql/data
     healthcheck:

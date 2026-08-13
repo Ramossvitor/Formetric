@@ -262,6 +262,7 @@ class AnalyticsIntegrationTests {
     }
 
     @Test
+    @WithMockUser(username = "api-doc-owner", roles = "OWNER")
     void openApiPublishesEveryAnalyticsOperation() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())

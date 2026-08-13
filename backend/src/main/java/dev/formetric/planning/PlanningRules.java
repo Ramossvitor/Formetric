@@ -68,6 +68,10 @@ final class PlanningRules {
             throw new PlanningValidationException(
                     "bands", "Cada meta de nutriente deve possuir ao menos uma faixa.");
         }
+        if (bands.size() > 20) {
+            throw new PlanningValidationException(
+                    "bands", "Cada meta de nutriente pode possuir no máximo 20 faixas.");
+        }
 
         List<GoalBandDefinition> ordered = new ArrayList<>(bands.size());
         for (GoalBandDefinition band : bands) {

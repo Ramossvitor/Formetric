@@ -114,7 +114,7 @@ record CreateNutritionGoalPeriodRequest(
 record NutrientTargetRequest(
         @NotNull NutrientType nutrient,
         @NotNull NutritionUnit unit,
-        @NotNull @Size(min = 1) @Valid List<GoalBandRequest> bands) {
+        @NotNull @Size(min = 1, max = 20) @Valid List<GoalBandRequest> bands) {
 
     NutrientTargetDefinition toDefinition() {
         return new NutrientTargetDefinition(
