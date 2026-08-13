@@ -49,15 +49,13 @@ frontend/  aplicação React responsiva
 infra/     ambiente local e definições de deploy
 ```
 
-## Stack prevista
+## Stack
 
-- Java 21 e Spring Boot
-- Spring Security, Spring Data JPA, Flyway e Spring Modulith
+- Java 21 e Spring Boot 4.1
+- Spring Security, Spring Data JPA, Flyway, Spring Modulith e springdoc-openapi
 - PostgreSQL
-- React, TypeScript e Vite
-- TanStack Query, React Hook Form e Zod
-- Tailwind CSS, shadcn/ui e Recharts
-- JUnit, Testcontainers, Vitest e Playwright
+- React 19, TypeScript e Vite 8
+- JUnit, Testcontainers, Vitest e Testing Library
 - Docker e GitHub Actions
 
 ## Roadmap
@@ -76,12 +74,51 @@ com bases externas e assistente de IA ficam para fases posteriores.
 
 ## Desenvolvimento local
 
-Os comandos definitivos serão adicionados junto com o scaffolding. O ambiente exigirá:
+O ambiente exige:
 
 - JDK 21
-- Node.js LTS
+- Node.js 24 LTS
 - Docker Desktop com Docker Compose
 - Git
+
+Inicie o PostgreSQL:
+
+```powershell
+Copy-Item .env.example .env
+docker compose --env-file .env -f infra/compose.yaml up -d --wait
+```
+
+Execute o backend em um terminal:
+
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run
+```
+
+Execute o frontend em outro terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+O frontend fica em `http://localhost:5173` e encaminha `/api` para o backend em
+`http://localhost:8080`. Swagger UI fica em `http://localhost:8080/swagger-ui.html`.
+
+Para executar todas as verificações locais:
+
+```powershell
+cd frontend
+npm run check
+npm run build
+
+cd ..\backend
+.\mvnw.cmd verify
+```
+
+Os testes de contexto do backend usam Testcontainers e, portanto, precisam do Docker
+ativo. Consulte [infra/README.md](infra/README.md) para detalhes do banco e da imagem.
 
 Nenhuma credencial deve ser commitada. Variáveis locais devem ficar em arquivos
 `.env` ignorados pelo Git; exemplos seguros serão disponibilizados em `.env.example`.

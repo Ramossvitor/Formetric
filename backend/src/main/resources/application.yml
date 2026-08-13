@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: formetric
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/formetric}
+    username: ${DB_USERNAME:formetric}
+    password: ${DB_PASSWORD:formetric_dev_only}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        name: FORMETRIC_SESSION
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
+      timeout: 30d
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,modulith
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
