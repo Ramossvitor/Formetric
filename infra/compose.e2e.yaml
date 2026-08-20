@@ -1,0 +1,37 @@
+name: formetric-e2e
+
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    environment:
+      POSTGRES_DB: formetric_e2e
+      POSTGRES_USER: formetric_e2e
+      POSTGRES_PASSWORD: formetric_e2e_only
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  app:
+    image: formetric:e2e
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/formetric_e2e
+      DB_USERNAME: formetric_e2e
+      DB_PASSWORD: formetric_e2e_only
+      BOOTSTRAP_ADMIN_EMAIL: ${E2E_ADMIN_EMAIL:-owner.e2e@example.test}
+      BOOTSTRAP_ADMIN_PASSWORD: ${E2E_ADMIN_PASSWORD:-Formetric-E2E-password-2026}
+      BOOTSTRAP_ADMIN_DISPLAY_NAME: Formetric E2E Owner
+      SESSION_COOKIE_SECURE: "false"
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8
+    ports:
+      - "127.0.0.1:${E2E_APP_PORT:-18080}:8080"
