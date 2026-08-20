@@ -109,7 +109,28 @@ describe('planejamento', () => {
     expect(screen.getByRole('heading', { name: '2.500 kcal' })).toBeInTheDocument()
     const history = screen.getByRole('heading', { name: 'Histórico de metas' }).closest('section')
     expect(history).not.toBeNull()
+    expect(within(history!).getByText('Classificação não configurada')).toBeInTheDocument()
     expect(within(history!).getByText('≥ 175 g')).toBeInTheDocument()
+  })
+
+  it('apresenta uma meta nominal legada ausente sem inventar zero', async () => {
+    const legacyPeriod = { ...nutritionPeriod, calorieTarget: null }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path === '/api/v1/nutrition-goal-periods') return jsonResponse([legacyPeriod])
+      if (path.startsWith('/api/v1/nutrition-goal-periods/effective?date=')) {
+        return jsonResponse(legacyPeriod)
+      }
+
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+
+    renderRoute('/settings/nutrition-goals')
+
+    expect(await screen.findByRole('heading', { name: 'Meta nominal não configurada' })).toBeInTheDocument()
+    expect(screen.queryByText('0 kcal/dia')).not.toBeInTheDocument()
   })
 
   it('cria um período histórico com faixas arbitrárias e unidades canônicas', async () => {
@@ -143,6 +164,23 @@ describe('planejamento', () => {
     const validTo = screen.getByLabelText(/Válido até/)
     fireEvent.change(validFrom, { target: { value: '2026-07-01' } })
     fireEvent.change(validTo, { target: { value: '2026-08-01' } })
+    fireEvent.change(screen.getByLabelText('Meta calórica'), { target: { value: '2500.1' } })
+
+    const calories = screen.getByRole('group', { name: 'Calorias' })
+    const calorieBandsBeforePreset = within(calories).getAllByRole('article')
+    fireEvent.change(within(calorieBandsBeforePreset[0]).getByLabelText('Limite máximo'), {
+      target: { value: '2375' },
+    })
+    expect(within(calorieBandsBeforePreset[0]).getByLabelText('Limite máximo')).toHaveValue(2375)
+    expect(within(calorieBandsBeforePreset[1]).getByLabelText('Limite máximo')).toHaveValue(2600)
+    fireEvent.change(within(calories).getByLabelText('Tolerância sugerida (±)'), {
+      target: { value: '0.2' },
+    })
+    expect(within(calorieBandsBeforePreset[0]).getByLabelText('Limite máximo')).toHaveValue(2375)
+    fireEvent.click(within(calories).getByRole('button', { name: 'Aplicar ±0,2 kcal' }))
+    const calorieBandsAfterPreset = within(calories).getAllByRole('article')
+    expect(within(calorieBandsAfterPreset[0]).getByLabelText('Limite máximo')).toHaveValue(2499.9)
+    expect(within(calorieBandsAfterPreset[1]).getByLabelText('Limite máximo')).toHaveValue(2500.3)
 
     const protein = screen.getByRole('group', { name: 'Proteína' })
     fireEvent.click(within(protein).getByRole('button', { name: /Adicionar faixa de Proteína/ }))
@@ -197,6 +235,11 @@ describe('planejamento', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Criar período de metas' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Novo período de metas criado')
+    const resetCalories = screen.getByRole('group', { name: 'Calorias' })
+    expect(within(resetCalories).getByLabelText('Tolerância sugerida (±)')).toHaveValue(100)
+    expect(
+      within(within(resetCalories).getAllByRole('article')[0]).getByLabelText('Limite máximo'),
+    ).toHaveValue(2400)
     const createCall = fetchMock.mock.calls.find(
       ([path, init]) => path === '/api/v1/nutrition-goal-periods' && init?.method === 'POST',
     )
@@ -204,11 +247,25 @@ describe('planejamento', () => {
     const requestBody = JSON.parse(String(createCall?.[1]?.body)) as {
       validFrom: string
       validTo: string
+      calorieTarget: number
       targets: Array<{ nutrient: string; unit: string; bands: unknown[] }>
     }
     expect(requestBody.validFrom).toBe('2026-07-01')
     expect(requestBody.validTo).toBe('2026-08-01')
-    expect(requestBody.targets).toHaveLength(5)
+    expect(requestBody.calorieTarget).toBe(2500.1)
+    expect(requestBody.targets).toHaveLength(6)
+    expect(requestBody.targets.find((target) => target.nutrient === 'CALORIES')).toEqual({
+      nutrient: 'CALORIES',
+      unit: 'KCAL',
+      bands: [
+        expect.objectContaining({ position: 0, maxValue: 2499.9, countsAsAttained: false }),
+        expect.objectContaining({ position: 1, minValue: 2499.9, maxValue: 2500.3, countsAsAttained: true }),
+        expect.objectContaining({ position: 2, minValue: 2500.3, countsAsAttained: false }),
+      ],
+    })
+    expect(String(createCall?.[1]?.body)).toContain('"maxValue":2500.3')
+    expect(String(createCall?.[1]?.body)).not.toContain('2500.299999')
+    expect(requestBody).not.toHaveProperty('tolerance')
     expect(requestBody.targets.find((target) => target.nutrient === 'PROTEIN')).toEqual({
       nutrient: 'PROTEIN',
       unit: 'G',
@@ -248,7 +305,7 @@ describe('planejamento', () => {
     expect(requestBody.targets.find((target) => target.nutrient === 'WATER')?.unit).toBe('ML')
     expect(new Headers(createCall?.[1]?.headers).get('X-XSRF-TOKEN')).toBe('planning-csrf')
     expect(queryClient.getQueryState(analyticsKey)?.isInvalidated).toBe(true)
-  })
+  }, 10_000)
 
   it('impede o envio de faixas sobrepostas e anuncia o erro no campo', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {

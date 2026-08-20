@@ -1,6 +1,6 @@
 import { ApiError, apiRequest } from '../api/http'
 import type { DataQuality, FoodUnit } from '../catalog/api'
-import type { NutritionGoalPeriod } from '../planning/api'
+import type { GoalTone, Nutrient, NutritionGoalPeriod } from '../planning/api'
 
 export type DailyLogStatus = 'OPEN' | 'CLOSED'
 export type CatalogItemType = 'FOOD' | 'RECIPE'
@@ -55,6 +55,25 @@ export interface StateEvent {
 
 export interface EffectiveNutritionGoals extends Pick<NutritionGoalPeriod, 'calorieTarget' | 'targets'> {}
 
+export interface DailyGoalReference {
+  label: string
+  minValue: number | null
+  maxValue: number | null
+  minInclusive: boolean
+  maxInclusive: boolean
+  remainingToRange: number | null
+  excessOverRange: number | null
+}
+
+export interface DailyGoalProgress {
+  nutrient: Nutrient
+  value: number | null
+  bandLabel: string | null
+  bandTone: GoalTone | null
+  attained: boolean | null
+  reference: DailyGoalReference | null
+}
+
 export interface DailyLog {
   id: string
   date: string
@@ -67,6 +86,7 @@ export interface DailyLog {
   energyBalanceKcal: number | null
   energyBalanceAvailability: 'AVAILABLE' | 'UNAVAILABLE'
   nutritionGoals: EffectiveNutritionGoals | null
+  goalProgress: DailyGoalProgress[]
   createdAt: string
   updatedAt: string
   closedAt: string | null

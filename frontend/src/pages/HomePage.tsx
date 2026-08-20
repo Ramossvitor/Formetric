@@ -2,22 +2,36 @@ import { useQuery } from '@tanstack/react-query'
 import { type CSSProperties, type ReactNode, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
-import type { DailyAnalytics, GoalProgress, NutrientType } from '../analytics/api'
+import type {
+  DailyAnalytics,
+  GoalProgress,
+  GoalTone,
+  MacroNutrientType,
+} from '../analytics/api'
 import { diaryStatusLabels, formatDuration, formatLongDate, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels } from '../analytics/format'
 import { analyticsBoundsQuery, dailyAnalyticsQuery } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 import { formatGoalComparison, formatGoalRange } from '../diary/format'
 
 const macroDefinitions: Array<{
-  nutrient: Exclude<NutrientType, 'WATER'>
+  nutrient: MacroNutrientType
   key: 'proteinG' | 'carbohydrateG' | 'fatG' | 'fiberG'
-  tone: string
 }> = [
-  { nutrient: 'PROTEIN', key: 'proteinG', tone: 'green' },
-  { nutrient: 'CARBOHYDRATE', key: 'carbohydrateG', tone: 'blue' },
-  { nutrient: 'FAT', key: 'fatG', tone: 'orange' },
-  { nutrient: 'FIBER', key: 'fiberG', tone: 'purple' },
+  { nutrient: 'PROTEIN', key: 'proteinG' },
+  { nutrient: 'CARBOHYDRATE', key: 'carbohydrateG' },
+  { nutrient: 'FAT', key: 'fatG' },
+  { nutrient: 'FIBER', key: 'fiberG' },
 ]
+
+const goalToneClasses: Record<GoalTone, string> = {
+  POSITIVE: 'attained',
+  NEUTRAL: 'blue',
+  WARNING: 'not-attained',
+}
+
+function goalToneClass(goal: GoalProgress | undefined) {
+  return goal?.bandTone ? goalToneClasses[goal.bandTone] : 'blue'
+}
 
 function DailyStatus({ data }: { data: DailyAnalytics }) {
   const detail = data.diaryStatus === 'OPEN'
@@ -38,12 +52,11 @@ function MissingValue({ children }: { children: ReactNode }) {
   return <span className="analytics-missing">{children}</span>
 }
 
-function MacroRow({ data, goal, nutrient, nutritionKey, tone }: {
+function MacroRow({ data, goal, nutrient, nutritionKey }: {
   data: DailyAnalytics
   goal: GoalProgress | undefined
-  nutrient: Exclude<NutrientType, 'WATER'>
+  nutrient: MacroNutrientType
   nutritionKey: 'proteinG' | 'carbohydrateG' | 'fatG' | 'fiberG'
-  tone: string
 }) {
   const value = data.nutrition[nutritionKey]
   const state = !goal
@@ -51,7 +64,7 @@ function MacroRow({ data, goal, nutrient, nutritionKey, tone }: {
     : value == null
       ? 'Ainda não registrado'
       : goal.bandLabel ?? 'Fora das faixas configuradas'
-  const comparison = value == null ? null : formatGoalComparison(goal?.reference ?? null, value, nutrient)
+  const comparison = value == null ? null : formatGoalComparison(goal?.reference ?? null, nutrient)
 
   return (
     <div className="macro-item">
@@ -59,8 +72,12 @@ function MacroRow({ data, goal, nutrient, nutritionKey, tone }: {
         <span>{nutrientLabels[nutrient]}</span>
         <span>{value == null ? 'Não informado' : <><strong>{formatNumber(value, 1)}</strong> g</>}{goal?.reference ? ` / meta ${formatGoalRange(goal.reference, nutrient)}` : ''}</span>
       </div>
-      <div className="daily-goal-state">
-        <span aria-hidden="true" className={`goal-state-dot ${goal?.attained === true ? 'attained' : goal?.attained === false ? 'not-attained' : tone}`} />
+      <div
+        aria-label={`${nutrientLabels[nutrient]}: ${state}${comparison ? `, ${comparison}` : ''}`}
+        className="daily-goal-state"
+        role="group"
+      >
+        <span aria-hidden="true" className={`goal-state-dot ${goalToneClass(goal)}`} />
         <span>{state}{comparison ? ` · ${comparison}` : ''}</span>
         {goal?.attained != null ? <strong>{goal.attained ? 'atingida' : 'fora da meta'}</strong> : null}
       </div>
@@ -73,11 +90,34 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
   const caloriePercent = calories != null && data.calorieTargetKcal != null && data.calorieTargetKcal > 0
     ? Math.min(100, Math.max(0, (calories / data.calorieTargetKcal) * 100))
     : 0
+  const calorieGoal = data.goalProgress.find((goal) => goal.nutrient === 'CALORIES')
+  const calorieComparison = calories == null
+    ? null
+    : formatGoalComparison(calorieGoal?.reference ?? null, 'CALORIES')
+  const calorieState = !calorieGoal
+    ? 'Classificação não configurada'
+    : calories == null
+      ? 'Ainda não registradas'
+      : calorieGoal.bandLabel ?? 'Fora das faixas configuradas'
+  const calorieReference = calorieGoal?.reference
+    ? `meta ${formatGoalRange(calorieGoal.reference, 'CALORIES')}`
+    : null
+  const calorieClassificationStage = data.diaryStatus === 'OPEN'
+    ? 'Parcial'
+    : data.diaryStatus === 'CLOSED'
+      ? 'Definitiva'
+      : 'Indisponível'
+  const calorieClassification = [calorieState, calorieReference, calorieComparison]
+    .filter((item): item is string => item != null)
+    .join(' · ')
+  const hasCalorieProgress = calories != null
+    && data.calorieTargetKcal != null
+    && data.calorieTargetKcal > 0
   const waterGoal = data.goalProgress.find((goal) => goal.nutrient === 'WATER')
   const waterLiters = data.nutrition.waterMl == null ? null : data.nutrition.waterMl / 1000
   const waterComparison = data.nutrition.waterMl == null
     ? null
-    : formatGoalComparison(waterGoal?.reference ?? null, data.nutrition.waterMl, 'WATER')
+    : formatGoalComparison(waterGoal?.reference ?? null, 'WATER')
   const waterState = !waterGoal
     ? 'Meta não configurada'
     : data.nutrition.waterMl == null
@@ -108,18 +148,31 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
           </div>
 
           <div
-            aria-label={calories == null ? 'Calorias não informadas' : `${formatNumber(calories)} quilocalorias consumidas`}
-            aria-valuemax={data.calorieTargetKcal ?? undefined}
-            aria-valuemin={0}
-            aria-valuenow={calories ?? undefined}
+            aria-label="Consumo calórico em relação à meta nominal"
+            aria-valuemax={hasCalorieProgress ? data.calorieTargetKcal! : undefined}
+            aria-valuemin={hasCalorieProgress ? 0 : undefined}
+            aria-valuenow={hasCalorieProgress ? Math.min(calories!, data.calorieTargetKcal!) : undefined}
+            aria-valuetext={hasCalorieProgress ? `${formatNumber(calories)} kcal consumidas de uma meta nominal de ${formatNumber(data.calorieTargetKcal!)} kcal` : undefined}
             className={`calorie-progress ${data.calorieTargetKcal == null ? 'without-target' : ''}`}
-            role={calories == null ? undefined : 'progressbar'}
+            role={hasCalorieProgress ? 'progressbar' : 'group'}
             style={{ '--calorie-progress': `${caloriePercent}%` } as CSSProperties}
           >
             <div className="calorie-progress-inner">
               {calories == null ? <MissingValue>Sem registro</MissingValue> : <strong>{formatNumber(calories)}</strong>}
-              <span>{data.calorieTargetKcal == null ? 'meta não configurada' : `de ${formatNumber(data.calorieTargetKcal)} kcal`}</span>
+              <span>{data.calorieTargetKcal == null ? 'meta não configurada' : `meta nominal ${formatNumber(data.calorieTargetKcal)} kcal`}</span>
             </div>
+          </div>
+
+          <div
+            aria-label={`Classificação calórica ${calorieClassificationStage.toLowerCase()}: ${calorieClassification}`}
+            className="daily-goal-state"
+            role="group"
+          >
+            <span aria-hidden="true" className={`goal-state-dot ${goalToneClass(calorieGoal)}`} />
+            <span>{calorieClassificationStage}: {calorieClassification}</span>
+            {calorieGoal?.attained != null ? (
+              <strong>{calorieGoal.attained ? 'atingida' : 'fora da meta'}</strong>
+            ) : null}
           </div>
 
           <div className="energy-balance">
@@ -148,7 +201,6 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
                 key={macro.nutrient}
                 nutrient={macro.nutrient}
                 nutritionKey={macro.key}
-                tone={macro.tone}
               />
             ))}
           </div>

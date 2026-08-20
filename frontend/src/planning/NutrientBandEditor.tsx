@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useFieldArray, useWatch } from 'react-hook-form'
 import type {
   Control,
@@ -5,9 +6,15 @@ import type {
   UseFormRegister,
 } from 'react-hook-form'
 import type { GoalTone, Nutrient } from './api'
-import { defaultNutritionGoalValues, type NutritionGoalFormValues } from './schemas'
+import {
+  calorieToleranceBands,
+  defaultNutritionGoalValues,
+  hasAtMostThreeFractionDigits,
+  type NutritionGoalFormValues,
+} from './schemas'
 
 const nutrientLabels: Record<Nutrient, string> = {
+  CALORIES: 'Calorias',
   PROTEIN: 'Proteína',
   CARBOHYDRATE: 'Carboidratos',
   FAT: 'Gorduras',
@@ -48,6 +55,7 @@ export function NutrientBandEditor({
   register,
   targetIndex,
 }: NutrientBandEditorProps) {
+  const [calorieTolerance, setCalorieTolerance] = useState('100')
   const bands = useFieldArray({
     control,
     name: `targets.${targetIndex}.bands`,
@@ -60,12 +68,23 @@ export function NutrientBandEditor({
     control,
     name: `targets.${targetIndex}.bands`,
   })
+  const calorieTarget = useWatch({ control, name: 'calorieTarget' })
   const targetErrors = errors.targets?.[targetIndex]
-  const suggestedTarget = defaultNutritionGoalValues('2000-01-01').targets[targetIndex]
-  const safeNutrient = nutrient ?? suggestedTarget?.nutrient ?? 'PROTEIN'
+  const defaultTargets = defaultNutritionGoalValues('2000-01-01').targets
+  const fallbackTarget = defaultTargets[targetIndex]
+  const safeNutrient = nutrient ?? fallbackTarget?.nutrient ?? 'CALORIES'
+  const suggestedTarget = defaultTargets.find((target) => target.nutrient === safeNutrient)
   const nutrientLabel = nutrientLabels[safeNutrient]
-  const unit = safeNutrient === 'WATER' ? 'ml' : 'g'
+  const unit = safeNutrient === 'CALORIES' ? 'kcal' : safeNutrient === 'WATER' ? 'ml' : 'g'
   const presetBands = suggestedTarget?.bands
+  const tolerance = Number(calorieTolerance)
+  const validTolerance = calorieTolerance.trim() !== ''
+    && Number.isFinite(tolerance)
+    && tolerance >= 0
+    && tolerance <= 20_000
+    && hasAtMostThreeFractionDigits(tolerance)
+    && Number.isFinite(calorieTarget)
+    && calorieTarget > 0
 
   return (
     <fieldset className="goal-target-editor">
@@ -75,19 +94,58 @@ export function NutrientBandEditor({
         <p>
           Unidade canônica: <strong>{unit}</strong> · {bands.fields.length}/20 faixas
         </p>
-        <button
-          className="goal-preset-button"
-          onClick={() => presetBands && bands.replace(presetBands)}
-          type="button"
-        >
-          Restaurar sugestão
-        </button>
+        {safeNutrient === 'CALORIES' ? null : (
+          <button
+            className="goal-preset-button"
+            onClick={() => presetBands && bands.replace(presetBands)}
+            type="button"
+          >
+            Restaurar sugestão
+          </button>
+        )}
       </div>
 
       <p className="goal-target-hint">
         A ordem é usada na classificação. Deixe um limite vazio para torná-lo aberto e evite
         sobreposição entre faixas vizinhas.
       </p>
+
+      {safeNutrient === 'CALORIES' ? (
+        <div className="goal-calorie-preset">
+          <div className="field-group">
+            <label htmlFor="goal-calorie-tolerance">Tolerância sugerida (±)</label>
+            <div className="number-with-unit">
+              <input
+                aria-describedby="goal-calorie-tolerance-hint"
+                id="goal-calorie-tolerance"
+                inputMode="decimal"
+                max="20000"
+                min="0"
+                onChange={(event) => setCalorieTolerance(event.target.value)}
+                step="0.001"
+                type="number"
+                value={calorieTolerance}
+              />
+              <span>kcal</span>
+            </div>
+          </div>
+          <div className="calorie-preset-action">
+            <span>Preset opcional</span>
+            <button
+              className="goal-preset-button"
+              disabled={!validTolerance}
+              onClick={() => bands.replace(calorieToleranceBands(calorieTarget, tolerance))}
+              type="button"
+            >
+              {validTolerance ? `Aplicar ±${tolerance.toLocaleString('pt-BR')} kcal` : 'Informe uma tolerância válida'}
+            </button>
+          </div>
+          <p className="goal-target-hint" id="goal-calorie-tolerance-hint">
+            A tolerância não é salva. Digitar outro valor não altera as faixas; elas só são
+            substituídas quando você aplicar o preset.
+          </p>
+        </div>
+      ) : null}
 
       {targetErrors?.nutrient ? (
         <p className="form-error" role="alert">{targetErrors.nutrient.message}</p>
@@ -158,7 +216,7 @@ export function NutrientBandEditor({
                       id={`${fieldPrefix}-minimum`}
                       min="0"
                       placeholder="Sem mínimo"
-                      step="0.01"
+                      step="0.001"
                       type="number"
                     />
                     <span>{unit}</span>
@@ -191,7 +249,7 @@ export function NutrientBandEditor({
                       id={`${fieldPrefix}-maximum`}
                       min="0"
                       placeholder="Sem máximo"
-                      step="0.01"
+                      step="0.001"
                       type="number"
                     />
                     <span>{unit}</span>

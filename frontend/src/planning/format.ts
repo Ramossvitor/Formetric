@@ -1,6 +1,7 @@
 import type { GoalBand, NutritionGoalPeriod, Nutrient } from './api'
 
 const nutrientLabels: Record<Nutrient, string> = {
+  CALORIES: 'Calorias',
   PROTEIN: 'Proteína',
   CARBOHYDRATE: 'Carboidratos',
   FAT: 'Gorduras',
@@ -52,13 +53,13 @@ function formatGoalBandRange(band: GoalBand, unit: string) {
 }
 
 export function goalSummaries(period: NutritionGoalPeriod) {
-  return period.targets.map((target) => {
+  const summaries = period.targets.map((target) => {
     const sortedBands = [...target.bands].sort((first, second) => first.position - second.position)
     const attainedBand =
       sortedBands.find((band) => band.countsAsAttained) ??
       sortedBands.find((band) => band.tone === 'POSITIVE') ??
       thresholdBand(sortedBands)
-    const unit = target.unit === 'ML' ? 'ml' : 'g'
+    const unit = target.unit === 'KCAL' ? 'kcal' : target.unit === 'ML' ? 'ml' : 'g'
 
     return {
       nutrient: target.nutrient,
@@ -66,4 +67,15 @@ export function goalSummaries(period: NutritionGoalPeriod) {
       value: attainedBand ? formatGoalBandRange(attainedBand, unit) : 'Faixas configuradas',
     }
   })
+
+  return summaries.some((summary) => summary.nutrient === 'CALORIES')
+    ? summaries
+    : [
+        {
+          nutrient: 'CALORIES' as const,
+          label: nutrientLabels.CALORIES,
+          value: 'Classificação não configurada',
+        },
+        ...summaries,
+      ]
 }

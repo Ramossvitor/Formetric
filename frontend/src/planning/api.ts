@@ -1,7 +1,8 @@
 import { ApiError, apiRequest } from '../api/http'
 
-export type Nutrient = 'PROTEIN' | 'CARBOHYDRATE' | 'FAT' | 'FIBER' | 'WATER'
-export type NutrientUnit = 'G' | 'ML'
+export type MacroNutrient = 'PROTEIN' | 'CARBOHYDRATE' | 'FAT' | 'FIBER'
+export type Nutrient = 'CALORIES' | MacroNutrient | 'WATER'
+export type NutrientUnit = 'KCAL' | 'G' | 'ML'
 export type GoalTone = 'POSITIVE' | 'NEUTRAL' | 'WARNING'
 
 export interface GoalBand {
@@ -25,7 +26,7 @@ export interface NutritionGoalPeriod {
   id: string
   validFrom: string
   validTo: string | null
-  calorieTarget: number
+  calorieTarget: number | null
   targets: NutrientTarget[]
 }
 
@@ -64,6 +65,7 @@ export interface CreateTdeePeriodRequest {
 }
 
 export function canonicalNutrientUnit(nutrient: Nutrient): NutrientUnit {
+  if (nutrient === 'CALORIES') return 'KCAL'
   return nutrient === 'WATER' ? 'ML' : 'G'
 }
 

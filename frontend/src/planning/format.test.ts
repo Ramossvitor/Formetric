@@ -40,6 +40,11 @@ describe('goalSummaries', () => {
 
     expect(goalSummaries(period)).toEqual([
       {
+        nutrient: 'CALORIES',
+        label: 'Calorias',
+        value: 'Classificação não configurada',
+      },
+      {
         nutrient: 'PROTEIN',
         label: 'Proteína',
         value: '150 ≤ valor ≤ 174 g',

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
-import type { GoalAttainment, MetricAggregate, MonthlyAnalytics } from '../analytics/api'
+import type { GoalAttainment, MetricAggregate, MonthlyAnalytics, NutrientType } from '../analytics/api'
 import { formatDate, formatDuration, formatMonth, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels } from '../analytics/format'
 import { analyticsBoundsQuery, monthlyAnalyticsQuery } from '../analytics/queries'
 
@@ -36,19 +36,46 @@ function EnergyMetric({ label, value, note }: { label: string; value: ReactNode;
   return <article className="analytics-energy-metric"><span>{label}</span><strong>{value}</strong><small>{note}</small></article>
 }
 
+const attainmentOrder: Record<NutrientType, number> = {
+  CALORIES: 0,
+  PROTEIN: 1,
+  CARBOHYDRATE: 2,
+  FAT: 3,
+  FIBER: 4,
+  WATER: 5,
+}
+
 function AttainmentRow({ item }: { item: GoalAttainment }) {
   const percentage = item.attainedPercentage ?? 0
+  const unconfiguredMessage = item.nutrient === 'CALORIES'
+    ? 'Classificação não configurada no período'
+    : 'Sem meta vigente no período'
   return (
     <li className={!item.configured ? 'unconfigured' : ''}>
-      <div><strong>{nutrientLabels[item.nutrient]}</strong><span>{item.configured ? `${item.attainedDays} de ${item.eligibleDays} dias` : 'Sem meta vigente no período'}</span></div>
+      <div><strong>{nutrientLabels[item.nutrient]}</strong><span>{item.configured ? `${item.attainedDays} de ${item.eligibleDays} dias` : unconfiguredMessage}</span></div>
       <div className="attainment-value">{item.attainedPercentage == null ? '—' : `${formatNumber(item.attainedPercentage, 1)}%`}</div>
-      <div aria-hidden="true" className="attainment-track"><span style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} /></div>
+      <div
+        aria-hidden={item.attainedPercentage == null ? 'true' : undefined}
+        aria-label={item.attainedPercentage == null ? undefined : `${nutrientLabels[item.nutrient]}: meta atingida em ${formatNumber(item.attainedPercentage, 1)}% dos dias elegíveis`}
+        aria-valuemax={item.attainedPercentage == null ? undefined : 100}
+        aria-valuemin={item.attainedPercentage == null ? undefined : 0}
+        aria-valuenow={item.attainedPercentage == null
+          ? undefined
+          : Math.min(100, Math.max(0, item.attainedPercentage))}
+        className="attainment-track"
+        role={item.attainedPercentage == null ? undefined : 'progressbar'}
+      >
+        <span aria-hidden="true" style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} />
+      </div>
     </li>
   )
 }
 
 function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
   const hasElapsedDays = data.elapsedCalendarDays > 0
+  const orderedGoalAttainment = [...data.goalAttainment].sort(
+    (first, second) => attainmentOrder[first.nutrient] - attainmentOrder[second.nutrient],
+  )
   return (
     <>
       {!hasElapsedDays ? (
@@ -101,8 +128,11 @@ function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
       <div className="analytics-split-grid">
         <section aria-labelledby="attainment-title" className="analytics-section analytics-detail-card surface-card">
           <div><p className="eyebrow">Metas</p><h2 id="attainment-title">Atingimento explícito</h2></div>
-          <ul className="attainment-list">{data.goalAttainment.map((item) => <AttainmentRow item={item} key={item.nutrient} />)}</ul>
-          <p className="analytics-method-note">O resultado usa apenas faixas marcadas como atingimento nas metas vigentes de cada data.</p>
+          <ul className="attainment-list">{orderedGoalAttainment.map((item) => <AttainmentRow item={item} key={item.nutrient} />)}</ul>
+          <p className="analytics-method-note">
+            O denominador usa apenas diários fechados, com valor registrado e classificação vigente.
+            Dias abertos ou sem valor ficam fora.
+          </p>
         </section>
 
         <section aria-labelledby="monthly-activity-title" className="analytics-section analytics-detail-card surface-card">

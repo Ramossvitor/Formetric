@@ -16,6 +16,7 @@ export const metricLabels: Record<AnalyticsMetric, string> = {
 }
 
 export const nutrientLabels: Record<NutrientType, string> = {
+  CALORIES: 'Calorias',
   PROTEIN: 'Proteína',
   CARBOHYDRATE: 'Carboidratos',
   FAT: 'Gorduras',

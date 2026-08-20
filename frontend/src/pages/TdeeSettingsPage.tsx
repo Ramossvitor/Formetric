@@ -151,7 +151,7 @@ export function TdeeSettingsPage() {
                   aria-invalid={Boolean(errors.kcalPerDay)}
                   id="tdee-kcal"
                   min="0"
-                  step="1"
+                  step="0.001"
                   type="number"
                 />
                 <span>kcal/dia</span>

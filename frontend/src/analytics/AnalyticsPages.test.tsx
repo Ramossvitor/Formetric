@@ -28,14 +28,21 @@ const openDaily: DailyAnalytics = {
   calorieTargetKcal: 2200,
   goalProgress: [
     {
-      nutrient: 'PROTEIN', value: 40, bandLabel: 'Abaixo do planejado', attained: false,
+      nutrient: 'CALORIES', value: 500, bandLabel: 'Abaixo do planejado', bandTone: 'WARNING', attained: false,
+      reference: {
+        label: 'Dentro da faixa', minValue: 2100, maxValue: 2300, minInclusive: true, maxInclusive: true,
+        remainingToRange: 1600, excessOverRange: null,
+      },
+    },
+    {
+      nutrient: 'PROTEIN', value: 40, bandLabel: 'Abaixo do planejado', bandTone: 'WARNING', attained: false,
       reference: {
         label: 'Meta', minValue: 175, maxValue: null, minInclusive: true, maxInclusive: false,
         remainingToRange: 135, excessOverRange: null,
       },
     },
     {
-      nutrient: 'WATER', value: 1250, bandLabel: 'Em andamento', attained: false,
+      nutrient: 'WATER', value: 1250, bandLabel: 'Em andamento', bandTone: 'NEUTRAL', attained: false,
       reference: {
         label: 'Meta', minValue: 4400, maxValue: null, minInclusive: true, maxInclusive: false,
         remainingToRange: 3150, excessOverRange: null,
@@ -78,6 +85,7 @@ const monthlyData: MonthlyAnalytics = {
     largestSurplus: { date: '2026-08-05', balanceKcal: 500 },
   },
   goalAttainment: [
+    { nutrient: 'CALORIES', configured: true, attainedDays: 2, eligibleDays: 4, attainedPercentage: 50 },
     { nutrient: 'PROTEIN', configured: true, attainedDays: 1, eligibleDays: 4, attainedPercentage: 25 },
     { nutrient: 'WATER', configured: false, attainedDays: 0, eligibleDays: 0, attainedPercentage: null },
   ],
@@ -115,7 +123,10 @@ describe('painéis determinísticos', () => {
     expect(screen.getByText('−2.500 kcal')).toBeInTheDocument()
     expect(screen.getByText('projeção')).toBeInTheDocument()
     expect(screen.getByText('TDEE vigente:')).toHaveTextContent('3.000 kcal')
-    expect(screen.getByText(/Abaixo do planejado/)).toBeInTheDocument()
+    const calorieClassification = screen.getByRole('group', { name: /Classificação calórica parcial: Abaixo do planejado/ })
+    expect(within(calorieClassification).getByText(/faltam 1.600 kcal para a faixa/)).toBeInTheDocument()
+    expect(calorieClassification.querySelector('.goal-state-dot')).toHaveClass('not-attained')
+    expect(screen.getByRole('group', { name: /Proteína: Abaixo do planejado/ })).toBeInTheDocument()
     expect(screen.getByText(/meta ≥ 175 g/)).toBeInTheDocument()
     expect(screen.getByText(/faltam 135 g para a faixa/)).toBeInTheDocument()
     expect(screen.getByText('1,25')).toBeInTheDocument()
@@ -128,11 +139,12 @@ describe('painéis determinísticos', () => {
   it('distingue uma meta configurada de um valor ainda não registrado', async () => {
     const withoutValues: DailyAnalytics = {
       ...openDaily,
-      nutrition: { ...openDaily.nutrition, proteinG: null, waterMl: null },
+      nutrition: { ...openDaily.nutrition, caloriesKcal: null, proteinG: null, waterMl: null },
       goalProgress: openDaily.goalProgress.map((goal) => ({
         ...goal,
         value: null,
         bandLabel: null,
+        bandTone: null,
         attained: null,
         reference: goal.reference && {
           ...goal.reference,
@@ -151,7 +163,8 @@ describe('painéis determinísticos', () => {
     renderApp('/')
 
     expect(await screen.findByText('Ainda não registrado')).toBeInTheDocument()
-    expect(screen.getByText(/Ainda não registrada/)).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Classificação calórica parcial: Ainda não registradas/ })).toBeInTheDocument()
+    expect(screen.getByText(/Ainda não registrada · meta ≥ 4,4 L/)).toBeInTheDocument()
     expect(screen.getByText(/meta ≥ 175 g/)).toBeInTheDocument()
     expect(screen.getByText(/meta ≥ 4,4 L/)).toBeInTheDocument()
   })
@@ -198,10 +211,41 @@ describe('painéis determinísticos', () => {
     expect(within(nutrition).getAllByText('4 dias na média')).toHaveLength(5)
     expect(within(nutrition).getByText('2 dias na média')).toBeInTheDocument()
     expect(screen.getAllByText('−2.500 kcal')).toHaveLength(2)
+    expect(screen.getByText('50%')).toBeInTheDocument()
     expect(screen.getByText('25%')).toBeInTheDocument()
     expect(screen.getByText('−2 kg')).toBeInTheDocument()
     expect(screen.getByText('1 dia sem TDEE')).toBeInTheDocument()
     expect(screen.getByText('Musculação, Pilates')).toBeInTheDocument()
+    expect(screen.getByText(/O denominador usa apenas diários fechados/)).toBeInTheDocument()
+  })
+
+  it('identifica a classificação calórica mensal ausente em dados legados', async () => {
+    const legacyMonthly: MonthlyAnalytics = {
+      ...monthlyData,
+      goalAttainment: monthlyData.goalAttainment.map((item) => item.nutrient === 'CALORIES'
+        ? {
+            ...item,
+            configured: false,
+            attainedDays: 0,
+            eligibleDays: 0,
+            attainedPercentage: null,
+          }
+        : item),
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+      if (path === '/api/v1/analytics/bounds') return jsonResponse(bounds)
+      if (path === '/api/v1/analytics/monthly?month=2026-08') return jsonResponse(legacyMonthly)
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+
+    renderApp('/analytics/monthly')
+
+    const attainment = (await screen.findByRole('heading', { name: 'Atingimento explícito' })).closest('section')!
+    const calorieRow = within(attainment).getByText('Calorias').closest('li')!
+    expect(calorieRow).toHaveClass('unconfigured')
+    expect(within(calorieRow).getByText('Classificação não configurada no período')).toBeInTheDocument()
+    expect(within(calorieRow).queryByRole('progressbar')).not.toBeInTheDocument()
   })
 
   it('solicita séries dentro do limite e preserva os motivos das lacunas', async () => {

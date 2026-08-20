@@ -19,7 +19,9 @@ export type AnalyticsMetric =
   | 'ENERGY_BALANCE'
   | 'WEIGHT'
 
-export type NutrientType = 'PROTEIN' | 'CARBOHYDRATE' | 'FAT' | 'FIBER' | 'WATER'
+export type MacroNutrientType = 'PROTEIN' | 'CARBOHYDRATE' | 'FAT' | 'FIBER'
+export type NutrientType = 'CALORIES' | MacroNutrientType | 'WATER'
+export type GoalTone = 'POSITIVE' | 'NEUTRAL' | 'WARNING'
 
 export interface NutritionValues {
   caloriesKcal: number | null
@@ -34,6 +36,7 @@ export interface GoalProgress {
   nutrient: NutrientType
   value: number | null
   bandLabel: string | null
+  bandTone: GoalTone | null
   attained: boolean | null
   reference: GoalReference | null
 }

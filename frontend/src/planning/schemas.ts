@@ -1,17 +1,27 @@
 import { z } from 'zod'
 import type { EditableGoalBand, Nutrient } from './api'
 
+export function hasAtMostThreeFractionDigits(value: number) {
+  const scaled = value * 1000
+  return Math.abs(scaled - Math.round(scaled)) < 1e-7
+}
+
 const positiveValue = (label: string, maximum: number) =>
   z
     .number({ error: `Informe ${label}.` })
     .positive(`${label} deve ser maior que zero.`)
     .max(maximum, `${label} deve ser no máximo ${maximum.toLocaleString('pt-BR')}.`)
+    .refine(hasAtMostThreeFractionDigits, 'Use no máximo 3 casas decimais.')
 
 const optionalBoundary = z
   .number({ error: 'Informe um número válido ou deixe o limite em branco.' })
   .min(0, 'O limite não pode ser negativo.')
   .max(999_999_999, 'O limite informado é muito alto.')
   .nullable()
+  .refine(
+    (value) => value === null || hasAtMostThreeFractionDigits(value),
+    'Use no máximo 3 casas decimais.',
+  )
 
 const goalBandSchema = z
   .object({
@@ -55,7 +65,7 @@ const goalBandSchema = z
 
 const targetSchema = z
   .object({
-    nutrient: z.enum(['PROTEIN', 'CARBOHYDRATE', 'FAT', 'FIBER', 'WATER']),
+    nutrient: z.enum(['CALORIES', 'PROTEIN', 'CARBOHYDRATE', 'FAT', 'FIBER', 'WATER']),
     bands: z
       .array(goalBandSchema)
       .min(1, 'Adicione ao menos uma faixa para este nutriente.')
@@ -78,7 +88,7 @@ export const nutritionGoalFormSchema = z
     calorieTarget: positiveValue('a meta calórica', 20_000),
     targets: z
       .array(targetSchema)
-      .length(5, 'Configure as faixas dos cinco nutrientes.'),
+      .length(6, 'Configure as faixas de calorias e dos cinco nutrientes.'),
   })
   .superRefine((form, context) => {
     if (form.validTo && form.validTo <= form.validFrom) {
@@ -125,6 +135,20 @@ export const nutritionGoalFormSchema = z
         }
       }
     })
+
+    const calorieBands = form.targets.find((target) => target.nutrient === 'CALORIES')?.bands
+    if (
+      calorieBands &&
+      !calorieBands.some(
+        (band) => band.countsAsAttained && goalBandContainsValue(band, form.calorieTarget),
+      )
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['calorieTarget'],
+        message: 'A meta calórica nominal precisa estar dentro de uma faixa marcada como atingida.',
+      })
+    }
   })
 
 export type NutritionGoalFormValues = z.infer<typeof nutritionGoalFormSchema>
@@ -193,12 +217,59 @@ function maximumBands(maximum: number, idealLabel: string): EditableGoalBand[] {
   ]
 }
 
+export function goalBandContainsValue(band: EditableGoalBand, value: number) {
+  const aboveMinimum = band.minValue === null
+    || (band.minInclusive ? value >= band.minValue : value > band.minValue)
+  const belowMaximum = band.maxValue === null
+    || (band.maxInclusive ? value <= band.maxValue : value < band.maxValue)
+  return aboveMinimum && belowMaximum
+}
+
+export function calorieToleranceBands(
+  calorieTarget: number,
+  tolerance: number,
+): EditableGoalBand[] {
+  const normalize = (value: number) => Math.round(value * 1000) / 1000
+  const minimum = Math.max(0, normalize(calorieTarget - tolerance))
+  const maximum = normalize(calorieTarget + tolerance)
+  return [
+    {
+      minValue: null,
+      maxValue: minimum,
+      minInclusive: false,
+      maxInclusive: false,
+      label: 'Abaixo do planejado',
+      tone: 'WARNING',
+      countsAsAttained: false,
+    },
+    {
+      minValue: minimum,
+      maxValue: maximum,
+      minInclusive: true,
+      maxInclusive: true,
+      label: 'Dentro da faixa',
+      tone: 'POSITIVE',
+      countsAsAttained: true,
+    },
+    {
+      minValue: maximum,
+      maxValue: null,
+      minInclusive: false,
+      maxInclusive: false,
+      label: 'Acima do planejado',
+      tone: 'WARNING',
+      countsAsAttained: false,
+    },
+  ]
+}
+
 export function defaultNutritionGoalValues(validFrom: string): NutritionGoalFormValues {
   return {
     validFrom,
     validTo: '',
     calorieTarget: 2500,
     targets: [
+      { nutrient: 'CALORIES', bands: calorieToleranceBands(2500, 100) },
       { nutrient: 'PROTEIN', bands: minimumBands(175, 'Meta atingida') },
       { nutrient: 'CARBOHYDRATE', bands: maximumBands(210, 'Faixa ideal') },
       { nutrient: 'FAT', bands: maximumBands(65, 'Dentro do limite') },

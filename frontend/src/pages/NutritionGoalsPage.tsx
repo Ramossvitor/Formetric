@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { ApiError, getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
@@ -19,10 +20,11 @@ import {
   type NutritionGoalFormValues,
 } from '../planning/schemas'
 
-const targetIndexes = [0, 1, 2, 3, 4] as const
+const targetIndexes = [0, 1, 2, 3, 4, 5] as const
 
 export function NutritionGoalsPage() {
   const today = todayAsLocalIsoDate()
+  const [editorVersion, setEditorVersion] = useState(0)
   const queryClient = useQueryClient()
   const periods = useQuery(nutritionGoalPeriodsQuery)
   const effective = useQuery(effectiveNutritionGoalQuery(today))
@@ -45,6 +47,7 @@ export function NutritionGoalsPage() {
         invalidateAnalytics(queryClient),
       ])
       reset(defaultNutritionGoalValues(today))
+      setEditorVersion((current) => current + 1)
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) return
@@ -99,7 +102,11 @@ export function NutritionGoalsPage() {
           <div>
             <p className="eyebrow">Vigente hoje</p>
             <h2 id="effective-goal-title">
-              {effective.data ? `${effective.data.calorieTarget.toLocaleString('pt-BR')} kcal` : 'Nenhuma meta vigente'}
+              {effective.data
+                ? effective.data.calorieTarget == null
+                  ? 'Meta nominal não configurada'
+                  : `${effective.data.calorieTarget.toLocaleString('pt-BR')} kcal`
+                : 'Nenhuma meta vigente'}
             </h2>
             <p>
               {effective.data
@@ -170,7 +177,7 @@ export function NutritionGoalsPage() {
                     aria-invalid={Boolean(errors.calorieTarget)}
                     id="goal-calorie-target"
                     min="0"
-                    step="1"
+                    step="0.001"
                     type="number"
                   />
                   <span>kcal</span>
@@ -188,7 +195,7 @@ export function NutritionGoalsPage() {
                 <NutrientBandEditor
                   control={control}
                   errors={errors}
-                  key={targetIndex}
+                  key={targetIndex === 0 ? `calories-${editorVersion}` : targetIndex}
                   register={register}
                   targetIndex={targetIndex}
                 />
@@ -233,7 +240,11 @@ export function NutritionGoalsPage() {
                 <li className="period-item" key={period.id}>
                   <div className="period-heading">
                     <div>
-                      <strong>{period.calorieTarget.toLocaleString('pt-BR')} kcal/dia</strong>
+                      <strong>
+                        {period.calorieTarget == null
+                          ? 'Meta nominal não configurada'
+                          : `${period.calorieTarget.toLocaleString('pt-BR')} kcal/dia`}
+                      </strong>
                       <span>{formatValidity(period.validFrom, period.validTo)}</span>
                     </div>
                     {effective.data?.id === period.id ? <span className="status-chip">Vigente</span> : null}

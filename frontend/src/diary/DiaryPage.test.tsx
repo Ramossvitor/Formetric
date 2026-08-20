@@ -31,6 +31,7 @@ function dailyLog(overrides: Record<string, unknown> = {}) {
     energyBalanceKcal: -3000,
     energyBalanceAvailability: 'AVAILABLE',
     nutritionGoals: null,
+    goalProgress: [],
     createdAt: '2026-08-12T10:00:00Z',
     updatedAt: '2026-08-12T10:00:00Z',
     closedAt: null,

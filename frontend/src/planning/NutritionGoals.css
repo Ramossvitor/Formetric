@@ -104,6 +104,36 @@
   margin: 9px 0 13px;
 }
 
+.goal-calorie-preset {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.goal-calorie-preset .goal-target-hint {
+  margin: 0;
+}
+
+.calorie-preset-action {
+  display: grid;
+  align-content: end;
+  gap: 7px;
+}
+
+.calorie-preset-action > span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.calorie-preset-action .goal-preset-button {
+  width: 100%;
+}
+
 .goal-preset-button {
   min-height: 44px;
   padding: 0 12px;
@@ -250,6 +280,14 @@
 
   .goal-period-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .goal-calorie-preset {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .goal-calorie-preset .goal-target-hint {
+    grid-column: 1 / -1;
   }
 
   .goal-period-fields .field-group:last-child {
