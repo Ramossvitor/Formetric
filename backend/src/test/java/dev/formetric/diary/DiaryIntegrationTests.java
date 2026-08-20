@@ -16,6 +16,8 @@ import dev.formetric.identity.AuthenticatedUser;
 import dev.formetric.identity.CurrentUserProvider;
 import dev.formetric.identity.CurrentUserZoneIdProvider;
 import dev.formetric.identity.UserRole;
+import dev.formetric.planning.GoalTone;
+import dev.formetric.planning.NutrientType;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -86,12 +88,21 @@ class DiaryIntegrationTests {
 
     @Test
     void emptyFastingClosureIsExplicitAndClosedDiaryRejectsMutationsUntilReopened() {
+        insertTdee(USER_ONE, DATE, new BigDecimal("3000"));
+        insertNutritionGoal(USER_ONE, DATE);
         assertThrows(DiaryValidationException.class, () -> diaryService.close(DATE, new CloseDailyLogRequest(false)));
         assertThrows(DiaryNotFoundException.class, () -> diaryService.get(DATE));
 
         DailyLogResponse closed = diaryService.close(DATE, new CloseDailyLogRequest(true));
         assertThat(closed.status()).isEqualTo(DailyLogStatus.CLOSED);
         assertThat(closed.stateEvents().getLast().fastingConfirmed()).isTrue();
+        DiaryGoalProgressResponse fastingCalories = goalProgress(closed, NutrientType.CALORIES);
+        assertThat(fastingCalories.value()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(fastingCalories.bandLabel()).isEqualTo("Abaixo");
+        assertThat(fastingCalories.bandTone()).isEqualTo(GoalTone.WARNING);
+        assertThat(fastingCalories.attained()).isFalse();
+        assertThat(closed.energyBalanceKcal()).isEqualByComparingTo("-3000.000");
+        assertThat(closed.energyBalanceAvailability()).isEqualTo("AVAILABLE");
         assertThrows(DiaryConflictException.class, () -> diaryService.addWater(
                 DATE, new CreateWaterRequest(Instant.parse("2026-08-12T10:00:00Z"), new BigDecimal("250"), null)));
 
@@ -100,12 +111,28 @@ class DiaryIntegrationTests {
                 DATE, new CreateWaterRequest(Instant.parse("2026-08-12T10:00:00Z"), new BigDecimal("250"), null));
         assertThat(reopened.status()).isEqualTo(DailyLogStatus.OPEN);
         assertThat(reopened.waterTotalMl()).isEqualByComparingTo("250.000");
+        DiaryGoalProgressResponse partialCalories = goalProgress(reopened, NutrientType.CALORIES);
+        assertThat(partialCalories.value()).isNull();
+        assertThat(partialCalories.bandLabel()).isNull();
+        assertThat(partialCalories.bandTone()).isNull();
+        assertThat(partialCalories.attained()).isNull();
+
+        DailyLogResponse reclosedWithoutFasting = diaryService.close(DATE, new CloseDailyLogRequest(false));
+        DiaryGoalProgressResponse reclosedCalories = goalProgress(
+                reclosedWithoutFasting, NutrientType.CALORIES);
+        assertThat(reclosedCalories.value()).isNull();
+        assertThat(reclosedCalories.bandLabel()).isNull();
+        assertThat(reclosedCalories.bandTone()).isNull();
+        assertThat(reclosedCalories.attained()).isNull();
+        assertThat(reclosedWithoutFasting.energyBalanceKcal()).isNull();
+        assertThat(reclosedWithoutFasting.energyBalanceAvailability()).isEqualTo("UNAVAILABLE");
+        assertThat(reclosedWithoutFasting.stateEvents().getLast().fastingConfirmed()).isFalse();
     }
 
     @Test
     void itemUsesImmutableCatalogSnapshotAndCalculatesMealDayWaterAndEnergyTotals() {
         insertTdee(USER_ONE, DATE, new BigDecimal("3000"));
-        insertProteinGoal(USER_ONE, DATE);
+        insertNutritionGoal(USER_ONE, DATE);
         UUID mealId = diaryService.addMeal(DATE, new CreateMealRequest("Almoço", null, null, UUID.randomUUID()))
                 .meals().getFirst().id();
         UpsertMealItemRequest item = new UpsertMealItemRequest(
@@ -121,7 +148,15 @@ class DiaryIntegrationTests {
         assertThat(withFood.energyBalanceKcal()).isEqualByComparingTo("-2700.000");
         assertThat(withFood.energyBalanceAvailability()).isEqualTo("AVAILABLE");
         assertThat(withFood.nutritionGoals().calorieTarget()).isEqualByComparingTo("2500.000");
-        assertThat(withFood.nutritionGoals().targets().getFirst().bands()).hasSize(2);
+        assertThat(withFood.nutritionGoals().targets()).hasSize(2);
+        DiaryGoalProgressResponse calorieProgress = goalProgress(withFood, NutrientType.CALORIES);
+        assertThat(calorieProgress.value()).isEqualByComparingTo("300.000");
+        assertThat(calorieProgress.bandLabel()).isEqualTo("Abaixo");
+        assertThat(calorieProgress.bandTone()).isEqualTo(GoalTone.WARNING);
+        assertThat(calorieProgress.attained()).isFalse();
+        assertThat(calorieProgress.reference().label()).isEqualTo("Meta calórica");
+        assertThat(calorieProgress.reference().remainingToRange()).isEqualByComparingTo("2100.000");
+        assertThat(goalProgress(withFood, NutrientType.PROTEIN).bandTone()).isEqualTo(GoalTone.WARNING);
         MealItemResponse snapshot = withFood.meals().getFirst().items().getFirst();
         assertThat(snapshot.quantity()).isEqualByComparingTo("2");
         assertThat(snapshot.unit()).isEqualTo("SLICE");
@@ -144,6 +179,24 @@ class DiaryIntegrationTests {
         assertThat(response.tdeeKcal()).isNull();
         assertThat(response.energyBalanceKcal()).isNull();
         assertThat(response.energyBalanceAvailability()).isEqualTo("UNAVAILABLE");
+    }
+
+    @Test
+    void energyBalanceDoesNotInventZeroCaloriesForEmptyOrWaterOnlyOpenDiary() {
+        insertTdee(USER_ONE, DATE, new BigDecimal("3000"));
+        DailyLogResponse empty = diaryService.addMeal(
+                DATE, new CreateMealRequest("Empty", null, null, null));
+
+        assertThat(empty.energyBalanceKcal()).isNull();
+        assertThat(empty.energyBalanceAvailability()).isEqualTo("UNAVAILABLE");
+
+        DailyLogResponse waterOnly = diaryService.addWater(
+                DATE,
+                new CreateWaterRequest(
+                        Instant.parse("2026-08-12T10:00:00Z"), new BigDecimal("500"), null));
+
+        assertThat(waterOnly.energyBalanceKcal()).isNull();
+        assertThat(waterOnly.energyBalanceAvailability()).isEqualTo("UNAVAILABLE");
     }
 
     @Test
@@ -314,9 +367,17 @@ class DiaryIntegrationTests {
                 """, UUID.randomUUID(), userId, from, kcal);
     }
 
-    private void insertProteinGoal(UUID userId, LocalDate from) {
+    private static DiaryGoalProgressResponse goalProgress(DailyLogResponse response, NutrientType nutrient) {
+        return response.goalProgress().stream()
+                .filter(progress -> progress.nutrient() == nutrient)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private void insertNutritionGoal(UUID userId, LocalDate from) {
         UUID periodId = UUID.randomUUID();
-        UUID targetId = UUID.randomUUID();
+        UUID proteinTargetId = UUID.randomUUID();
+        UUID calorieTargetId = UUID.randomUUID();
         jdbcTemplate.update("""
                 INSERT INTO nutrition_goal_periods
                     (id, user_id, valid_from, valid_to, calorie_target, created_at, updated_at)
@@ -324,8 +385,10 @@ class DiaryIntegrationTests {
                 """, periodId, userId, from);
         jdbcTemplate.update("""
                 INSERT INTO nutrient_targets (id, goal_period_id, nutrient, unit)
-                VALUES (?, ?, 'PROTEIN', 'G')
-                """, targetId, periodId);
+                VALUES
+                    (?, ?, 'PROTEIN', 'G'),
+                    (?, ?, 'CALORIES', 'KCAL')
+                """, proteinTargetId, periodId, calorieTargetId, periodId);
         jdbcTemplate.update("""
                 INSERT INTO goal_bands
                     (id, nutrient_target_id, band_order, min_value, max_value,
@@ -333,7 +396,19 @@ class DiaryIntegrationTests {
                 VALUES
                     (?, ?, 0, NULL, 175, FALSE, FALSE, 'Abaixo', 'WARNING', FALSE),
                     (?, ?, 1, 175, NULL, TRUE, FALSE, 'Meta', 'POSITIVE', TRUE)
-                """, UUID.randomUUID(), targetId, UUID.randomUUID(), targetId);
+                """, UUID.randomUUID(), proteinTargetId, UUID.randomUUID(), proteinTargetId);
+        jdbcTemplate.update("""
+                INSERT INTO goal_bands
+                    (id, nutrient_target_id, band_order, min_value, max_value,
+                     min_inclusive, max_inclusive, label, tone, counts_as_attained)
+                VALUES
+                    (?, ?, 0, NULL, 2400, FALSE, FALSE, 'Abaixo', 'WARNING', FALSE),
+                    (?, ?, 1, 2400, 2600, TRUE, TRUE, 'Meta calórica', 'POSITIVE', TRUE),
+                    (?, ?, 2, 2600, NULL, FALSE, FALSE, 'Acima', 'WARNING', FALSE)
+                """,
+                UUID.randomUUID(), calorieTargetId,
+                UUID.randomUUID(), calorieTargetId,
+                UUID.randomUUID(), calorieTargetId);
     }
 
     @TestConfiguration(proxyBeanMethods = false)

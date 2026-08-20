@@ -142,6 +142,77 @@ class PlanningRulesTest {
                     () -> PlanningRules.validateAndNormalizeTargets(List.of(targetInMilliliters)));
             assertEquals("targets", exception.field());
         }
+
+        NutrientTargetDefinition caloriesInGrams = new NutrientTargetDefinition(
+                NutrientType.CALORIES,
+                NutritionUnit.G,
+                List.of(attainedBand("2400", "2600")));
+        PlanningValidationException calorieException = assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateAndNormalizeTargets(List.of(caloriesInGrams)));
+        assertEquals("targets", calorieException.field());
+
+        NutrientTargetDefinition caloriesInKcal = new NutrientTargetDefinition(
+                NutrientType.CALORIES,
+                NutritionUnit.KCAL,
+                List.of(attainedBand("2400", "2600")));
+        assertDoesNotThrow(() -> PlanningRules.validateAndNormalizeTargets(List.of(caloriesInKcal)));
+    }
+
+    @Test
+    void calorieClassificationRequiresNominalTargetInsideAnAttainedBand() {
+        NutrientTargetDefinition calories = new NutrientTargetDefinition(
+                NutrientType.CALORIES,
+                NutritionUnit.KCAL,
+                List.of(attainedBand("2400", "2600")));
+
+        PlanningValidationException missingTarget = assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateCalorieTarget(null, List.of(calories)));
+        PlanningValidationException outsideTarget = assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateCalorieTarget(new BigDecimal("2700"), List.of(calories)));
+
+        assertEquals("calorieTarget", missingTarget.field());
+        assertEquals("calorieTarget", outsideTarget.field());
+        assertDoesNotThrow(() -> PlanningRules.validateCalorieTarget(
+                new BigDecimal("2400"), List.of(calories)));
+        assertDoesNotThrow(() -> PlanningRules.validateCalorieTarget(
+                new BigDecimal("2600"), List.of(calories)));
+        assertDoesNotThrow(() -> PlanningRules.validateCalorieTarget(null, List.of()));
+
+        NutrientTargetDefinition exclusiveCalories = new NutrientTargetDefinition(
+                NutrientType.CALORIES,
+                NutritionUnit.KCAL,
+                List.of(new GoalBandDefinition(
+                        0,
+                        new BigDecimal("2400"),
+                        new BigDecimal("2600"),
+                        false,
+                        false,
+                        "Planejado",
+                        GoalTone.POSITIVE,
+                        true)));
+        assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateCalorieTarget(
+                        new BigDecimal("2400"), List.of(exclusiveCalories)));
+        assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateCalorieTarget(
+                        new BigDecimal("2600"), List.of(exclusiveCalories)));
+    }
+
+    private static GoalBandDefinition attainedBand(String minimum, String maximum) {
+        return new GoalBandDefinition(
+                0,
+                new BigDecimal(minimum),
+                new BigDecimal(maximum),
+                true,
+                true,
+                "Planejado",
+                GoalTone.POSITIVE,
+                true);
     }
 
     private static GoalBandDefinition band(

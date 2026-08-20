@@ -1,7 +1,8 @@
 package dev.formetric.planning;
 
-/** Nutrients that can have user-defined goal bands in the first planning model. */
+/** Nutrition metrics that can have user-defined goal bands. */
 public enum NutrientType {
+    CALORIES,
     PROTEIN,
     CARBOHYDRATE,
     FAT,

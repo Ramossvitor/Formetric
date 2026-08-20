@@ -1,5 +1,7 @@
 package dev.formetric.analytics;
 
+import dev.formetric.planning.GoalBandClassifier;
+import dev.formetric.planning.GoalTone;
 import dev.formetric.planning.NutrientType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -93,6 +95,7 @@ record GoalProgressResponse(
         NutrientType nutrient,
         BigDecimal value,
         String bandLabel,
+        GoalTone bandTone,
         Boolean attained,
         GoalReferenceResponse reference) {
 }
@@ -106,7 +109,7 @@ record GoalReferenceResponse(
         BigDecimal remainingToRange,
         BigDecimal excessOverRange) {
 
-    static GoalReferenceResponse from(AnalyticsCalculations.GoalReference reference) {
+    static GoalReferenceResponse from(GoalBandClassifier.GoalReference reference) {
         return reference == null
                 ? null
                 : new GoalReferenceResponse(

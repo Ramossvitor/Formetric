@@ -2,6 +2,9 @@ package dev.formetric.diary;
 
 import dev.formetric.catalog.CatalogItemType;
 import dev.formetric.catalog.CatalogUnit;
+import dev.formetric.planning.GoalBandClassifier;
+import dev.formetric.planning.GoalTone;
+import dev.formetric.planning.NutrientType;
 import dev.formetric.planning.PlanningDataProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -202,6 +205,7 @@ record DailyLogResponse(
         BigDecimal energyBalanceKcal,
         String energyBalanceAvailability,
         PlanningDataProvider.EffectiveNutritionGoals nutritionGoals,
+        List<DiaryGoalProgressResponse> goalProgress,
         Instant createdAt,
         Instant updatedAt,
         Instant closedAt,
@@ -214,13 +218,92 @@ record DailyLogResponse(
         DiaryTotals totals = DiaryTotals.forMeals(log.meals());
         BigDecimal waterTotal = log.waterLogs().stream().map(WaterLog::volumeMl)
                 .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(3, RoundingMode.HALF_UP);
-        BigDecimal balance = tdee == null ? null : totals.kcal().subtract(tdee).setScale(3, RoundingMode.HALF_UP);
+        boolean hasFoodItems = log.meals().stream().anyMatch(meal -> !meal.items().isEmpty());
+        boolean confirmedFasting = log.fastingConfirmed();
+        boolean nutritionRecorded = hasFoodItems || confirmedFasting;
+        BigDecimal balance = tdee == null || !nutritionRecorded
+                ? null
+                : totals.kcal().subtract(tdee).setScale(3, RoundingMode.HALF_UP);
+        List<DiaryGoalProgressResponse> progress = nutritionGoals == null
+                ? List.of()
+                : nutritionGoals.targets().stream()
+                        .map(target -> GoalBandClassifier.classify(
+                                target,
+                                goalValue(target.nutrient(), totals, waterTotal, hasFoodItems, confirmedFasting,
+                                        !log.waterLogs().isEmpty())))
+                        .map(DiaryGoalProgressResponse::from)
+                        .toList();
         return new DailyLogResponse(
                 log.id(), log.date(), log.status(), log.meals().stream().map(MealResponse::from).toList(),
                 log.waterLogs().stream().map(WaterLogResponse::from).toList(), waterTotal, totals, tdee, balance,
-                tdee == null ? "UNAVAILABLE" : "AVAILABLE", nutritionGoals,
+                balance == null ? "UNAVAILABLE" : "AVAILABLE", nutritionGoals, progress,
                 log.createdAt(), log.updatedAt(), log.closedAt(),
                 log.stateEvents().stream().map(DailyLogStateEventResponse::from).toList());
+    }
+
+    private static BigDecimal goalValue(
+            NutrientType nutrient,
+            DiaryTotals totals,
+            BigDecimal waterTotal,
+            boolean hasFoodItems,
+            boolean confirmedFasting,
+            boolean hasWater) {
+        if (nutrient == NutrientType.WATER) {
+            return hasWater ? waterTotal : null;
+        }
+        if (!hasFoodItems && !confirmedFasting) {
+            return null;
+        }
+        return switch (nutrient) {
+            case CALORIES -> totals.kcal();
+            case PROTEIN -> totals.proteinG();
+            case CARBOHYDRATE -> totals.carbohydrateG();
+            case FAT -> totals.fatG();
+            case FIBER -> totals.fiberG();
+            case WATER -> throw new IllegalStateException("Water is handled separately");
+        };
+    }
+}
+
+record DiaryGoalProgressResponse(
+        NutrientType nutrient,
+        BigDecimal value,
+        String bandLabel,
+        GoalTone bandTone,
+        Boolean attained,
+        DiaryGoalReferenceResponse reference) {
+
+    static DiaryGoalProgressResponse from(GoalBandClassifier.GoalClassification classification) {
+        return new DiaryGoalProgressResponse(
+                classification.nutrient(),
+                classification.value(),
+                classification.bandLabel(),
+                classification.bandTone(),
+                classification.attained(),
+                DiaryGoalReferenceResponse.from(classification.reference()));
+    }
+}
+
+record DiaryGoalReferenceResponse(
+        String label,
+        BigDecimal minValue,
+        BigDecimal maxValue,
+        boolean minInclusive,
+        boolean maxInclusive,
+        BigDecimal remainingToRange,
+        BigDecimal excessOverRange) {
+
+    static DiaryGoalReferenceResponse from(GoalBandClassifier.GoalReference reference) {
+        return reference == null
+                ? null
+                : new DiaryGoalReferenceResponse(
+                        reference.label(),
+                        reference.minValue(),
+                        reference.maxValue(),
+                        reference.minInclusive(),
+                        reference.maxInclusive(),
+                        reference.remainingToRange(),
+                        reference.excessOverRange());
     }
 }
 

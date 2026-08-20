@@ -55,6 +55,7 @@ class PlanningService {
         }
         List<NutrientTargetDefinition> targets = PlanningRules.validateAndNormalizeTargets(
                 request.targets().stream().map(NutrientTargetRequest::toDefinition).toList());
+        PlanningRules.validateCalorieTarget(request.calorieTarget(), targets);
         Instant now = clock.instant();
 
         try {

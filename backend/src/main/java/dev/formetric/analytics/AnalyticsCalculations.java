@@ -2,8 +2,9 @@ package dev.formetric.analytics;
 
 import dev.formetric.diary.DailyLogStatus;
 import dev.formetric.diary.DiaryDataProvider.DiaryDayData;
+import dev.formetric.planning.GoalBandClassifier;
+import dev.formetric.planning.GoalBandClassifier.GoalClassification;
 import dev.formetric.planning.NutrientType;
-import dev.formetric.planning.PlanningDataProvider.EffectiveGoalBand;
 import dev.formetric.planning.PlanningDataProvider.EffectiveNutrientTarget;
 import dev.formetric.planning.PlanningDataProvider.EffectiveNutritionGoals;
 import dev.formetric.planning.PlanningDataProvider.PlanningTimeline;
@@ -12,7 +13,6 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +62,7 @@ final class AnalyticsCalculations {
 
     static BigDecimal nutrientValue(DailyValues values, NutrientType nutrient) {
         return switch (nutrient) {
+            case CALORIES -> values.caloriesKcal();
             case PROTEIN -> values.proteinG();
             case CARBOHYDRATE -> values.carbohydrateG();
             case FAT -> values.fatG();
@@ -193,7 +194,7 @@ final class AnalyticsCalculations {
                         continue;
                     }
                     counter.eligibleDays++;
-                    if (matchingBand(target, value).map(EffectiveGoalBand::countsAsAttained).orElse(false)) {
+                    if (Boolean.TRUE.equals(GoalBandClassifier.classify(target, value).attained())) {
                         counter.attainedDays++;
                     }
                 }
@@ -204,85 +205,8 @@ final class AnalyticsCalculations {
                 .toList();
     }
 
-    static GoalProgress goalProgress(EffectiveNutrientTarget target, BigDecimal value) {
-        EffectiveGoalBand band = value == null ? null : matchingBand(target, value).orElse(null);
-        EffectiveGoalBand referenceBand = referenceBand(target, value);
-        return new GoalProgress(
-                target.nutrient(),
-                normalize(value),
-                band == null ? null : band.label(),
-                value == null ? null : band != null && band.countsAsAttained(),
-                goalReference(referenceBand, value));
-    }
-
-    private static GoalReference goalReference(EffectiveGoalBand band, BigDecimal value) {
-        if (band == null) {
-            return null;
-        }
-        BigDecimal remaining = null;
-        BigDecimal excess = null;
-        if (value != null && band.minValue() != null) {
-            int comparison = value.compareTo(band.minValue());
-            if (comparison < 0 || comparison == 0 && !band.minInclusive()) {
-                remaining = normalize(band.minValue().subtract(value));
-            }
-        }
-        if (value != null && band.maxValue() != null) {
-            int comparison = value.compareTo(band.maxValue());
-            if (comparison > 0 || comparison == 0 && !band.maxInclusive()) {
-                excess = normalize(value.subtract(band.maxValue()));
-            }
-        }
-        return new GoalReference(
-                band.label(),
-                normalize(band.minValue()),
-                normalize(band.maxValue()),
-                band.minInclusive(),
-                band.maxInclusive(),
-                remaining,
-                excess);
-    }
-
-    private static EffectiveGoalBand referenceBand(EffectiveNutrientTarget target, BigDecimal value) {
-        List<EffectiveGoalBand> attainedBands = target.bands().stream()
-                .filter(EffectiveGoalBand::countsAsAttained)
-                .sorted(Comparator.comparingInt(EffectiveGoalBand::position))
-                .toList();
-        if (value == null) {
-            return attainedBands.stream().findFirst().orElse(null);
-        }
-        return attainedBands.stream()
-                .filter(band -> contains(band, value))
-                .findFirst()
-                .orElseGet(() -> attainedBands.stream()
-                        .min(Comparator.comparing((EffectiveGoalBand band) -> distanceToRange(band, value))
-                                .thenComparingInt(EffectiveGoalBand::position))
-                        .orElse(null));
-    }
-
-    private static BigDecimal distanceToRange(EffectiveGoalBand band, BigDecimal value) {
-        if (band.minValue() != null && value.compareTo(band.minValue()) < 0) {
-            return band.minValue().subtract(value);
-        }
-        if (band.maxValue() != null && value.compareTo(band.maxValue()) > 0) {
-            return value.subtract(band.maxValue());
-        }
-        return BigDecimal.ZERO;
-    }
-
-    private static java.util.Optional<EffectiveGoalBand> matchingBand(
-            EffectiveNutrientTarget target, BigDecimal value) {
-        return target.bands().stream().filter(band -> contains(band, value)).findFirst();
-    }
-
-    private static boolean contains(EffectiveGoalBand band, BigDecimal value) {
-        boolean aboveMinimum = band.minValue() == null
-                || value.compareTo(band.minValue()) > 0
-                || band.minInclusive() && value.compareTo(band.minValue()) == 0;
-        boolean belowMaximum = band.maxValue() == null
-                || value.compareTo(band.maxValue()) < 0
-                || band.maxInclusive() && value.compareTo(band.maxValue()) == 0;
-        return aboveMinimum && belowMaximum;
+    static GoalClassification goalProgress(EffectiveNutrientTarget target, BigDecimal value) {
+        return GoalBandClassifier.classify(target, normalize(value));
     }
 
     static BigDecimal normalize(BigDecimal value) {
@@ -331,24 +255,6 @@ final class AnalyticsCalculations {
             int neutralDays,
             EnergyExtreme largestDeficit,
             EnergyExtreme largestSurplus) {
-    }
-
-    record GoalProgress(
-            NutrientType nutrient,
-            BigDecimal value,
-            String bandLabel,
-            Boolean attained,
-            GoalReference reference) {
-    }
-
-    record GoalReference(
-            String label,
-            BigDecimal minValue,
-            BigDecimal maxValue,
-            boolean minInclusive,
-            boolean maxInclusive,
-            BigDecimal remainingToRange,
-            BigDecimal excessOverRange) {
     }
 
     record GoalAttainmentMetric(

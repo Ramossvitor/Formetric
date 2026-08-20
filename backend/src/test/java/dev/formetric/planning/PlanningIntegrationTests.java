@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import dev.formetric.identity.AuthenticatedUser;
 import dev.formetric.identity.CurrentUserProvider;
@@ -21,14 +25,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
-import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -36,6 +45,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
 @Testcontainers
+@AutoConfigureMockMvc
 @Import(PlanningIntegrationTests.FixedClockConfiguration.class)
 class PlanningIntegrationTests {
 
@@ -58,6 +68,9 @@ class PlanningIntegrationTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private MockMvc mockMvc;
 
     @MockitoBean
     private CurrentUserProvider currentUserProvider;
@@ -86,6 +99,104 @@ class PlanningIntegrationTests {
         var bands = history.getLast().targets().getFirst().bands();
         assertFalse(bands.getFirst().countsAsAttained());
         assertTrue(bands.getLast().countsAsAttained());
+    }
+
+    @Test
+    void calorieBandsAreVersionedWhileLegacyPeriodsRemainUnclassified() {
+        var legacy = planningService.createNutritionGoalPeriod(nutritionRequest(
+                LocalDate.of(2026, 8, 12), null, "2500"));
+        var classified = planningService.createNutritionGoalPeriod(nutritionRequestWithCalories(
+                LocalDate.of(2026, 9, 1), null, "2500", "2400", "2600"));
+
+        assertTrue(legacy.targets().stream().noneMatch(target -> target.nutrient() == NutrientType.CALORIES));
+        var calorieTarget = classified.targets().stream()
+                .filter(target -> target.nutrient() == NutrientType.CALORIES)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(NutritionUnit.KCAL, calorieTarget.unit());
+        assertEquals("Planejado", calorieTarget.bands().get(1).label());
+        assertEquals(legacy.id(), planningService.effectiveNutritionGoalPeriod(LocalDate.of(2026, 8, 31)).id());
+        assertEquals(classified.id(), planningService.effectiveNutritionGoalPeriod(LocalDate.of(2026, 9, 1)).id());
+    }
+
+    @Test
+    void databaseRejectsNonCanonicalMetricUnitPairs() {
+        UUID periodId = UUID.randomUUID();
+        jdbcTemplate.update("""
+                INSERT INTO nutrition_goal_periods
+                    (id, user_id, valid_from, valid_to, calorie_target, created_at, updated_at)
+                VALUES (?, ?, DATE '2026-01-01', DATE '2026-02-01', 2500, now(), now())
+                """, periodId, USER_ONE);
+
+        assertThrows(DataIntegrityViolationException.class, () -> jdbcTemplate.update("""
+                INSERT INTO nutrient_targets (id, goal_period_id, nutrient, unit)
+                VALUES (?, ?, 'CALORIES', 'G')
+                """, UUID.randomUUID(), periodId));
+        jdbcTemplate.update("""
+                INSERT INTO nutrient_targets (id, goal_period_id, nutrient, unit)
+                VALUES (?, ?, 'CALORIES', 'KCAL')
+                """, UUID.randomUUID(), periodId);
+
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM nutrient_targets WHERE goal_period_id = ?",
+                Long.class,
+                periodId);
+        assertEquals(1L, count);
+    }
+
+    @Test
+    @WithMockUser(username = "planning-user")
+    void requestRejectsValuesThatWouldBeRoundedByNumericColumns() throws Exception {
+        mockMvc.perform(post("/api/v1/nutrition-goal-periods")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "validFrom": "2026-10-01",
+                                  "calorieTarget": 2500.0001,
+                                  "targets": []
+                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("calorieTarget"));
+
+        mockMvc.perform(post("/api/v1/nutrition-goal-periods")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "validFrom": "2026-10-01",
+                                  "calorieTarget": 2500,
+                                  "targets": [{
+                                    "nutrient": "CALORIES",
+                                    "unit": "KCAL",
+                                    "bands": [{
+                                      "position": 0,
+                                      "minValue": 2400.0001,
+                                      "maxValue": 2600,
+                                      "minInclusive": true,
+                                      "maxInclusive": true,
+                                      "label": "Planejado",
+                                      "tone": "POSITIVE",
+                                      "countsAsAttained": true
+                                    }]
+                                  }]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("targets[0].bands[0].minValue"));
+
+        mockMvc.perform(post("/api/v1/tdee-periods")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "validFrom": "2026-10-01",
+                                  "kcalPerDay": 3000.0001
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("kcalPerDay"));
     }
 
     @Test
@@ -137,6 +248,42 @@ class PlanningIntegrationTests {
                                 new GoalBandRequest(
                                         1, new BigDecimal("175"), null, true, false,
                                         "Meta", GoalTone.POSITIVE, true)))));
+    }
+
+    private CreateNutritionGoalPeriodRequest nutritionRequestWithCalories(
+            LocalDate from,
+            LocalDate to,
+            String calories,
+            String minimum,
+            String maximum) {
+        return new CreateNutritionGoalPeriodRequest(
+                from,
+                to,
+                new BigDecimal(calories),
+                List.of(
+                        new NutrientTargetRequest(
+                                NutrientType.CALORIES,
+                                NutritionUnit.KCAL,
+                                List.of(
+                                        new GoalBandRequest(
+                                                0, null, new BigDecimal(minimum), false, false,
+                                                "Abaixo", GoalTone.WARNING, false),
+                                        new GoalBandRequest(
+                                                1, new BigDecimal(minimum), new BigDecimal(maximum), true, true,
+                                                "Planejado", GoalTone.POSITIVE, true),
+                                        new GoalBandRequest(
+                                                2, new BigDecimal(maximum), null, false, false,
+                                                "Acima", GoalTone.WARNING, false))),
+                        new NutrientTargetRequest(
+                                NutrientType.PROTEIN,
+                                NutritionUnit.G,
+                                List.of(
+                                        new GoalBandRequest(
+                                                0, null, new BigDecimal("175"), false, false,
+                                                "Abaixo", GoalTone.WARNING, false),
+                                        new GoalBandRequest(
+                                                1, new BigDecimal("175"), null, true, false,
+                                                "Meta", GoalTone.POSITIVE, true)))));
     }
 
     private CreateTdeePeriodRequest tdeeRequest(String from, String to, String kcal) {

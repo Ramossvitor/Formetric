@@ -49,9 +49,11 @@ final class PlanningRules {
                 throw new PlanningValidationException(
                         "targets", "Não é permitido repetir o nutriente " + target.nutrient() + ".");
             }
-            NutritionUnit expectedUnit = target.nutrient() == NutrientType.WATER
-                    ? NutritionUnit.ML
-                    : NutritionUnit.G;
+            NutritionUnit expectedUnit = switch (target.nutrient()) {
+                case CALORIES -> NutritionUnit.KCAL;
+                case WATER -> NutritionUnit.ML;
+                case PROTEIN, CARBOHYDRATE, FAT, FIBER -> NutritionUnit.G;
+            };
             if (target.unit() != expectedUnit) {
                 throw new PlanningValidationException(
                         "targets",
@@ -61,6 +63,30 @@ final class PlanningRules {
                     target.nutrient(), target.unit(), validateAndOrderBands(target.bands())));
         }
         return List.copyOf(normalized);
+    }
+
+    static void validateCalorieTarget(
+            BigDecimal calorieTarget,
+            List<NutrientTargetDefinition> targets) {
+        NutrientTargetDefinition calories = targets.stream()
+                .filter(target -> target.nutrient() == NutrientType.CALORIES)
+                .findFirst()
+                .orElse(null);
+        if (calories == null) {
+            return;
+        }
+        if (calorieTarget == null) {
+            throw new PlanningValidationException(
+                    "calorieTarget", "Informe a meta calórica nominal para classificar calorias.");
+        }
+        boolean nominalIsAttained = calories.bands().stream()
+                .filter(GoalBandDefinition::countsAsAttained)
+                .anyMatch(band -> contains(band, calorieTarget));
+        if (!nominalIsAttained) {
+            throw new PlanningValidationException(
+                    "calorieTarget",
+                    "A meta calórica nominal deve pertencer a uma faixa marcada como atingida.");
+        }
     }
 
     static List<GoalBandDefinition> validateAndOrderBands(List<GoalBandDefinition> bands) {
@@ -151,6 +177,16 @@ final class PlanningRules {
         int comparison = previous.maximum().compareTo(current.minimum());
         return comparison > 0
                 || comparison == 0 && previous.maximumInclusive() && current.minimumInclusive();
+    }
+
+    private static boolean contains(GoalBandDefinition band, BigDecimal value) {
+        boolean aboveMinimum = band.minimum() == null
+                || value.compareTo(band.minimum()) > 0
+                || band.minimumInclusive() && value.compareTo(band.minimum()) == 0;
+        boolean belowMaximum = band.maximum() == null
+                || value.compareTo(band.maximum()) < 0
+                || band.maximumInclusive() && value.compareTo(band.maximum()) == 0;
+        return aboveMinimum && belowMaximum;
     }
 }
 

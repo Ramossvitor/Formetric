@@ -199,6 +199,16 @@ class DailyLog {
     List<Meal> meals() { return List.copyOf(meals); }
     List<WaterLog> waterLogs() { return List.copyOf(waterLogs); }
     List<DailyLogStateEvent> stateEvents() { return List.copyOf(stateEvents); }
+    boolean fastingConfirmed() {
+        if (status != DailyLogStatus.CLOSED) {
+            return false;
+        }
+        return stateEvents.reversed().stream()
+                .filter(event -> event.eventType() == DailyLogStateEvent.EventType.CLOSED)
+                .findFirst()
+                .map(DailyLogStateEvent::fastingConfirmed)
+                .orElse(false);
+    }
 }
 
 @Entity

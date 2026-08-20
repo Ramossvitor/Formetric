@@ -58,8 +58,10 @@ class AnalyticsIntegrationTests {
 
         insertTdee(USER_ONE, "2026-08-01", "2026-08-03", "2500");
         insertTdee(USER_ONE, "2026-08-03", "2026-08-06", "3000");
-        insertProteinGoal(USER_ONE, "2026-08-01", "2026-08-05", true, "WARNING");
-        insertProteinGoal(USER_ONE, "2026-08-05", null, false, "POSITIVE");
+        insertNutritionGoal(
+                USER_ONE, "2026-08-01", "2026-08-05", true, "WARNING", "1900", "2600");
+        insertNutritionGoal(
+                USER_ONE, "2026-08-05", null, false, "POSITIVE", "2400", "2600");
 
         insertDiary(USER_ONE, "2026-08-01", "CLOSED", false,
                 List.of(
@@ -81,6 +83,7 @@ class AnalyticsIntegrationTests {
         insertWorkout(USER_ONE, "2026-08-01", "9999");
 
         insertTdee(USER_TWO, "2026-08-01", null, "3000");
+        insertNutritionGoal(USER_TWO, "2026-08-01", null, true, "POSITIVE", null, null);
         insertDiary(USER_TWO, "2026-08-01", "CLOSED", false,
                 List.of(new Food("9999", "1", "1", "1", "1")), List.of("9999"));
     }
@@ -115,10 +118,15 @@ class AnalyticsIntegrationTests {
                 .andExpect(jsonPath("$.energy.largestSurplus.date").value("2026-08-05"))
                 .andExpect(jsonPath("$.energy.largestSurplus.balanceKcal").value(500.0))
                 .andExpect(jsonPath("$.workouts.sessionCount").value(1))
-                .andExpect(jsonPath("$.goalAttainment[0].nutrient").value("PROTEIN"))
-                .andExpect(jsonPath("$.goalAttainment[0].attainedDays").value(1))
+                .andExpect(jsonPath("$.goalAttainment[0].nutrient").value("CALORIES"))
+                .andExpect(jsonPath("$.goalAttainment[0].configured").value(true))
+                .andExpect(jsonPath("$.goalAttainment[0].attainedDays").value(2))
                 .andExpect(jsonPath("$.goalAttainment[0].eligibleDays").value(4))
-                .andExpect(jsonPath("$.goalAttainment[0].attainedPercentage").value(25.0));
+                .andExpect(jsonPath("$.goalAttainment[0].attainedPercentage").value(50.0))
+                .andExpect(jsonPath("$.goalAttainment[1].nutrient").value("PROTEIN"))
+                .andExpect(jsonPath("$.goalAttainment[1].attainedDays").value(1))
+                .andExpect(jsonPath("$.goalAttainment[1].eligibleDays").value(4))
+                .andExpect(jsonPath("$.goalAttainment[1].attainedPercentage").value(25.0));
     }
 
     @Test
@@ -133,13 +141,24 @@ class AnalyticsIntegrationTests {
                 .andExpect(jsonPath("$.energyBalanceAvailability").value("OPEN_LOG"))
                 .andExpect(jsonPath("$.energyBalanceKcal").doesNotExist())
                 .andExpect(jsonPath("$.projectedEnergyBalanceKcal").value(-2500.0))
-                .andExpect(jsonPath("$.goalProgress[0].nutrient").value("PROTEIN"))
-                .andExpect(jsonPath("$.goalProgress[0].value").value(40.0))
-                .andExpect(jsonPath("$.goalProgress[0].reference.label").value("Meta"))
-                .andExpect(jsonPath("$.goalProgress[0].reference.minValue").value(150.0))
-                .andExpect(jsonPath("$.goalProgress[0].reference.maxValue").doesNotExist())
-                .andExpect(jsonPath("$.goalProgress[0].reference.remainingToRange").value(110.0))
-                .andExpect(jsonPath("$.goalProgress[0].reference.excessOverRange").doesNotExist());
+                .andExpect(jsonPath("$.goalProgress[0].nutrient").value("CALORIES"))
+                .andExpect(jsonPath("$.goalProgress[0].value").value(500.0))
+                .andExpect(jsonPath("$.goalProgress[0].bandLabel").value("Abaixo"))
+                .andExpect(jsonPath("$.goalProgress[0].bandTone").value("WARNING"))
+                .andExpect(jsonPath("$.goalProgress[0].attained").value(false))
+                .andExpect(jsonPath("$.goalProgress[0].reference.label").value("Meta calórica"))
+                .andExpect(jsonPath("$.goalProgress[0].reference.minValue").value(1900.0))
+                .andExpect(jsonPath("$.goalProgress[0].reference.maxValue").value(2600.0))
+                .andExpect(jsonPath("$.goalProgress[0].reference.remainingToRange").value(1400.0))
+                .andExpect(jsonPath("$.goalProgress[0].reference.excessOverRange").doesNotExist())
+                .andExpect(jsonPath("$.goalProgress[1].nutrient").value("PROTEIN"))
+                .andExpect(jsonPath("$.goalProgress[1].value").value(40.0))
+                .andExpect(jsonPath("$.goalProgress[1].bandTone").value("NEUTRAL"))
+                .andExpect(jsonPath("$.goalProgress[1].reference.label").value("Meta"))
+                .andExpect(jsonPath("$.goalProgress[1].reference.minValue").value(150.0))
+                .andExpect(jsonPath("$.goalProgress[1].reference.maxValue").doesNotExist())
+                .andExpect(jsonPath("$.goalProgress[1].reference.remainingToRange").value(110.0))
+                .andExpect(jsonPath("$.goalProgress[1].reference.excessOverRange").doesNotExist());
 
         mockMvc.perform(get("/api/v1/analytics/daily").queryParam("date", "2026-08-01"))
                 .andExpect(status().isOk())
@@ -147,6 +166,9 @@ class AnalyticsIntegrationTests {
                 .andExpect(jsonPath("$.tdeeKcal").value(2500.0))
                 .andExpect(jsonPath("$.energyBalanceKcal").value(-500.0))
                 .andExpect(jsonPath("$.projectedEnergyBalanceKcal").doesNotExist())
+                .andExpect(jsonPath("$.goalProgress[0].bandLabel").value("Meta calórica"))
+                .andExpect(jsonPath("$.goalProgress[0].bandTone").value("POSITIVE"))
+                .andExpect(jsonPath("$.goalProgress[0].attained").value(true))
                 .andExpect(jsonPath("$.workouts.sessionCount").value(1));
 
         mockMvc.perform(get("/api/v1/analytics/daily").queryParam("date", "2026-08-02"))
@@ -155,7 +177,20 @@ class AnalyticsIntegrationTests {
                 .andExpect(jsonPath("$.nutrition.caloriesKcal").value(0.0))
                 .andExpect(jsonPath("$.nutrition.waterMl").doesNotExist())
                 .andExpect(jsonPath("$.energyBalanceAvailability").value("AVAILABLE"))
-                .andExpect(jsonPath("$.energyBalanceKcal").value(-2500.0));
+                .andExpect(jsonPath("$.energyBalanceKcal").value(-2500.0))
+                .andExpect(jsonPath("$.goalProgress[0].value").value(0.0))
+                .andExpect(jsonPath("$.goalProgress[0].bandLabel").value("Abaixo"))
+                .andExpect(jsonPath("$.goalProgress[0].attained").value(false));
+
+        mockMvc.perform(get("/api/v1/analytics/daily").queryParam("date", "2026-08-04"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.diaryStatus").value("CLOSED"))
+                .andExpect(jsonPath("$.fastingConfirmed").value(false))
+                .andExpect(jsonPath("$.goalProgress[0].nutrient").value("CALORIES"))
+                .andExpect(jsonPath("$.goalProgress[0].value").doesNotExist())
+                .andExpect(jsonPath("$.goalProgress[0].bandLabel").doesNotExist())
+                .andExpect(jsonPath("$.goalProgress[0].bandTone").doesNotExist())
+                .andExpect(jsonPath("$.goalProgress[0].attained").doesNotExist());
 
         mockMvc.perform(get("/api/v1/analytics/daily").queryParam("date", "2026-08-07"))
                 .andExpect(status().isOk())
@@ -221,7 +256,16 @@ class AnalyticsIntegrationTests {
         mockMvc.perform(get("/api/v1/analytics/monthly").queryParam("month", "2026-08"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nutrition.caloriesKcal.total").value(9999.0))
-                .andExpect(jsonPath("$.closedDays").value(1));
+                .andExpect(jsonPath("$.closedDays").value(1))
+                .andExpect(jsonPath("$.goalAttainment[0].nutrient").value("CALORIES"))
+                .andExpect(jsonPath("$.goalAttainment[0].configured").value(false))
+                .andExpect(jsonPath("$.goalAttainment[0].eligibleDays").value(0))
+                .andExpect(jsonPath("$.goalAttainment[0].attainedPercentage").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/analytics/daily").queryParam("date", "2026-08-01"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.goalProgress.length()").value(1))
+                .andExpect(jsonPath("$.goalProgress[0].nutrient").value("PROTEIN"));
     }
 
     @Test
@@ -276,7 +320,11 @@ class AnalyticsIntegrationTests {
                 .andExpect(jsonPath("$.paths['/api/v1/analytics/daily'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/analytics/monthly'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/analytics/series'].get").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/analytics/bounds'].get").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/analytics/bounds'].get").exists())
+                .andExpect(jsonPath("$.components.schemas.GoalProgressResponse.properties.bandTone").exists())
+                .andExpect(jsonPath("$.components.schemas.DiaryGoalProgressResponse.properties.bandTone").exists())
+                .andExpect(jsonPath("$.components.schemas.CreateNutritionGoalPeriodRequest.properties.targets.maxItems")
+                        .value(6));
     }
 
     private void insertDiary(
@@ -344,10 +392,16 @@ class AnalyticsIntegrationTests {
                 """, UUID.randomUUID(), userId, from, to, new BigDecimal(kcal));
     }
 
-    private void insertProteinGoal(
-            UUID userId, String from, String to, boolean countsAsAttained, String tone) {
+    private void insertNutritionGoal(
+            UUID userId,
+            String from,
+            String to,
+            boolean proteinCountsAsAttained,
+            String proteinTone,
+            String calorieMinimum,
+            String calorieMaximum) {
         UUID periodId = UUID.randomUUID();
-        UUID targetId = UUID.randomUUID();
+        UUID proteinTargetId = UUID.randomUUID();
         jdbcTemplate.update("""
                 INSERT INTO nutrition_goal_periods
                     (id, user_id, valid_from, valid_to, calorie_target, created_at, updated_at)
@@ -356,7 +410,7 @@ class AnalyticsIntegrationTests {
         jdbcTemplate.update("""
                 INSERT INTO nutrient_targets (id, goal_period_id, nutrient, unit)
                 VALUES (?, ?, 'PROTEIN', 'G')
-                """, targetId, periodId);
+                """, proteinTargetId, periodId);
         jdbcTemplate.update("""
                 INSERT INTO goal_bands
                     (id, nutrient_target_id, band_order, min_value, max_value,
@@ -365,8 +419,29 @@ class AnalyticsIntegrationTests {
                     (?, ?, 0, NULL, 150, false, false, 'Abaixo', 'NEUTRAL', false),
                     (?, ?, 1, 150, NULL, true, false, 'Meta', ?, ?)
                 """,
-                UUID.randomUUID(), targetId,
-                UUID.randomUUID(), targetId, tone, countsAsAttained);
+                UUID.randomUUID(), proteinTargetId,
+                UUID.randomUUID(), proteinTargetId, proteinTone, proteinCountsAsAttained);
+        if (calorieMinimum == null) {
+            return;
+        }
+        UUID calorieTargetId = UUID.randomUUID();
+        jdbcTemplate.update("""
+                INSERT INTO nutrient_targets (id, goal_period_id, nutrient, unit)
+                VALUES (?, ?, 'CALORIES', 'KCAL')
+                """, calorieTargetId, periodId);
+        jdbcTemplate.update("""
+                INSERT INTO goal_bands
+                    (id, nutrient_target_id, band_order, min_value, max_value,
+                     min_inclusive, max_inclusive, label, tone, counts_as_attained)
+                VALUES
+                    (?, ?, 0, NULL, ?, false, false, 'Abaixo', 'WARNING', false),
+                    (?, ?, 1, ?, ?, true, true, 'Meta calórica', 'POSITIVE', true),
+                    (?, ?, 2, ?, NULL, false, false, 'Acima', 'WARNING', false)
+                """,
+                UUID.randomUUID(), calorieTargetId, new BigDecimal(calorieMinimum),
+                UUID.randomUUID(), calorieTargetId,
+                new BigDecimal(calorieMinimum), new BigDecimal(calorieMaximum),
+                UUID.randomUUID(), calorieTargetId, new BigDecimal(calorieMaximum));
     }
 
     private void insertWeight(UUID userId, String date, String weight) {

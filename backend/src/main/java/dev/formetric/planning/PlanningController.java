@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -106,9 +107,9 @@ class TdeePeriodController {
 record CreateNutritionGoalPeriodRequest(
         @NotNull @Schema(example = "2026-08-01", description = "Inclusive start date") LocalDate validFrom,
         @Schema(example = "2026-09-01", description = "Exclusive end date; null means open-ended") LocalDate validTo,
-        @DecimalMin(value = "0", inclusive = false)
+        @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 3)
         @Schema(example = "2500.000", nullable = true) BigDecimal calorieTarget,
-        @NotNull @Size(max = 5) @Valid List<NutrientTargetRequest> targets) {
+        @NotNull @Size(max = 6) @Valid List<NutrientTargetRequest> targets) {
 }
 
 record NutrientTargetRequest(
@@ -126,8 +127,10 @@ record NutrientTargetRequest(
 
 record GoalBandRequest(
         @jakarta.validation.constraints.PositiveOrZero int position,
-        @DecimalMin("0") @Schema(nullable = true, example = "175.000") BigDecimal minValue,
-        @DecimalMin("0") @Schema(nullable = true, example = "189.000") BigDecimal maxValue,
+        @DecimalMin("0") @Digits(integer = 9, fraction = 3)
+        @Schema(nullable = true, example = "175.000") BigDecimal minValue,
+        @DecimalMin("0") @Digits(integer = 9, fraction = 3)
+        @Schema(nullable = true, example = "189.000") BigDecimal maxValue,
         @NotNull @Schema(description = "Whether the minimum boundary belongs to the band") Boolean minInclusive,
         @NotNull @Schema(description = "Whether the maximum boundary belongs to the band") Boolean maxInclusive,
         @NotBlank @Size(max = 40) @Schema(example = "Meta") String label,
@@ -144,7 +147,7 @@ record GoalBandRequest(
 record CreateTdeePeriodRequest(
         @NotNull @Schema(example = "2026-08-01", description = "Inclusive start date") LocalDate validFrom,
         @Schema(example = "2026-09-01", description = "Exclusive end date; null means open-ended") LocalDate validTo,
-        @NotNull @DecimalMin(value = "0", inclusive = false)
+        @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 3)
         @Schema(example = "3000.000", description = "Estimated energy expenditure in kcal/day") BigDecimal kcalPerDay) {
 }
 

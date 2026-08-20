@@ -198,24 +198,28 @@ class AnalyticsCalculationsTest {
 
         var below = AnalyticsCalculations.goalProgress(target, new BigDecimal("162"));
         assertEquals("Abaixo", below.bandLabel());
+        assertEquals(GoalTone.WARNING, below.bandTone());
         assertFalse(below.attained());
         assertEquals("Meta", below.reference().label());
-        assertEquals(new BigDecimal("175.000"), below.reference().minValue());
-        assertEquals(new BigDecimal("190.000"), below.reference().maxValue());
+        assertEquals(new BigDecimal("175"), below.reference().minValue());
+        assertEquals(new BigDecimal("190"), below.reference().maxValue());
         assertEquals(new BigDecimal("13.000"), below.reference().remainingToRange());
         assertNull(below.reference().excessOverRange());
 
         var aboveFirstRange = AnalyticsCalculations.goalProgress(target, new BigDecimal("195"));
         assertEquals("Excelente", aboveFirstRange.bandLabel());
+        assertEquals(GoalTone.POSITIVE, aboveFirstRange.bandTone());
         assertTrue(aboveFirstRange.attained());
         assertEquals("Excelente", aboveFirstRange.reference().label());
-        assertEquals(new BigDecimal("190.000"), aboveFirstRange.reference().minValue());
+        assertEquals(new BigDecimal("190"), aboveFirstRange.reference().minValue());
         assertNull(aboveFirstRange.reference().maxValue());
         assertNull(aboveFirstRange.reference().remainingToRange());
         assertNull(aboveFirstRange.reference().excessOverRange());
 
         var missingValue = AnalyticsCalculations.goalProgress(target, null);
         assertNull(missingValue.value());
+        assertNull(missingValue.bandLabel());
+        assertNull(missingValue.bandTone());
         assertNull(missingValue.attained());
         assertEquals("Meta", missingValue.reference().label());
 
