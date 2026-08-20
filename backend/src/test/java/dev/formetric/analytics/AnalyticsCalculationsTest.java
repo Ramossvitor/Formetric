@@ -181,6 +181,56 @@ class AnalyticsCalculationsTest {
     }
 
     @Test
+    void dailyProgressUsesTheContainingOrNearestAttainedBandAsANeutralVersionedReference() {
+        EffectiveNutrientTarget target = new EffectiveNutrientTarget(
+                NutrientType.PROTEIN,
+                NutritionUnit.G,
+                List.of(
+                        new EffectiveGoalBand(
+                                0, null, new BigDecimal("175"), false, false,
+                                "Abaixo", GoalTone.WARNING, false),
+                        new EffectiveGoalBand(
+                                1, new BigDecimal("175"), new BigDecimal("190"), true, false,
+                                "Meta", GoalTone.POSITIVE, true),
+                        new EffectiveGoalBand(
+                                2, new BigDecimal("190"), null, true, false,
+                                "Excelente", GoalTone.POSITIVE, true)));
+
+        var below = AnalyticsCalculations.goalProgress(target, new BigDecimal("162"));
+        assertEquals("Abaixo", below.bandLabel());
+        assertFalse(below.attained());
+        assertEquals("Meta", below.reference().label());
+        assertEquals(new BigDecimal("175.000"), below.reference().minValue());
+        assertEquals(new BigDecimal("190.000"), below.reference().maxValue());
+        assertEquals(new BigDecimal("13.000"), below.reference().remainingToRange());
+        assertNull(below.reference().excessOverRange());
+
+        var aboveFirstRange = AnalyticsCalculations.goalProgress(target, new BigDecimal("195"));
+        assertEquals("Excelente", aboveFirstRange.bandLabel());
+        assertTrue(aboveFirstRange.attained());
+        assertEquals("Excelente", aboveFirstRange.reference().label());
+        assertEquals(new BigDecimal("190.000"), aboveFirstRange.reference().minValue());
+        assertNull(aboveFirstRange.reference().maxValue());
+        assertNull(aboveFirstRange.reference().remainingToRange());
+        assertNull(aboveFirstRange.reference().excessOverRange());
+
+        var missingValue = AnalyticsCalculations.goalProgress(target, null);
+        assertNull(missingValue.value());
+        assertNull(missingValue.attained());
+        assertEquals("Meta", missingValue.reference().label());
+
+        EffectiveNutrientTarget exclusiveTarget = new EffectiveNutrientTarget(
+                NutrientType.PROTEIN,
+                NutritionUnit.G,
+                List.of(new EffectiveGoalBand(
+                        0, new BigDecimal("175"), null, false, false,
+                        "Acima de 175", GoalTone.POSITIVE, true)));
+        var exclusiveBoundary = AnalyticsCalculations.goalProgress(exclusiveTarget, new BigDecimal("175"));
+        assertFalse(exclusiveBoundary.reference().minInclusive());
+        assertEquals(BigDecimal.ZERO.setScale(3), exclusiveBoundary.reference().remainingToRange());
+    }
+
+    @Test
     void seriesRangeIsInclusiveAndCappedAt366Days() {
         AnalyticsRules.validateSeries(
                 AnalyticsMetric.CALORIES,

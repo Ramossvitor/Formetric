@@ -71,7 +71,8 @@ class AnalyticsService {
                                 target,
                                 AnalyticsCalculations.nutrientValue(values, target.nutrient())))
                         .map(metric -> new GoalProgressResponse(
-                                metric.nutrient(), metric.value(), metric.bandLabel(), metric.attained()))
+                                metric.nutrient(), metric.value(), metric.bandLabel(), metric.attained(),
+                                GoalReferenceResponse.from(metric.reference())))
                         .toList();
         return new DailyAnalyticsResponse(
                 date,

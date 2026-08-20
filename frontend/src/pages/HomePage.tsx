@@ -6,6 +6,7 @@ import type { DailyAnalytics, GoalProgress, NutrientType } from '../analytics/ap
 import { diaryStatusLabels, formatDuration, formatLongDate, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels } from '../analytics/format'
 import { analyticsBoundsQuery, dailyAnalyticsQuery } from '../analytics/queries'
 import { Icon } from '../components/Icon'
+import { formatGoalComparison, formatGoalRange } from '../diary/format'
 
 const macroDefinitions: Array<{
   nutrient: Exclude<NutrientType, 'WATER'>
@@ -45,17 +46,22 @@ function MacroRow({ data, goal, nutrient, nutritionKey, tone }: {
   tone: string
 }) {
   const value = data.nutrition[nutritionKey]
-  const state = goal?.bandLabel ?? (goal ? 'Fora das faixas configuradas' : 'Sem meta configurada')
+  const state = !goal
+    ? 'Sem meta configurada'
+    : value == null
+      ? 'Ainda não registrado'
+      : goal.bandLabel ?? 'Fora das faixas configuradas'
+  const comparison = value == null ? null : formatGoalComparison(goal?.reference ?? null, value, nutrient)
 
   return (
     <div className="macro-item">
       <div className="macro-meta">
         <span>{nutrientLabels[nutrient]}</span>
-        <span>{value == null ? 'Não informado' : <><strong>{formatNumber(value, 1)}</strong> g</>}</span>
+        <span>{value == null ? 'Não informado' : <><strong>{formatNumber(value, 1)}</strong> g</>}{goal?.reference ? ` / meta ${formatGoalRange(goal.reference, nutrient)}` : ''}</span>
       </div>
       <div className="daily-goal-state">
         <span aria-hidden="true" className={`goal-state-dot ${goal?.attained === true ? 'attained' : goal?.attained === false ? 'not-attained' : tone}`} />
-        <span>{state}</span>
+        <span>{state}{comparison ? ` · ${comparison}` : ''}</span>
         {goal?.attained != null ? <strong>{goal.attained ? 'atingida' : 'fora da meta'}</strong> : null}
       </div>
     </div>
@@ -69,6 +75,19 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
     : 0
   const waterGoal = data.goalProgress.find((goal) => goal.nutrient === 'WATER')
   const waterLiters = data.nutrition.waterMl == null ? null : data.nutrition.waterMl / 1000
+  const waterComparison = data.nutrition.waterMl == null
+    ? null
+    : formatGoalComparison(waterGoal?.reference ?? null, data.nutrition.waterMl, 'WATER')
+  const waterState = !waterGoal
+    ? 'Meta não configurada'
+    : data.nutrition.waterMl == null
+      ? 'Ainda não registrada'
+      : waterGoal.bandLabel ?? 'Fora das faixas configuradas'
+  const waterPlan = [
+    waterState,
+    waterGoal?.reference ? `meta ${formatGoalRange(waterGoal.reference, 'WATER')}` : null,
+    waterComparison,
+  ].filter((item): item is string => item != null).join(' · ')
   const balance = data.energyBalanceKcal ?? data.projectedEnergyBalanceKcal
   const projected = data.projectedEnergyBalanceKcal != null
   const workoutLabel = data.workouts.sessionCount === 0
@@ -147,7 +166,7 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
             <div className="metric-copy">
               <span className="metric-label">Água</span>
               {waterLiters == null ? <MissingValue>Não registrada</MissingValue> : <strong>{formatNumber(waterLiters, 2)} <small>L</small></strong>}
-              <span className="metric-note">{waterGoal?.bandLabel ?? 'Meta não configurada'}{waterGoal?.attained === true ? ' · atingida' : ''}</span>
+              <span className="metric-note">{waterPlan}</span>
             </div>
             <Link aria-label="Registrar água no diário" className="card-action" to={`/diary?date=${data.date}&action=quick`}><Icon name="plus" size={18} /></Link>
           </article>

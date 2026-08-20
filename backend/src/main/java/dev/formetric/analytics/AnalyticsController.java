@@ -93,7 +93,31 @@ record GoalProgressResponse(
         NutrientType nutrient,
         BigDecimal value,
         String bandLabel,
-        Boolean attained) {
+        Boolean attained,
+        GoalReferenceResponse reference) {
+}
+
+record GoalReferenceResponse(
+        String label,
+        BigDecimal minValue,
+        BigDecimal maxValue,
+        boolean minInclusive,
+        boolean maxInclusive,
+        BigDecimal remainingToRange,
+        BigDecimal excessOverRange) {
+
+    static GoalReferenceResponse from(AnalyticsCalculations.GoalReference reference) {
+        return reference == null
+                ? null
+                : new GoalReferenceResponse(
+                        reference.label(),
+                        reference.minValue(),
+                        reference.maxValue(),
+                        reference.minInclusive(),
+                        reference.maxInclusive(),
+                        reference.remainingToRange(),
+                        reference.excessOverRange());
+    }
 }
 
 record WorkoutSummaryResponse(

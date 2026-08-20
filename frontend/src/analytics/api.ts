@@ -35,6 +35,17 @@ export interface GoalProgress {
   value: number | null
   bandLabel: string | null
   attained: boolean | null
+  reference: GoalReference | null
+}
+
+export interface GoalReference {
+  label: string
+  minValue: number | null
+  maxValue: number | null
+  minInclusive: boolean
+  maxInclusive: boolean
+  remainingToRange: number | null
+  excessOverRange: number | null
 }
 
 export interface WorkoutSummary {

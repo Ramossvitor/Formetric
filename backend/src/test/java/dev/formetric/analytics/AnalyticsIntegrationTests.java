@@ -132,7 +132,14 @@ class AnalyticsIntegrationTests {
                 .andExpect(jsonPath("$.weightKg").value(89.0))
                 .andExpect(jsonPath("$.energyBalanceAvailability").value("OPEN_LOG"))
                 .andExpect(jsonPath("$.energyBalanceKcal").doesNotExist())
-                .andExpect(jsonPath("$.projectedEnergyBalanceKcal").value(-2500.0));
+                .andExpect(jsonPath("$.projectedEnergyBalanceKcal").value(-2500.0))
+                .andExpect(jsonPath("$.goalProgress[0].nutrient").value("PROTEIN"))
+                .andExpect(jsonPath("$.goalProgress[0].value").value(40.0))
+                .andExpect(jsonPath("$.goalProgress[0].reference.label").value("Meta"))
+                .andExpect(jsonPath("$.goalProgress[0].reference.minValue").value(150.0))
+                .andExpect(jsonPath("$.goalProgress[0].reference.maxValue").doesNotExist())
+                .andExpect(jsonPath("$.goalProgress[0].reference.remainingToRange").value(110.0))
+                .andExpect(jsonPath("$.goalProgress[0].reference.excessOverRange").doesNotExist());
 
         mockMvc.perform(get("/api/v1/analytics/daily").queryParam("date", "2026-08-01"))
                 .andExpect(status().isOk())

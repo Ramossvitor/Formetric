@@ -8,7 +8,7 @@ import type { DailyAnalytics, MonthlyAnalytics } from './api'
 
 const session = {
   authenticated: true as const,
-  user: { id: 'user-1', email: 'vitor@example.com', displayName: 'Vitor Ramos', role: 'USER' },
+  user: { id: 'user-1', email: 'vitor@example.com', displayName: 'Vitor Ramos', role: 'USER' as const },
 }
 
 const bounds = { earliestDate: '2026-07-01', latestDate: '2026-08-12', today: '2026-08-12' }
@@ -27,8 +27,20 @@ const openDaily: DailyAnalytics = {
   energyBalanceAvailability: 'OPEN_LOG',
   calorieTargetKcal: 2200,
   goalProgress: [
-    { nutrient: 'PROTEIN', value: 40, bandLabel: 'Abaixo do planejado', attained: false },
-    { nutrient: 'WATER', value: 1250, bandLabel: 'Em andamento', attained: false },
+    {
+      nutrient: 'PROTEIN', value: 40, bandLabel: 'Abaixo do planejado', attained: false,
+      reference: {
+        label: 'Meta', minValue: 175, maxValue: null, minInclusive: true, maxInclusive: false,
+        remainingToRange: 135, excessOverRange: null,
+      },
+    },
+    {
+      nutrient: 'WATER', value: 1250, bandLabel: 'Em andamento', attained: false,
+      reference: {
+        label: 'Meta', minValue: 4400, maxValue: null, minInclusive: true, maxInclusive: false,
+        remainingToRange: 3150, excessOverRange: null,
+      },
+    },
   ],
   weightKg: 89.2,
   workouts: { sessionCount: 1, trainingDays: 1, totalDurationMinutes: 70, sessionsPerWeek: null, modalities: ['STRENGTH'] },
@@ -103,10 +115,45 @@ describe('painéis determinísticos', () => {
     expect(screen.getByText('−2.500 kcal')).toBeInTheDocument()
     expect(screen.getByText('projeção')).toBeInTheDocument()
     expect(screen.getByText('TDEE vigente:')).toHaveTextContent('3.000 kcal')
-    expect(screen.getByText('Abaixo do planejado')).toBeInTheDocument()
+    expect(screen.getByText(/Abaixo do planejado/)).toBeInTheDocument()
+    expect(screen.getByText(/meta ≥ 175 g/)).toBeInTheDocument()
+    expect(screen.getByText(/faltam 135 g para a faixa/)).toBeInTheDocument()
     expect(screen.getByText('1,25')).toBeInTheDocument()
+    expect(screen.getByText(/meta ≥ 4,4 L/)).toBeInTheDocument()
+    expect(screen.getByText(/faltam 3,15 L para a faixa/)).toBeInTheDocument()
     expect(screen.getByText('Musculação')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/analytics/daily?date=2026-08-12', expect.objectContaining({ credentials: 'include' }))
+  })
+
+  it('distingue uma meta configurada de um valor ainda não registrado', async () => {
+    const withoutValues: DailyAnalytics = {
+      ...openDaily,
+      nutrition: { ...openDaily.nutrition, proteinG: null, waterMl: null },
+      goalProgress: openDaily.goalProgress.map((goal) => ({
+        ...goal,
+        value: null,
+        bandLabel: null,
+        attained: null,
+        reference: goal.reference && {
+          ...goal.reference,
+          remainingToRange: null,
+          excessOverRange: null,
+        },
+      })),
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+      if (path === '/api/v1/analytics/bounds') return jsonResponse(bounds)
+      if (path === '/api/v1/analytics/daily?date=2026-08-12') return jsonResponse(withoutValues)
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+
+    renderApp('/')
+
+    expect(await screen.findByText('Ainda não registrado')).toBeInTheDocument()
+    expect(screen.getByText(/Ainda não registrada/)).toBeInTheDocument()
+    expect(screen.getByText(/meta ≥ 175 g/)).toBeInTheDocument()
+    expect(screen.getByText(/meta ≥ 4,4 L/)).toBeInTheDocument()
   })
 
   it('refaz os limites antes de habilitar a consulta diária após uma falha', async () => {

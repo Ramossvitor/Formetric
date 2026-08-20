@@ -12,6 +12,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -204,15 +205,69 @@ final class AnalyticsCalculations {
     }
 
     static GoalProgress goalProgress(EffectiveNutrientTarget target, BigDecimal value) {
-        if (value == null) {
-            return new GoalProgress(target.nutrient(), null, null, null);
-        }
-        EffectiveGoalBand band = matchingBand(target, value).orElse(null);
+        EffectiveGoalBand band = value == null ? null : matchingBand(target, value).orElse(null);
+        EffectiveGoalBand referenceBand = referenceBand(target, value);
         return new GoalProgress(
                 target.nutrient(),
                 normalize(value),
                 band == null ? null : band.label(),
-                band == null ? Boolean.FALSE : band.countsAsAttained());
+                value == null ? null : band != null && band.countsAsAttained(),
+                goalReference(referenceBand, value));
+    }
+
+    private static GoalReference goalReference(EffectiveGoalBand band, BigDecimal value) {
+        if (band == null) {
+            return null;
+        }
+        BigDecimal remaining = null;
+        BigDecimal excess = null;
+        if (value != null && band.minValue() != null) {
+            int comparison = value.compareTo(band.minValue());
+            if (comparison < 0 || comparison == 0 && !band.minInclusive()) {
+                remaining = normalize(band.minValue().subtract(value));
+            }
+        }
+        if (value != null && band.maxValue() != null) {
+            int comparison = value.compareTo(band.maxValue());
+            if (comparison > 0 || comparison == 0 && !band.maxInclusive()) {
+                excess = normalize(value.subtract(band.maxValue()));
+            }
+        }
+        return new GoalReference(
+                band.label(),
+                normalize(band.minValue()),
+                normalize(band.maxValue()),
+                band.minInclusive(),
+                band.maxInclusive(),
+                remaining,
+                excess);
+    }
+
+    private static EffectiveGoalBand referenceBand(EffectiveNutrientTarget target, BigDecimal value) {
+        List<EffectiveGoalBand> attainedBands = target.bands().stream()
+                .filter(EffectiveGoalBand::countsAsAttained)
+                .sorted(Comparator.comparingInt(EffectiveGoalBand::position))
+                .toList();
+        if (value == null) {
+            return attainedBands.stream().findFirst().orElse(null);
+        }
+        return attainedBands.stream()
+                .filter(band -> contains(band, value))
+                .findFirst()
+                .orElseGet(() -> attainedBands.stream()
+                        .min(Comparator.comparing((EffectiveGoalBand band) -> distanceToRange(band, value))
+                                .thenComparingInt(EffectiveGoalBand::position))
+                        .orElse(null));
+    }
+
+    private static BigDecimal distanceToRange(EffectiveGoalBand band, BigDecimal value) {
+        if (band.minValue() != null && value.compareTo(band.minValue()) < 0) {
+            return band.minValue().subtract(value);
+        }
+        if (band.maxValue() != null && value.compareTo(band.maxValue()) > 0) {
+            return value.subtract(band.maxValue());
+        }
+        return BigDecimal.ZERO;
     }
 
     private static java.util.Optional<EffectiveGoalBand> matchingBand(
@@ -282,7 +337,18 @@ final class AnalyticsCalculations {
             NutrientType nutrient,
             BigDecimal value,
             String bandLabel,
-            Boolean attained) {
+            Boolean attained,
+            GoalReference reference) {
+    }
+
+    record GoalReference(
+            String label,
+            BigDecimal minValue,
+            BigDecimal maxValue,
+            boolean minInclusive,
+            boolean maxInclusive,
+            BigDecimal remainingToRange,
+            BigDecimal excessOverRange) {
     }
 
     record GoalAttainmentMetric(

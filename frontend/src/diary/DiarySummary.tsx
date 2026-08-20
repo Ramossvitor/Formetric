@@ -1,4 +1,4 @@
-import { goalStates, number } from './format'
+import { formatGoalAmount, formatGoalComparison, formatGoalRange, goalStates, number } from './format'
 import type { DailyLog } from './api'
 
 const nutrientLabels = {
@@ -37,13 +37,16 @@ export function DiarySummary({ log }: { log: DailyLog }) {
       </dl>
       {states.length > 0 ? (
         <div className="goal-state-list" aria-label="Classificação das metas">
-          {states.map(({ target, value, band }) => (
-            <div className={`goal-state ${band?.tone.toLowerCase() ?? 'neutral'}`} key={target.nutrient}>
-              <span>{nutrientLabels[target.nutrient]}</span>
-              <strong>{number(target.nutrient === 'WATER' ? value / 1000 : value)} {target.nutrient === 'WATER' ? 'L' : 'g'}</strong>
-              <small>{band?.label ?? 'Sem faixa correspondente'}</small>
-            </div>
-          ))}
+          {states.map(({ target, value, band, reference }) => {
+            const comparison = formatGoalComparison(reference, value, target.nutrient)
+            return (
+              <div className={`goal-state ${band?.tone.toLowerCase() ?? 'neutral'}`} key={target.nutrient}>
+                <span>{nutrientLabels[target.nutrient]}</span>
+                <strong>{formatGoalAmount(value, target.nutrient)}{reference ? ` / meta ${formatGoalRange(reference, target.nutrient)}` : ''}</strong>
+                <small>{band?.label ?? 'Sem faixa correspondente'}{comparison ? ` · ${comparison}` : ''}</small>
+              </div>
+            )
+          })}
         </div>
       ) : <p className="summary-footnote">Configure metas com faixas para classificar cada nutriente conforme seu próprio plano.</p>}
     </section>
