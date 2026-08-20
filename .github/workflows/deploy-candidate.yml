@@ -1,0 +1,329 @@
+name: Deploy initial production candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DEPLOY_INITIAL_BASELINE (this workflow is not for later schema releases)
+        required: true
+        type: string
+      bootstrap_owner:
+        description: Attach the three temporary owner-bootstrap secrets to this candidate
+        required: true
+        default: false
+        type: boolean
+      promote:
+        description: Promote only a non-bootstrap candidate after read-only smoke checks
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy verified candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+      ARTIFACT_REGISTRY_REPOSITORY: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
+      CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: ${{ vars.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT }}
+      DB_POOLER_URL_SECRET: ${{ vars.DB_POOLER_URL_SECRET }}
+      DB_DIRECT_URL_SECRET: ${{ vars.DB_DIRECT_URL_SECRET }}
+      DB_USERNAME_SECRET: ${{ vars.DB_USERNAME_SECRET }}
+      DB_PASSWORD_SECRET: ${{ vars.DB_PASSWORD_SECRET }}
+      DB_SECRET_VERSION: ${{ vars.DB_SECRET_VERSION }}
+      BOOTSTRAP_ADMIN_EMAIL_SECRET: ${{ vars.BOOTSTRAP_ADMIN_EMAIL_SECRET }}
+      BOOTSTRAP_ADMIN_PASSWORD_SECRET: ${{ vars.BOOTSTRAP_ADMIN_PASSWORD_SECRET }}
+      BOOTSTRAP_ADMIN_DISPLAY_NAME_SECRET: ${{ vars.BOOTSTRAP_ADMIN_DISPLAY_NAME_SECRET }}
+      BOOTSTRAP_SECRET_VERSION: ${{ vars.BOOTSTRAP_SECRET_VERSION }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+    steps:
+      - name: Validate deployment request and configuration
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          BOOTSTRAP_OWNER: ${{ inputs.bootstrap_owner }}
+          PROMOTE: ${{ inputs.promote }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Production candidates must be deployed from main." >&2
+            exit 1
+          fi
+          if [[ "$CONFIRMATION" != "DEPLOY_INITIAL_BASELINE" ]]; then
+            echo "The confirmation value must be DEPLOY_INITIAL_BASELINE." >&2
+            exit 1
+          fi
+          if [[ "$BOOTSTRAP_OWNER" == "true" && "$PROMOTE" == "true" ]]; then
+            echo "A revision carrying bootstrap secrets must never receive production traffic." >&2
+            exit 1
+          fi
+          required=(
+            GCP_PROJECT_ID GCP_REGION CLOUD_RUN_SERVICE ARTIFACT_REGISTRY_REPOSITORY
+            CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT DB_POOLER_URL_SECRET DB_DIRECT_URL_SECRET
+            DB_USERNAME_SECRET DB_PASSWORD_SECRET DB_SECRET_VERSION
+            GCP_WORKLOAD_IDENTITY_PROVIDER GCP_DEPLOY_SERVICE_ACCOUNT
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing GitHub production variable: $name" >&2
+              exit 1
+            fi
+          done
+          if [[ ! "$DB_SECRET_VERSION" =~ ^[1-9][0-9]*$ ]]; then
+            echo "DB_SECRET_VERSION must be a pinned positive numeric version, never latest." >&2
+            exit 1
+          fi
+          if [[ "$BOOTSTRAP_OWNER" == "true" ]]; then
+            bootstrap_required=(
+              BOOTSTRAP_ADMIN_EMAIL_SECRET BOOTSTRAP_ADMIN_PASSWORD_SECRET
+              BOOTSTRAP_ADMIN_DISPLAY_NAME_SECRET BOOTSTRAP_SECRET_VERSION
+            )
+            for name in "${bootstrap_required[@]}"; do
+              if [[ -z "${!name}" ]]; then
+                echo "Missing GitHub production variable required for bootstrap: $name" >&2
+                exit 1
+              fi
+            done
+            if [[ ! "$BOOTSTRAP_SECRET_VERSION" =~ ^[1-9][0-9]*$ ]]; then
+              echo "BOOTSTRAP_SECRET_VERSION must be a pinned positive numeric version, never latest." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Require a successful CI run for this commit
+        id: ci
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ci_run_id="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&branch=main&status=completed&per_page=100" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")][0].id // empty')"
+          if [[ -z "$ci_run_id" ]]; then
+            echo "No successful CI workflow run exists for ${GITHUB_SHA}." >&2
+            exit 1
+          fi
+          ci_url="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${ci_run_id}" --jq '.html_url')"
+          echo "run_id=$ci_run_id" >> "$GITHUB_OUTPUT"
+          echo "Verified CI run: $ci_url"
+
+      - name: Authenticate to Google Cloud with OIDC
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Configure Artifact Registry authentication
+        shell: bash
+        run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - name: Download the image verified by CI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ steps.ci.outputs.run_id }}
+        run: |
+          artifact_name="formetric-integrated-image-${GITHUB_SHA}"
+          archive="formetric-e2e-${GITHUB_SHA}.tar.gz"
+          mkdir verified-image
+          gh run download "$CI_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$artifact_name" \
+            --dir verified-image
+          cd verified-image
+          sha256sum --check "${archive}.sha256"
+          docker image load --input "$archive"
+          loaded_image_id="$(docker image inspect formetric:e2e --format '{{.Id}}')"
+          expected_image_id="$(tr -d '\r\n' < "${archive}.image-id")"
+          if [[ "$loaded_image_id" != "$expected_image_id" ]]; then
+            echo "The downloaded image differs from the image exported by CI." >&2
+            exit 1
+          fi
+
+      - name: Scan candidate before publishing
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: formetric:e2e
+          format: sarif
+          output: candidate-trivy.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Preserve candidate scan report
+        if: always() && hashFiles('candidate-trivy.sarif') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-candidate-scan-${{ github.sha }}
+          path: candidate-trivy.sarif
+          retention-days: 30
+
+      - name: Publish immutable scanned image
+        id: image
+        shell: bash
+        run: |
+          local_image="formetric:e2e"
+          image_repository="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/formetric"
+          remote_tag="${image_repository}:${GITHUB_SHA}"
+
+          scanned_image_id="$(docker image inspect "$local_image" --format '{{.Id}}')"
+          docker tag "$local_image" "$remote_tag"
+          tagged_image_id="$(docker image inspect "$remote_tag" --format '{{.Id}}')"
+          if [[ "$tagged_image_id" != "$scanned_image_id" ]]; then
+            echo "The image selected for publication differs from the scanned image." >&2
+            exit 1
+          fi
+
+          push_output="$(docker push "$remote_tag" 2>&1)"
+          printf '%s\n' "$push_output"
+          pushed_digest="$(printf '%s\n' "$push_output" | sed -nE \
+            's/^.*digest: (sha256:[a-f0-9]{64}) size:.*$/\1/p' | tail -n 1)"
+          if [[ ! "$pushed_digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "docker push did not return a valid immutable digest for $remote_tag." >&2
+            exit 1
+          fi
+
+          registry_digest="$(gcloud artifacts docker images describe \
+            "${image_repository}@${pushed_digest}" \
+            --project "$GCP_PROJECT_ID" \
+            --format='value(image_summary.digest)')"
+          if [[ "$registry_digest" != "$pushed_digest" ]]; then
+            echo "Artifact Registry did not confirm the digest returned by docker push." >&2
+            exit 1
+          fi
+
+          echo "image_ref=${image_repository}@${pushed_digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy candidate without traffic
+        id: deploy
+        shell: bash
+        env:
+          BOOTSTRAP_OWNER: ${{ inputs.bootstrap_owner }}
+          IMAGE_REF: ${{ steps.image.outputs.image_ref }}
+        run: |
+          secret_bindings="DB_POOLER_URL=${DB_POOLER_URL_SECRET}:${DB_SECRET_VERSION},DB_DIRECT_URL=${DB_DIRECT_URL_SECRET}:${DB_SECRET_VERSION},DB_USERNAME=${DB_USERNAME_SECRET}:${DB_SECRET_VERSION},DB_PASSWORD=${DB_PASSWORD_SECRET}:${DB_SECRET_VERSION}"
+          bootstrap_secret_arguments=(
+            --remove-secrets
+            "BOOTSTRAP_ADMIN_EMAIL,BOOTSTRAP_ADMIN_PASSWORD,BOOTSTRAP_ADMIN_DISPLAY_NAME"
+          )
+          if [[ "$BOOTSTRAP_OWNER" == "true" ]]; then
+            secret_bindings+=",BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL_SECRET}:${BOOTSTRAP_SECRET_VERSION},BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD_SECRET}:${BOOTSTRAP_SECRET_VERSION},BOOTSTRAP_ADMIN_DISPLAY_NAME=${BOOTSTRAP_ADMIN_DISPLAY_NAME_SECRET}:${BOOTSTRAP_SECRET_VERSION}"
+            bootstrap_secret_arguments=()
+          fi
+
+          gcloud run deploy "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT_ID" \
+            --region "$GCP_REGION" \
+            --image "$IMAGE_REF" \
+            --service-account "$CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT" \
+            --execution-environment gen2 \
+            --port 8080 \
+            --cpu 1 \
+            --memory 1Gi \
+            --concurrency 20 \
+            --timeout 60 \
+            --min-instances 0 \
+            --max-instances 1 \
+            --cpu-boost \
+            --ingress all \
+            --update-env-vars "SPRING_PROFILES_ACTIVE=prod,JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=65 -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8" \
+            --update-secrets "$secret_bindings" \
+            "${bootstrap_secret_arguments[@]}" \
+            --startup-probe "httpGet.path=/actuator/health/readiness,httpGet.port=8080,initialDelaySeconds=0,timeoutSeconds=3,periodSeconds=5,failureThreshold=48" \
+            --liveness-probe "httpGet.path=/actuator/health/liveness,httpGet.port=8080,initialDelaySeconds=10,timeoutSeconds=3,periodSeconds=30,failureThreshold=3" \
+            --labels "managed-by=github-actions,commit-sha=${GITHUB_SHA}" \
+            --tag candidate \
+            --no-traffic \
+            --quiet
+
+          candidate_url="$(
+            gcloud run services describe "$CLOUD_RUN_SERVICE" \
+              --project "$GCP_PROJECT_ID" \
+              --region "$GCP_REGION" \
+              --format json |
+              jq -er '.status.traffic[] | select(.tag == "candidate") | .url'
+          )"
+          echo "candidate_url=$candidate_url" >> "$GITHUB_OUTPUT"
+          echo "image_ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Run read-only candidate smoke checks
+        shell: bash
+        env:
+          CANDIDATE_URL: ${{ steps.deploy.outputs.candidate_url }}
+        run: |
+          service_url="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format 'value(status.url)')"
+          identity_token="$(gcloud auth print-identity-token --audiences="$service_url")"
+          request_headers=(-H "Authorization: Bearer $identity_token")
+
+          curl "${request_headers[@]}" --fail --silent --show-error \
+            --retry 30 --retry-all-errors --retry-delay 2 \
+            "$CANDIDATE_URL/actuator/health/readiness" > /dev/null
+          curl "${request_headers[@]}" --fail --silent --show-error "$CANDIDATE_URL/" > /dev/null
+          curl "${request_headers[@]}" --fail --silent --show-error "$CANDIDATE_URL/login" > /dev/null
+          curl "${request_headers[@]}" --fail --silent --show-error \
+            "$CANDIDATE_URL/diary?date=2025-01-15" > /dev/null
+
+          session_status="$(curl "${request_headers[@]}" --silent --output /dev/null --write-out '%{http_code}' \
+            "$CANDIDATE_URL/api/v1/auth/session")"
+          if [[ "$session_status" != "401" ]]; then
+            echo "Expected an anonymous session request to return 401; received $session_status." >&2
+            exit 1
+          fi
+
+      - name: Promote candidate
+        if: inputs.promote
+        shell: bash
+        run: |
+          public_login_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            "${{ steps.deploy.outputs.candidate_url }}/login")"
+          if [[ "$public_login_status" != "200" ]]; then
+            echo "The service is not publicly invokable. Configure roles/run.invoker for allUsers before promotion." >&2
+            exit 1
+          fi
+          gcloud run services update-traffic "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT_ID" \
+            --region "$GCP_REGION" \
+            --to-tags candidate=100 \
+            --quiet
+
+      - name: Write deployment summary
+        if: always()
+        shell: bash
+        env:
+          CANDIDATE_URL: ${{ steps.deploy.outputs.candidate_url }}
+          IMAGE_REF: ${{ steps.deploy.outputs.image_ref }}
+          PROMOTE: ${{ inputs.promote }}
+        run: |
+          {
+            echo "## Initial production candidate"
+            echo
+            echo "- Image: \`$IMAGE_REF\`"
+            echo "- Candidate URL: $CANDIDATE_URL"
+            echo "- Requested promotion: \`$PROMOTE\`"
+            echo "- Bootstrap secrets attached: \`${{ inputs.bootstrap_owner }}\`"
+            echo "- Maximum instances: \`1\` (initial Flyway baseline safety)"
+            echo "- Source commit: \`$GITHUB_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"

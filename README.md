@@ -127,7 +127,11 @@ cd ..\backend
 ```
 
 Os testes de contexto do backend usam Testcontainers e, portanto, precisam do Docker
-ativo. Consulte [infra/README.md](infra/README.md) para detalhes do banco e da imagem.
+ativo. Consulte [infra/README.md](infra/README.md) para detalhes do banco e da imagem,
+[infra/E2E.md](infra/E2E.md) para o teste do contêiner integrado e
+[infra/cloud-run/README.md](infra/cloud-run/README.md) para a baseline privada no
+Cloud Run + Neon. O runbook de Cloud Run não é uma automação genérica para migrations
+posteriores.
 
 Nenhuma credencial deve ser commitada. Variáveis locais devem ficar em arquivos
 `.env` ignorados pelo Git; exemplos seguros serão disponibilizados em `.env.example`.
