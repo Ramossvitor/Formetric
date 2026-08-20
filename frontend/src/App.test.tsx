@@ -130,7 +130,7 @@ describe('autenticação', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Verificando sua sessão')
     expect(await screen.findByRole('heading', { name: 'Acesse sua conta' })).toBeInTheDocument()
-    expect(screen.queryByText('Sua sessÃ£o expirou')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sua sessão expirou')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Hoje' })).not.toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
       '/api/v1/auth/session',
@@ -183,7 +183,7 @@ describe('autenticação', () => {
     expect(queryClient.getQueryData(sessionQuery.queryKey)).toEqual(authenticatedSession)
   })
 
-  it('mantÃ©m credenciais invÃ¡lidas no fluxo local sem disparar a fronteira global', async () => {
+  it('mantém credenciais inválidas no fluxo local sem disparar a fronteira global', async () => {
     const oldPrivateKey = ['profile', 'old-account'] as const
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
@@ -191,11 +191,11 @@ describe('autenticação', () => {
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'invalid-login-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/auth/login' && init?.method === 'POST') {
         return jsonResponse(
-          { title: 'Credenciais invÃ¡lidas', status: 401, detail: 'E-mail ou senha incorretos.' },
+          { title: 'Credenciais inválidas', status: 401, detail: 'E-mail ou senha incorretos.' },
           { status: 401, headers: { 'Content-Type': 'application/problem+json' } },
         )
       }
-      throw new Error(`RequisiÃ§Ã£o nÃ£o esperada: ${path}`)
+      throw new Error(`Requisição não esperada: ${path}`)
     })
     const user = userEvent.setup()
     const { queryClient } = renderApp('/login', (client) => client.setQueryData(oldPrivateKey, { private: true }))
@@ -207,12 +207,12 @@ describe('autenticação', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha incorretos')
     expect(screen.getByRole('heading', { name: 'Acesse sua conta' })).toBeInTheDocument()
-    expect(screen.queryByText('Sua sessÃ£o expirou')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sua sessão expirou')).not.toBeInTheDocument()
     expect(queryClient.getQueryData(oldPrivateKey)).toEqual({ private: true })
     expect(fetchMock.mock.calls.filter(([path]) => path === '/api/v1/auth/login')).toHaveLength(1)
   })
 
-  it('limpa a sessÃ£o expirada e retorna ao destino privado depois de autenticar', async () => {
+  it('limpa a sessão expirada e retorna ao destino privado depois de autenticar', async () => {
     const oldAnalyticsKey = ['analytics', 'monthly', 'old-account'] as const
     let profileRequests = 0
     let sessionRequests = 0
@@ -228,7 +228,7 @@ describe('autenticação', () => {
       }
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'renewed-session-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/auth/login' && init?.method === 'POST') return jsonResponse(authenticatedSession)
-      throw new Error(`RequisiÃ§Ã£o nÃ£o esperada: ${path}`)
+      throw new Error(`Requisição não esperada: ${path}`)
     })
     const user = userEvent.setup()
     const { queryClient } = renderBrowserApp('/profile?tab=privacy', (client) => {
@@ -238,7 +238,7 @@ describe('autenticação', () => {
     })
 
     expect(await screen.findByRole('heading', { name: 'Acesse sua conta' })).toBeInTheDocument()
-    expect(screen.getByText('Sua sessÃ£o expirou. Entre novamente para continuar.')).toBeInTheDocument()
+    expect(screen.getByText('Sua sessão expirou. Entre novamente para continuar.')).toBeInTheDocument()
     expect(window.history.state.usr).toEqual(expect.objectContaining({ from: '/profile?tab=privacy' }))
     expect(queryClient.getQueryData(oldAnalyticsKey)).toBeUndefined()
     expect(queryClient.getQueryData(['activity', 'weight-logs'])).toBeUndefined()

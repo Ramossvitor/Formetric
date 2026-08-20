@@ -76,7 +76,7 @@ export function LoginPage() {
         ) : null}
         {locationState.sessionExpired ? (
           <p className="form-error" role="status">
-            Sua sessÃ£o expirou. Entre novamente para continuar.
+            Sua sessão expirou. Entre novamente para continuar.
           </p>
         ) : null}
 
