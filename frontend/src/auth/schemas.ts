@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+export const selectableUnitSystem = 'METRIC' as const
+
+const persistedProfileUnitSystemSchema = z.enum([selectableUnitSystem, 'IMPERIAL'])
+
 const passwordSchema = z
   .string()
   .min(12, 'Use pelo menos 12 caracteres.')
@@ -56,7 +60,7 @@ export const profileSchema = z.object({
     .trim()
     .min(1, 'Informe o fuso horário.')
     .max(63, 'Use no máximo 63 caracteres.'),
-  unitSystem: z.enum(['METRIC', 'IMPERIAL']),
+  unitSystem: persistedProfileUnitSystemSchema,
   birthDate: z.string(),
   formulaSex: z.enum(['', 'MALE', 'FEMALE']),
 })

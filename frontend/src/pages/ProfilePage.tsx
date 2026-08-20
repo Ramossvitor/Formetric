@@ -8,7 +8,7 @@ import { invalidateAnalytics } from '../analytics/queries'
 import { getProfile, updateProfile } from '../auth/api'
 import { FullPageStatus } from '../auth/ProtectedRoute'
 import { sessionQuery, useLogout } from '../auth/queries'
-import { profileSchema, type ProfileFormValues } from '../auth/schemas'
+import { profileSchema, selectableUnitSystem, type ProfileFormValues } from '../auth/schemas'
 
 const profileQueryKey = ['profile'] as const
 
@@ -28,7 +28,7 @@ export function ProfilePage() {
       displayName: '',
       locale: 'pt-BR',
       timeZone: 'America/Sao_Paulo',
-      unitSystem: 'METRIC',
+      unitSystem: selectableUnitSystem,
       birthDate: '',
       formulaSex: '',
     },
@@ -158,9 +158,16 @@ export function ProfilePage() {
           <div className="field-group">
             <label htmlFor="profile-unit-system">Sistema de unidades</label>
             <select {...register('unitSystem')} id="profile-unit-system">
-              <option value="METRIC">Métrico (kg, cm, ml)</option>
-              <option value="IMPERIAL">Imperial (lb, in, fl oz)</option>
+              {profile.data.unitSystem === 'IMPERIAL' ? (
+                <option disabled value="IMPERIAL">Imperial (configuração atual; ainda não suportado)</option>
+              ) : null}
+              <option value={selectableUnitSystem}>Métrico (kg, cm, ml)</option>
             </select>
+            <span className="field-hint">
+              {profile.data.unitSystem === 'IMPERIAL'
+                ? 'Imperial em breve. O perfil continuará marcado como imperial até você escolher Métrico e salvar; a interface atual usa kg, cm e ml.'
+                : 'Imperial em breve. Nesta versão, a interface usa kg, cm e ml.'}
+            </span>
           </div>
 
           <div className="field-group">
