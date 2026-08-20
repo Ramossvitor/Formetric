@@ -67,6 +67,19 @@ springdoc:
     tags-sorter: alpha
 
 formetric:
+  http:
+    # JSON/API bodies may be lowered per deployment but never raised above 256 KiB.
+    max-request-body-size: ${MAX_HTTP_REQUEST_BODY_SIZE:256KB}
+  security:
+    # Login throttling topology: Forwarded/XFF remain useful for URL reconstruction only.
+    # They are never an identity signal. TRANSPORT_PEER unwraps framework decorators and may
+    # intentionally collapse every Cloud Run request into its platform peer; the global bucket
+    # is the fail-safe until a trusted edge and a verifiable proxy chain are provisioned.
+    login-origin:
+      strategy: TRANSPORT_PEER
+    password-computation:
+      max-concurrent: ${PASSWORD_COMPUTATION_MAX_CONCURRENT:2}
+      acquire-timeout-ms: ${PASSWORD_COMPUTATION_ACQUIRE_TIMEOUT_MS:25}
   bootstrap:
     admin-email: ${BOOTSTRAP_ADMIN_EMAIL:}
     admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}

@@ -74,6 +74,22 @@ class IdentityExceptionHandler {
                 .body(problem);
     }
 
+    @ExceptionHandler(PasswordComputationCapacityException.class)
+    ResponseEntity<ProblemDetail> passwordComputationCapacity(
+            PasswordComputationCapacityException exception,
+            HttpServletRequest request) {
+        ProblemDetail problem = problem(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Processamento de senha temporariamente ocupado",
+                exception.getMessage(),
+                request);
+        problem.setType(URI.create("https://formetric.dev/problems/password-computation-capacity"));
+        problem.setProperty("code", "PASSWORD_COMPUTATION_CAPACITY");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+                .body(problem);
+    }
+
     @ExceptionHandler(InvalidInviteException.class)
     ResponseEntity<ProblemDetail> invalidInvite(InvalidInviteException exception, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(problem(

@@ -25,6 +25,18 @@ class LoginRateLimitedException extends RuntimeException {
     }
 }
 
+class PasswordComputationCapacityException extends RuntimeException {
+    private static final long RETRY_AFTER_SECONDS = 1;
+
+    PasswordComputationCapacityException() {
+        super("O processamento de senha est\u00e1 temporariamente ocupado. Tente novamente em instantes.");
+    }
+
+    long retryAfterSeconds() {
+        return RETRY_AFTER_SECONDS;
+    }
+}
+
 class ResourceNotFoundException extends RuntimeException {
     ResourceNotFoundException(String message) {
         super(message);

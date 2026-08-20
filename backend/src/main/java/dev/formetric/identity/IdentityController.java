@@ -37,16 +37,19 @@ class AuthenticationController {
     private final IdentityService identityService;
     private final CurrentUserProvider currentUserProvider;
     private final LoginAttemptLimiter loginAttemptLimiter;
+    private final LoginRequestOriginResolver loginRequestOriginResolver;
     private final HttpSessionSecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
     AuthenticationController(
             IdentityService identityService,
             CurrentUserProvider currentUserProvider,
-            LoginAttemptLimiter loginAttemptLimiter) {
+            LoginAttemptLimiter loginAttemptLimiter,
+            LoginRequestOriginResolver loginRequestOriginResolver) {
         this.identityService = identityService;
         this.currentUserProvider = currentUserProvider;
         this.loginAttemptLimiter = loginAttemptLimiter;
+        this.loginRequestOriginResolver = loginRequestOriginResolver;
     }
 
     @GetMapping("/csrf")
@@ -60,15 +63,15 @@ class AuthenticationController {
             HttpServletRequest request,
             HttpServletResponse response) {
         String normalizedEmail = IdentitySupport.normalizeEmail(body.email());
-        String ipAddress = request.getRemoteAddr();
-        loginAttemptLimiter.checkAllowed(normalizedEmail, ipAddress);
+        String requestOrigin = loginRequestOriginResolver.resolve(request);
+        loginAttemptLimiter.checkAllowed(normalizedEmail, requestOrigin);
         try {
             AuthenticatedUser user = identityService.authenticate(normalizedEmail, body.password());
             loginAttemptLimiter.recordSuccess(normalizedEmail);
             establishSession(user, request, response);
             return SessionResponse.from(user);
         } catch (InvalidCredentialsException exception) {
-            loginAttemptLimiter.recordFailure(normalizedEmail, ipAddress);
+            loginAttemptLimiter.recordFailure(normalizedEmail, requestOrigin);
             throw exception;
         }
     }

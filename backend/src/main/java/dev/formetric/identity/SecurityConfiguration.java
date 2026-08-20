@@ -11,6 +11,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.header.writers.ContentSecurityPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.PermissionsPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
@@ -22,8 +25,13 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 class SecurityConfiguration {
 
     @Bean
-    SecurityFilterChain applicationSecurity(HttpSecurity http) throws Exception {
+    SecurityFilterChain applicationSecurity(
+            HttpSecurity http,
+            CsrfTokenRepository csrfTokenRepository,
+            AuthenticatedSessionIdentityProvider authenticatedSessionIdentityProvider)
+            throws Exception {
         return http
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/",
@@ -68,6 +76,7 @@ class SecurityConfiguration {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .sessionFixation(fixation -> fixation.migrateSession()))
+                .requestCache(cache -> cache.disable())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) -> writeProblem(
                                 response, 401, "Não autenticado", "Autenticação necessária."))
@@ -89,7 +98,24 @@ class SecurityConfiguration {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
+                .addFilterBefore(
+                        new AuthenticatedSessionRevalidationFilter(authenticatedSessionIdentityProvider),
+                        AuthorizationFilter.class)
                 .build();
+    }
+
+    @Bean
+    CsrfTokenRepository csrfTokenRepository(
+            @Value("${server.servlet.session.cookie.secure:false}") boolean secure) {
+        CookieCsrfTokenRepository repository = new CookieCsrfTokenRepository();
+        repository.setCookieName("XSRF-TOKEN");
+        repository.setHeaderName("X-XSRF-TOKEN");
+        repository.setCookieCustomizer(cookie -> cookie
+                .path("/")
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Lax"));
+        return repository;
     }
 
     @Bean

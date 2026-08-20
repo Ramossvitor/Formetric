@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Locale;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +17,9 @@ class IdentityService {
     private final UserProfileRepository profiles;
     private final UserInviteRepository invites;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordComputationGate passwordComputationGate;
+    private final LoginAccountSnapshots loginAccountSnapshots;
+    private final InviteAcceptanceTransactions inviteAcceptanceTransactions;
     private final String dummyPasswordHash;
     private final InviteTokenGenerator tokenGenerator;
     private final Clock clock;
@@ -27,31 +29,42 @@ class IdentityService {
             UserProfileRepository profiles,
             UserInviteRepository invites,
             PasswordEncoder passwordEncoder,
+            PasswordComputationGate passwordComputationGate,
+            LoginAccountSnapshots loginAccountSnapshots,
+            InviteAcceptanceTransactions inviteAcceptanceTransactions,
             InviteTokenGenerator tokenGenerator,
             Clock clock) {
         this.accounts = accounts;
         this.profiles = profiles;
         this.invites = invites;
         this.passwordEncoder = passwordEncoder;
+        this.passwordComputationGate = passwordComputationGate;
+        this.loginAccountSnapshots = loginAccountSnapshots;
+        this.inviteAcceptanceTransactions = inviteAcceptanceTransactions;
         this.dummyPasswordHash = passwordEncoder.encode("formetric-login-timing-sentinel-" + UUID.randomUUID());
         this.tokenGenerator = tokenGenerator;
         this.clock = clock;
     }
 
-    @Transactional(readOnly = true)
     AuthenticatedUser authenticate(String email, String password) {
         String normalizedEmail = IdentitySupport.normalizeEmail(email);
-        UserAccount account = accounts.findByEmail(normalizedEmail).orElse(null);
-        if (account == null) {
-            passwordEncoder.matches(password, dummyPasswordHash);
+        LoginCredentialSnapshot credential = loginAccountSnapshots.credentialFor(normalizedEmail).orElse(null);
+        String passwordHash = credential == null ? dummyPasswordHash : credential.passwordHash();
+        boolean passwordMatches = passwordComputationGate.compute(
+                () -> passwordEncoder.matches(password, passwordHash));
+
+        if (credential == null || credential.status() != AccountStatus.ACTIVE || !passwordMatches) {
             throw new InvalidCredentialsException();
         }
-        if (account.status() != AccountStatus.ACTIVE || !passwordEncoder.matches(password, account.passwordHash())) {
+
+        CurrentLoginSnapshot current = loginAccountSnapshots.currentFor(credential.id()).orElse(null);
+        if (current == null
+                || current.status() != AccountStatus.ACTIVE
+                || !current.email().equals(credential.email())
+                || !current.passwordHash().equals(credential.passwordHash())) {
             throw new InvalidCredentialsException();
         }
-        UserProfile profile = profiles.findById(account.id())
-                .orElseThrow(() -> new IllegalStateException("Active account has no profile"));
-        return authenticatedUser(account, profile);
+        return current.authenticatedUser();
     }
 
     @Transactional
@@ -73,32 +86,15 @@ class IdentityService {
         return new CreatedInvite(invite.id(), invite.email(), invite.role(), invite.expiresAt(), token);
     }
 
-    @Transactional
     AuthenticatedUser acceptInvite(String token, String displayName, String password) {
         String normalizedDisplayName = normalizeDisplayName(displayName);
-        Instant now = clock.instant();
-        UserInvite invite = invites.findByTokenHashForUpdate(IdentitySupport.hashToken(token))
+        String tokenHash = IdentitySupport.hashToken(token);
+        InviteAcceptanceCandidate candidate = inviteAcceptanceTransactions.candidateFor(tokenHash)
                 .orElseThrow(() -> new InvalidInviteException("Convite inválido."));
-        if (invite.isAccepted()) {
-            throw new InvalidInviteException("Este convite já foi utilizado.");
-        }
-        if (invite.isExpired(now)) {
-            throw new InvalidInviteException("Este convite expirou.");
-        }
-        if (accounts.existsByEmail(invite.email())) {
-            throw new IdentityConflictException("Já existe uma conta para este e-mail.");
-        }
-
-        UserAccount account = UserAccount.create(invite.email(), passwordEncoder.encode(password), invite.role(), now);
-        UserProfile profile = UserProfile.defaults(account.id(), normalizedDisplayName, now);
-        try {
-            accounts.saveAndFlush(account);
-            profiles.save(profile);
-            invite.accept(account.id(), now);
-        } catch (DataIntegrityViolationException exception) {
-            throw new IdentityConflictException("Não foi possível criar a conta para este convite.");
-        }
-        return authenticatedUser(account, profile);
+        candidate.requireUsable(clock.instant());
+        String passwordHash = passwordComputationGate.compute(() -> passwordEncoder.encode(password));
+        return inviteAcceptanceTransactions.complete(
+                tokenHash, normalizedDisplayName, passwordHash, clock.instant());
     }
 
     @Transactional(readOnly = true)
