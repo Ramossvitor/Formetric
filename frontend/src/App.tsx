@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { ProtectedRoute } from './auth/ProtectedRoute'
+import { OwnerRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { UnexpectedUnauthorizedBoundary } from './auth/UnexpectedUnauthorizedBoundary'
 import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
 import { DiaryPage } from './pages/DiaryPage'
@@ -8,6 +8,7 @@ import { FoodDetailPage } from './pages/FoodDetailPage'
 import { FoodsPage } from './pages/FoodsPage'
 import { HomePage } from './pages/HomePage'
 import { InviteAcceptancePage } from './pages/InviteAcceptancePage'
+import { InvitationsPage } from './pages/InvitationsPage'
 import { LoginPage } from './pages/LoginPage'
 import { NewFoodPage } from './pages/NewFoodPage'
 import { NewRecipePage } from './pages/NewRecipePage'
@@ -66,6 +67,9 @@ function App() {
           <Route element={<RecipeDetailPage />} path="recipes/:id" />
           <Route element={<NutritionGoalsPage />} path="settings/nutrition-goals" />
           <Route element={<TdeeSettingsPage />} path="settings/tdee" />
+          <Route element={<OwnerRoute />}>
+            <Route element={<InvitationsPage />} path="settings/invitations" />
+          </Route>
         </Route>
       </Route>
 

@@ -29,6 +29,31 @@ export function ProtectedRoute() {
   return <Outlet />
 }
 
+export function OwnerRoute() {
+  const session = useQuery(sessionQuery)
+
+  if (session.isPending) {
+    return <FullPageStatus message="Verificando suas permissões…" />
+  }
+
+  if (session.isError) {
+    return (
+      <FullPageStatus
+        actionLabel="Tentar novamente"
+        message={getErrorMessage(session.error)}
+        onAction={() => void session.refetch()}
+        tone="error"
+      />
+    )
+  }
+
+  if (session.data?.user.role !== 'OWNER') {
+    return <Navigate replace to="/profile" />
+  }
+
+  return <Outlet />
+}
+
 interface FullPageStatusProps {
   message: string
   actionLabel?: string

@@ -7,7 +7,7 @@ import { clearCsrfToken } from './api/http'
 import type { AuthSession } from './auth/api'
 import { sessionQuery, useLogout } from './auth/queries'
 
-const authenticatedSession = {
+const authenticatedSession: AuthSession = {
   authenticated: true as const,
   user: {
     id: 'e1ee45b2-7185-40d5-a661-77b68246d104',

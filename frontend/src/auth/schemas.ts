@@ -25,6 +25,21 @@ export const inviteSchema = z
     path: ['passwordConfirmation'],
   })
 
+export const createInviteSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Informe o e-mail da pessoa convidada.')
+    .max(320, 'Use no máximo 320 caracteres.')
+    .regex(/^[^\s@]+@[^\s@]+$/, 'Informe um e-mail válido.'),
+  role: z.enum(['OWNER', 'USER'], { error: 'Selecione um nível de acesso válido.' }),
+  expiresInHours: z
+    .number({ error: 'Informe a validade do convite em horas.' })
+    .int('A validade deve ser informada em horas inteiras.')
+    .min(1, 'A validade mínima é de 1 hora.')
+    .max(720, 'A validade máxima é de 720 horas.'),
+})
+
 export const profileSchema = z.object({
   displayName: z
     .string()
@@ -48,4 +63,5 @@ export const profileSchema = z.object({
 
 export type LoginFormValues = z.infer<typeof loginSchema>
 export type InviteFormValues = z.infer<typeof inviteSchema>
+export type CreateInviteFormValues = z.infer<typeof createInviteSchema>
 export type ProfileFormValues = z.infer<typeof profileSchema>

@@ -204,6 +204,26 @@ export function ProfilePage() {
         </form>
       </section>
 
+      {profile.data.role === 'OWNER' ? (
+        <section className="profile-card settings-card surface-card" aria-labelledby="administration-settings-title">
+          <div className="section-heading profile-section-heading">
+            <div>
+              <p className="eyebrow">Administração</p>
+              <h2 id="administration-settings-title">Acessos</h2>
+            </div>
+          </div>
+          <nav aria-label="Administração de acessos" className="settings-link-list">
+            <Link className="settings-link" to="/settings/invitations">
+              <span>
+                <strong>Convites</strong>
+                <small>Crie links privados para novas contas.</small>
+              </span>
+              <span aria-hidden="true">›</span>
+            </Link>
+          </nav>
+        </section>
+      ) : null}
+
       <section className="profile-card settings-card surface-card" aria-labelledby="planning-settings-title">
         <div className="section-heading profile-section-heading">
           <div>

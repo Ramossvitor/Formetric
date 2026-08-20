@@ -1,10 +1,12 @@
 import { ApiError, apiRequest, clearCsrfToken } from '../api/http'
 
+export type UserRole = 'OWNER' | 'USER'
+
 export interface SessionUser {
   id: string
   email: string
   displayName: string
-  role: string
+  role: UserRole
 }
 
 export interface AuthSession {
@@ -21,6 +23,20 @@ export interface AcceptInviteInput {
   token: string
   displayName: string
   password: string
+}
+
+export interface CreateInviteInput {
+  email: string
+  role: UserRole
+  expiresInHours: number
+}
+
+export interface CreatedInvite {
+  id: string
+  email: string
+  role: UserRole
+  expiresAt: string
+  token: string
 }
 
 export interface UserProfile extends SessionUser {
@@ -74,6 +90,14 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<AuthSessio
   })
   clearCsrfToken()
   return session
+}
+
+export function createInvite(input: CreateInviteInput): Promise<CreatedInvite> {
+  return apiRequest<CreatedInvite>('/api/v1/invites', {
+    method: 'POST',
+    body: input,
+    csrf: true,
+  })
 }
 
 export function getProfile(): Promise<UserProfile> {
