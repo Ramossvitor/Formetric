@@ -1,0 +1,280 @@
+.effective-goal-card {
+  display: grid;
+}
+
+.effective-goal-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.effective-goal-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  margin: 17px 0 0;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+
+.effective-goal-summary dt {
+  color: var(--text-soft);
+  font-size: 0.62rem;
+}
+
+.effective-goal-summary dd {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.planning-grid.nutrition-planning-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.nutrition-goal-editor {
+  padding: 17px;
+}
+
+.planning-form.nutrition-goal-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.goal-period-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.goal-validity-hint {
+  margin: -7px 0 0;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+
+.goal-target-list {
+  display: grid;
+  gap: 15px;
+}
+
+.goal-target-editor {
+  min-width: 0;
+  margin: 0;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-subtle);
+}
+
+.goal-target-editor > legend {
+  padding: 0 7px;
+  color: var(--text);
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+.goal-target-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px 12px;
+}
+
+.goal-target-heading p,
+.goal-target-hint {
+  color: var(--text-soft);
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
+
+.goal-target-heading p {
+  margin: 0;
+}
+
+.goal-target-heading strong {
+  color: var(--text-muted);
+}
+
+.goal-target-hint {
+  margin: 9px 0 13px;
+}
+
+.goal-preset-button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-muted);
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.goal-band-list {
+  display: grid;
+  gap: 11px;
+}
+
+.goal-band-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.goal-band-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.goal-band-heading strong,
+.goal-band-heading span {
+  display: block;
+}
+
+.goal-band-heading strong {
+  font-size: 0.78rem;
+}
+
+.goal-band-heading span {
+  margin-top: 2px;
+  color: var(--text-soft);
+  font-size: 0.58rem;
+}
+
+.goal-band-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.goal-band-actions button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.goal-band-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.goal-band-actions .goal-band-remove {
+  color: var(--danger);
+}
+
+.goal-band-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.goal-checkbox {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+  font-size: 0.66rem !important;
+  font-weight: 650 !important;
+  line-height: 1.35;
+}
+
+.field-group .goal-checkbox input[type='checkbox'],
+.goal-checkbox input[type='checkbox'] {
+  width: 18px;
+  min-height: 18px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--primary);
+}
+
+.goal-open-boundary {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  color: var(--text-soft);
+  font-size: 0.64rem;
+}
+
+.goal-attainment {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+}
+
+.goal-add-band {
+  width: 100%;
+  margin-top: 11px;
+}
+
+.goal-add-band + .field-hint {
+  display: block;
+  margin-top: 7px;
+  text-align: center;
+}
+
+.configurable-goal-summary-list dd {
+  overflow: visible;
+  line-height: 1.45;
+  text-overflow: initial;
+  white-space: normal;
+}
+
+@media (min-width: 560px) {
+  .nutrition-goal-editor {
+    padding: 23px;
+  }
+
+  .goal-period-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .goal-period-fields .field-group:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .goal-band-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .effective-goal-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 820px) {
+  .goal-period-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .goal-period-fields .field-group:last-child {
+    grid-column: auto;
+  }
+
+  .effective-goal-summary {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

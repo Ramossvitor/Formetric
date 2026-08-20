@@ -88,6 +88,13 @@ final class PlanningRules {
                 throw new PlanningValidationException(
                         "bands", "O limite mínimo não pode ser maior que o máximo.");
             }
+            if (band.minimum() != null
+                    && band.maximum() != null
+                    && band.minimum().compareTo(band.maximum()) == 0
+                    && !(band.minimumInclusive() && band.maximumInclusive())) {
+                throw new PlanningValidationException(
+                        "bands", "Limites iguais precisam incluir as duas fronteiras.");
+            }
             if (band.label() == null || band.label().strip().isEmpty() || band.label().strip().length() > 40) {
                 throw new PlanningValidationException("bands", "O rótulo deve possuir entre 1 e 40 caracteres.");
             }
@@ -106,6 +113,11 @@ final class PlanningRules {
                     band.label().strip(),
                     band.tone(),
                     band.countsAsAttained()));
+        }
+
+        if (ordered.stream().noneMatch(GoalBandDefinition::countsAsAttained)) {
+            throw new PlanningValidationException(
+                    "bands", "Marque ao menos uma faixa como meta atingida.");
         }
 
         Set<Integer> positions = new HashSet<>();

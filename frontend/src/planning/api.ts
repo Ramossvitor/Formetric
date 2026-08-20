@@ -36,14 +36,18 @@ export interface TdeePeriod {
   kcalPerDay: number
 }
 
-export interface SimpleNutritionGoalInput {
+export type EditableGoalBand = Omit<GoalBand, 'position'>
+
+export interface EditableNutrientTarget {
+  nutrient: Nutrient
+  bands: EditableGoalBand[]
+}
+
+export interface NutritionGoalInput {
   validFrom: string
+  validTo: string | null
   calorieTarget: number
-  proteinMin: number
-  carbohydrateMax: number
-  fatMax: number
-  fiberMin: number
-  waterMin: number
+  targets: EditableNutrientTarget[]
 }
 
 export interface CreateNutritionGoalPeriodRequest {
@@ -59,90 +63,28 @@ export interface CreateTdeePeriodRequest {
   kcalPerDay: number
 }
 
-function minimumBands(minimum: number, achievedLabel: string): GoalBand[] {
-  return [
-    {
-      position: 0,
-      minValue: null,
-      maxValue: minimum,
-      minInclusive: false,
-      maxInclusive: false,
-      label: 'Abaixo da meta',
-      tone: 'WARNING',
-      countsAsAttained: false,
-    },
-    {
-      position: 1,
-      minValue: minimum,
-      maxValue: null,
-      minInclusive: true,
-      maxInclusive: false,
-      label: achievedLabel,
-      tone: 'POSITIVE',
-      countsAsAttained: true,
-    },
-  ]
-}
-
-function maximumBands(maximum: number, idealLabel: string): GoalBand[] {
-  return [
-    {
-      position: 0,
-      minValue: null,
-      maxValue: maximum,
-      minInclusive: false,
-      maxInclusive: true,
-      label: idealLabel,
-      tone: 'POSITIVE',
-      countsAsAttained: true,
-    },
-    {
-      position: 1,
-      minValue: maximum,
-      maxValue: null,
-      minInclusive: false,
-      maxInclusive: false,
-      label: 'Acima do planejado',
-      tone: 'WARNING',
-      countsAsAttained: false,
-    },
-  ]
+export function canonicalNutrientUnit(nutrient: Nutrient): NutrientUnit {
+  return nutrient === 'WATER' ? 'ML' : 'G'
 }
 
 export function toNutritionGoalRequest(
-  input: SimpleNutritionGoalInput,
+  input: NutritionGoalInput,
 ): CreateNutritionGoalPeriodRequest {
   return {
     validFrom: input.validFrom,
-    validTo: null,
+    validTo: input.validTo || null,
     calorieTarget: input.calorieTarget,
-    targets: [
-      {
-        nutrient: 'PROTEIN',
-        unit: 'G',
-        bands: minimumBands(input.proteinMin, 'Meta atingida'),
-      },
-      {
-        nutrient: 'CARBOHYDRATE',
-        unit: 'G',
-        bands: maximumBands(input.carbohydrateMax, 'Faixa ideal'),
-      },
-      {
-        nutrient: 'FAT',
-        unit: 'G',
-        bands: maximumBands(input.fatMax, 'Dentro do limite'),
-      },
-      {
-        nutrient: 'FIBER',
-        unit: 'G',
-        bands: minimumBands(input.fiberMin, 'Meta atingida'),
-      },
-      {
-        nutrient: 'WATER',
-        unit: 'ML',
-        bands: minimumBands(input.waterMin, 'Meta atingida'),
-      },
-    ],
+    targets: input.targets.map((target) => ({
+      nutrient: target.nutrient,
+      unit: canonicalNutrientUnit(target.nutrient),
+      bands: target.bands.map((band, position) => ({
+        ...band,
+        position,
+        minInclusive: band.minValue === null ? false : band.minInclusive,
+        maxInclusive: band.maxValue === null ? false : band.maxInclusive,
+        label: band.label.trim(),
+      })),
+    })),
   }
 }
 
@@ -151,7 +93,7 @@ export function listNutritionGoalPeriods(): Promise<NutritionGoalPeriod[]> {
 }
 
 export function createNutritionGoalPeriod(
-  input: SimpleNutritionGoalInput,
+  input: NutritionGoalInput,
 ): Promise<NutritionGoalPeriod> {
   return apiRequest<NutritionGoalPeriod>('/api/v1/nutrition-goal-periods', {
     method: 'POST',
@@ -166,11 +108,12 @@ export function listTdeePeriods(): Promise<TdeePeriod[]> {
 
 export function createTdeePeriod(input: {
   validFrom: string
+  validTo: string | null
   kcalPerDay: number
 }): Promise<TdeePeriod> {
   const request: CreateTdeePeriodRequest = {
     ...input,
-    validTo: null,
+    validTo: input.validTo || null,
   }
 
   return apiRequest<TdeePeriod>('/api/v1/tdee-periods', {

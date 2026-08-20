@@ -62,6 +62,38 @@ class PlanningRulesTest {
     }
 
     @Test
+    void rejectsEmptyRangesAndTargetsWithoutAnAttainedBand() {
+        GoalBandDefinition emptyRange = new GoalBandDefinition(
+                0,
+                new BigDecimal("175"),
+                new BigDecimal("175"),
+                true,
+                false,
+                "Vazia",
+                GoalTone.NEUTRAL,
+                true);
+        GoalBandDefinition neverAttained = new GoalBandDefinition(
+                0,
+                null,
+                null,
+                false,
+                false,
+                "Classificação",
+                GoalTone.NEUTRAL,
+                false);
+
+        PlanningValidationException emptyException = assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateAndOrderBands(List.of(emptyRange)));
+        PlanningValidationException attainmentException = assertThrows(
+                PlanningValidationException.class,
+                () -> PlanningRules.validateAndOrderBands(List.of(neverAttained)));
+
+        assertEquals("bands", emptyException.field());
+        assertEquals("bands", attainmentException.field());
+    }
+
+    @Test
     void validatesHalfOpenDateIntervals() {
         assertDoesNotThrow(() -> PlanningRules.validateInterval(
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 9, 1)));

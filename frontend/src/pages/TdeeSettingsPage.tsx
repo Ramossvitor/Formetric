@@ -28,7 +28,7 @@ export function TdeeSettingsPage() {
     formState: { errors },
   } = useForm<TdeeFormValues>({
     resolver: zodResolver(tdeeFormSchema),
-    defaultValues: { validFrom: today, kcalPerDay: defaultTdee },
+    defaultValues: { validFrom: today, validTo: '', kcalPerDay: defaultTdee },
   })
   const createPeriod = useMutation({
     mutationFn: createTdeePeriod,
@@ -37,7 +37,7 @@ export function TdeeSettingsPage() {
         queryClient.invalidateQueries({ queryKey: tdeePeriodsQueryKey }),
         invalidateAnalytics(queryClient),
       ])
-      reset({ validFrom: today, kcalPerDay: defaultTdee })
+      reset({ validFrom: today, validTo: '', kcalPerDay: defaultTdee })
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) return
@@ -111,17 +111,37 @@ export function TdeeSettingsPage() {
             noValidate
             onSubmit={(event) => void handleSubmit((values) => createPeriod.mutate(values))(event)}
           >
-            <div className="field-group full-field">
-              <label htmlFor="tdee-valid-from">Válido a partir de</label>
-              <input
-                {...register('validFrom')}
-                aria-invalid={Boolean(errors.validFrom)}
-                id="tdee-valid-from"
-                type="date"
-              />
-              <span className="field-hint">A data inicia um novo período; o anterior será encerrado.</span>
-              {errors.validFrom ? <span className="field-error">{errors.validFrom.message}</span> : null}
+            <div className="goal-period-fields full-field">
+              <div className="field-group">
+                <label htmlFor="tdee-valid-from">Válido a partir de</label>
+                <input
+                  {...register('validFrom')}
+                  aria-describedby="tdee-validity-hint"
+                  aria-invalid={Boolean(errors.validFrom)}
+                  id="tdee-valid-from"
+                  type="date"
+                />
+                {errors.validFrom ? <span className="field-error">{errors.validFrom.message}</span> : null}
+              </div>
+
+              <div className="field-group">
+                <label htmlFor="tdee-valid-to">
+                  Válido até <span className="optional-label">opcional e exclusivo</span>
+                </label>
+                <input
+                  {...register('validTo')}
+                  aria-describedby="tdee-validity-hint"
+                  aria-invalid={Boolean(errors.validTo)}
+                  id="tdee-valid-to"
+                  type="date"
+                />
+                {errors.validTo ? <span className="field-error">{errors.validTo.message}</span> : null}
+              </div>
             </div>
+            <p className="goal-validity-hint full-field" id="tdee-validity-hint">
+              O início é inclusivo. Use o término exclusivo para cadastrar um TDEE histórico sem
+              sobrepor o período atual.
+            </p>
 
             <div className="field-group full-field">
               <label htmlFor="tdee-kcal">TDEE estimado</label>

@@ -5,6 +5,8 @@ import { ApiError, getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
 import { createNutritionGoalPeriod } from '../planning/api'
 import { formatValidity, goalSummaries, todayAsLocalIsoDate } from '../planning/format'
+import { NutrientBandEditor } from '../planning/NutrientBandEditor'
+import '../planning/NutritionGoals.css'
 import { PlanningError, PlanningLoading } from '../planning/PlanningState'
 import {
   effectiveNutritionGoalQuery,
@@ -12,32 +14,12 @@ import {
   nutritionGoalPeriodsQueryKey,
 } from '../planning/queries'
 import {
+  defaultNutritionGoalValues,
   nutritionGoalFormSchema,
   type NutritionGoalFormValues,
 } from '../planning/schemas'
 
-const nutritionDefaults: Omit<NutritionGoalFormValues, 'validFrom'> = {
-  calorieTarget: 2500,
-  proteinMin: 175,
-  carbohydrateMax: 210,
-  fatMax: 65,
-  fiberMin: 30,
-  waterMin: 4400,
-}
-
-const formFields: Array<{
-  name: keyof typeof nutritionDefaults
-  label: string
-  unit: string
-  hint: string
-}> = [
-  { name: 'calorieTarget', label: 'Meta calórica', unit: 'kcal', hint: 'Valor central planejado para o dia.' },
-  { name: 'proteinMin', label: 'Proteína mínima', unit: 'g', hint: 'A partir deste valor, a meta estará atingida.' },
-  { name: 'carbohydrateMax', label: 'Máximo ideal de carboidratos', unit: 'g', hint: 'Acima deste valor, o dia recebe um alerta.' },
-  { name: 'fatMax', label: 'Limite de gorduras', unit: 'g', hint: 'Acima deste valor, o dia recebe um alerta.' },
-  { name: 'fiberMin', label: 'Fibras mínimas', unit: 'g', hint: 'A partir deste valor, a meta estará atingida.' },
-  { name: 'waterMin', label: 'Água mínima', unit: 'ml', hint: 'Use mililitros, por exemplo 4.400 ml.' },
-]
+const targetIndexes = [0, 1, 2, 3, 4] as const
 
 export function NutritionGoalsPage() {
   const today = todayAsLocalIsoDate()
@@ -45,6 +27,7 @@ export function NutritionGoalsPage() {
   const periods = useQuery(nutritionGoalPeriodsQuery)
   const effective = useQuery(effectiveNutritionGoalQuery(today))
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -52,7 +35,7 @@ export function NutritionGoalsPage() {
     formState: { errors },
   } = useForm<NutritionGoalFormValues>({
     resolver: zodResolver(nutritionGoalFormSchema),
-    defaultValues: { validFrom: today, ...nutritionDefaults },
+    defaultValues: defaultNutritionGoalValues(today),
   })
   const createPeriod = useMutation({
     mutationFn: createNutritionGoalPeriod,
@@ -61,14 +44,20 @@ export function NutritionGoalsPage() {
         queryClient.invalidateQueries({ queryKey: nutritionGoalPeriodsQueryKey }),
         invalidateAnalytics(queryClient),
       ])
-      reset({ validFrom: today, ...nutritionDefaults })
+      reset(defaultNutritionGoalValues(today))
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) return
 
       for (const fieldError of error.problem?.fieldErrors ?? []) {
-        if (fieldError.field in nutritionGoalFormSchema.shape) {
-          setError(fieldError.field as keyof NutritionGoalFormValues, { message: fieldError.message })
+        if (
+          fieldError.field === 'validFrom' ||
+          fieldError.field === 'validTo' ||
+          fieldError.field === 'calorieTarget'
+        ) {
+          setError(fieldError.field, { message: fieldError.message })
+        } else {
+          setError('root.server', { message: fieldError.message })
         }
       }
     },
@@ -93,6 +82,7 @@ export function NutritionGoalsPage() {
   const orderedPeriods = [...periods.data].sort((first, second) =>
     second.validFrom.localeCompare(first.validFrom),
   )
+  const effectiveSummaries = effective.data ? goalSummaries(effective.data) : []
 
   return (
     <main id="conteudo">
@@ -104,76 +94,120 @@ export function NutritionGoalsPage() {
         </div>
       </header>
 
-      <section className="effective-card surface-card" aria-labelledby="effective-goal-title">
-        <div>
-          <p className="eyebrow">Vigente hoje</p>
-          <h2 id="effective-goal-title">
-            {effective.data ? `${effective.data.calorieTarget.toLocaleString('pt-BR')} kcal` : 'Nenhuma meta vigente'}
-          </h2>
-          <p>
-            {effective.data
-              ? formatValidity(effective.data.validFrom, effective.data.validTo)
-              : 'Crie um período com início hoje ou em uma data anterior.'}
-          </p>
+      <section className="effective-card effective-goal-card surface-card" aria-labelledby="effective-goal-title">
+        <div className="effective-goal-main">
+          <div>
+            <p className="eyebrow">Vigente hoje</p>
+            <h2 id="effective-goal-title">
+              {effective.data ? `${effective.data.calorieTarget.toLocaleString('pt-BR')} kcal` : 'Nenhuma meta vigente'}
+            </h2>
+            <p>
+              {effective.data
+                ? formatValidity(effective.data.validFrom, effective.data.validTo)
+                : 'Crie um período com início hoje ou em uma data anterior.'}
+            </p>
+          </div>
+          {effective.data ? <span className="status-chip">Ativa</span> : null}
         </div>
-        {effective.data ? <span className="status-chip">Ativa</span> : null}
+        {effectiveSummaries.length > 0 ? (
+          <dl className="effective-goal-summary">
+            {effectiveSummaries.map((summary) => (
+              <div key={summary.nutrient}>
+                <dt>{summary.label}</dt>
+                <dd>{summary.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </section>
 
-      <div className="planning-grid">
-        <section className="planning-card surface-card" aria-labelledby="new-goal-title">
+      <div className="planning-grid nutrition-planning-grid">
+        <section className="planning-card nutrition-goal-editor surface-card" aria-labelledby="new-goal-title">
           <div className="section-heading profile-section-heading">
             <div>
               <p className="eyebrow">Novo período</p>
-              <h2 id="new-goal-title">Definir metas</h2>
+              <h2 id="new-goal-title">Definir metas e classificações</h2>
             </div>
           </div>
 
           <form
-            className="planning-form"
+            className="planning-form nutrition-goal-form"
             noValidate
             onSubmit={(event) => void handleSubmit((values) => createPeriod.mutate(values))(event)}
           >
-            <div className="field-group full-field">
-              <label htmlFor="goal-valid-from">Válido a partir de</label>
-              <input
-                {...register('validFrom')}
-                aria-invalid={Boolean(errors.validFrom)}
-                id="goal-valid-from"
-                type="date"
-              />
-              <span className="field-hint">A data inicia um novo período; o anterior será encerrado.</span>
-              {errors.validFrom ? <span className="field-error">{errors.validFrom.message}</span> : null}
-            </div>
+            <div className="goal-period-fields">
+              <div className="field-group">
+                <label htmlFor="goal-valid-from">Válido a partir de</label>
+                <input
+                  {...register('validFrom')}
+                  aria-describedby="goal-validity-hint"
+                  aria-invalid={Boolean(errors.validFrom)}
+                  id="goal-valid-from"
+                  type="date"
+                />
+                {errors.validFrom ? <span className="field-error">{errors.validFrom.message}</span> : null}
+              </div>
 
-            {formFields.map((field) => (
-              <div className="field-group" key={field.name}>
-                <label htmlFor={`goal-${field.name}`}>{field.label}</label>
+              <div className="field-group">
+                <label htmlFor="goal-valid-to">
+                  Válido até <span className="optional-label">opcional e exclusivo</span>
+                </label>
+                <input
+                  {...register('validTo')}
+                  aria-describedby="goal-validity-hint"
+                  aria-invalid={Boolean(errors.validTo)}
+                  id="goal-valid-to"
+                  type="date"
+                />
+                {errors.validTo ? <span className="field-error">{errors.validTo.message}</span> : null}
+              </div>
+
+              <div className="field-group">
+                <label htmlFor="goal-calorie-target">Meta calórica</label>
                 <div className="number-with-unit">
                   <input
-                    {...register(field.name, { valueAsNumber: true })}
-                    aria-invalid={Boolean(errors[field.name])}
-                    id={`goal-${field.name}`}
+                    {...register('calorieTarget', { valueAsNumber: true })}
+                    aria-invalid={Boolean(errors.calorieTarget)}
+                    id="goal-calorie-target"
                     min="0"
                     step="1"
                     type="number"
                   />
-                  <span>{field.unit}</span>
+                  <span>kcal</span>
                 </div>
-                <span className="field-hint">{field.hint}</span>
-                {errors[field.name] ? <span className="field-error">{errors[field.name]?.message}</span> : null}
+                {errors.calorieTarget ? <span className="field-error">{errors.calorieTarget.message}</span> : null}
               </div>
-            ))}
+            </div>
+            <p className="goal-validity-hint" id="goal-validity-hint">
+              O início é inclusivo. Se preenchido, o término é exclusivo e permite cadastrar um
+              intervalo histórico sem manter a meta aberta.
+            </p>
 
+            <div className="goal-target-list">
+              {targetIndexes.map((targetIndex) => (
+                <NutrientBandEditor
+                  control={control}
+                  errors={errors}
+                  key={targetIndex}
+                  register={register}
+                  targetIndex={targetIndex}
+                />
+              ))}
+            </div>
+
+            {errors.root?.server ? (
+              <p className="form-error" role="alert">{errors.root.server.message}</p>
+            ) : null}
             {createPeriod.isError &&
             (!(createPeriod.error instanceof ApiError) ||
               !createPeriod.error.problem?.fieldErrors?.length) ? (
-              <p className="form-error full-field" role="alert">{getErrorMessage(createPeriod.error)}</p>
+              <p className="form-error" role="alert">{getErrorMessage(createPeriod.error)}</p>
             ) : null}
             {createPeriod.isSuccess ? (
-              <p className="form-success full-field" role="status">Novo período de metas criado.</p>
+              <p className="form-success" role="status">Novo período de metas criado.</p>
             ) : null}
 
-            <button className="submit-button full-field" disabled={createPeriod.isPending} type="submit">
+            <button className="submit-button" disabled={createPeriod.isPending} type="submit">
               {createPeriod.isPending ? 'Salvando período…' : 'Criar período de metas'}
             </button>
           </form>
@@ -204,7 +238,7 @@ export function NutritionGoalsPage() {
                     </div>
                     {effective.data?.id === period.id ? <span className="status-chip">Vigente</span> : null}
                   </div>
-                  <dl className="goal-summary-list">
+                  <dl className="goal-summary-list configurable-goal-summary-list">
                     {goalSummaries(period).map((summary) => (
                       <div key={summary.nutrient}>
                         <dt>{summary.label}</dt>
