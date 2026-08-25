@@ -1,5 +1,6 @@
 package dev.formetric.identity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -156,10 +157,15 @@ class ProfileController {
 
     private final IdentityService identityService;
     private final CurrentUserProvider currentUserProvider;
+    private final CurrentUserTemporalContextProvider temporalContextProvider;
 
-    ProfileController(IdentityService identityService, CurrentUserProvider currentUserProvider) {
+    ProfileController(
+            IdentityService identityService,
+            CurrentUserProvider currentUserProvider,
+            CurrentUserTemporalContextProvider temporalContextProvider) {
         this.identityService = identityService;
         this.currentUserProvider = currentUserProvider;
+        this.temporalContextProvider = temporalContextProvider;
     }
 
     @GetMapping
@@ -178,6 +184,11 @@ class ProfileController {
                         body.unitSystem(),
                         body.birthDate(),
                         body.formulaSex()));
+    }
+
+    @GetMapping("/time-context")
+    TimeContextResponse timeContext() {
+        return TimeContextResponse.from(temporalContextProvider.requireCurrentUserTemporalContext());
     }
 }
 
@@ -208,6 +219,30 @@ record UpdateProfileRequest(
         @NotNull UnitSystem unitSystem,
         @PastOrPresent LocalDate birthDate,
         FormulaSex formulaSex) {
+}
+
+record TimeContextResponse(
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Current server instant in UTC")
+        Instant serverNow,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Current civil date in the profile time zone")
+        LocalDate today,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "IANA time-zone identifier from the profile")
+        String timeZone,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "BCP 47 locale tag from the profile")
+        String locale,
+        @Schema(
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                description = "First instant of the next civil day in the profile time zone")
+        Instant nextDayAt) {
+
+    static TimeContextResponse from(CurrentUserTemporalContext context) {
+        return new TimeContextResponse(
+                context.serverNow(),
+                context.today(),
+                context.timeZone().getId(),
+                context.locale(),
+                context.nextDayAt());
+    }
 }
 
 record SessionResponse(boolean authenticated, AuthenticatedUser user) {

@@ -6,14 +6,13 @@ import dev.formetric.activity.ActivityDataProvider.WorkoutData;
 import dev.formetric.diary.DailyLogStatus;
 import dev.formetric.diary.DiaryDataProvider;
 import dev.formetric.diary.DiaryDataProvider.DiaryDayData;
-import dev.formetric.identity.CurrentUserZoneIdProvider;
+import dev.formetric.identity.CurrentUserTemporalContextProvider;
 import dev.formetric.planning.PlanningDataProvider;
 import dev.formetric.planning.PlanningDataProvider.EffectiveNutritionGoals;
 import dev.formetric.planning.PlanningDataProvider.PlanningTimeline;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
@@ -37,20 +36,17 @@ class AnalyticsService {
     private final DiaryDataProvider diaryDataProvider;
     private final PlanningDataProvider planningDataProvider;
     private final ActivityDataProvider activityDataProvider;
-    private final CurrentUserZoneIdProvider currentUserZoneIdProvider;
-    private final Clock clock;
+    private final CurrentUserTemporalContextProvider temporalContextProvider;
 
     AnalyticsService(
             DiaryDataProvider diaryDataProvider,
             PlanningDataProvider planningDataProvider,
             ActivityDataProvider activityDataProvider,
-            CurrentUserZoneIdProvider currentUserZoneIdProvider,
-            Clock clock) {
+            CurrentUserTemporalContextProvider temporalContextProvider) {
         this.diaryDataProvider = diaryDataProvider;
         this.planningDataProvider = planningDataProvider;
         this.activityDataProvider = activityDataProvider;
-        this.currentUserZoneIdProvider = currentUserZoneIdProvider;
-        this.clock = clock;
+        this.temporalContextProvider = temporalContextProvider;
     }
 
     DailyAnalyticsResponse daily(LocalDate date) {
@@ -403,7 +399,7 @@ class AnalyticsService {
     }
 
     private LocalDate today() {
-        return LocalDate.now(clock.withZone(currentUserZoneIdProvider.requireCurrentUserZoneId()));
+        return temporalContextProvider.requireCurrentUserTemporalContext().today();
     }
 
     private static LocalDate min(LocalDate first, LocalDate second) {

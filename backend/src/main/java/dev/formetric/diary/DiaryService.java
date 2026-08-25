@@ -4,7 +4,8 @@ import dev.formetric.catalog.CatalogNutritionProvider;
 import dev.formetric.catalog.CatalogNutritionResolutionException;
 import dev.formetric.catalog.CatalogNutritionSnapshot;
 import dev.formetric.identity.CurrentUserProvider;
-import dev.formetric.identity.CurrentUserZoneIdProvider;
+import dev.formetric.identity.CurrentUserTemporalContext;
+import dev.formetric.identity.CurrentUserTemporalContextProvider;
 import dev.formetric.planning.PlanningDataProvider;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -29,7 +30,7 @@ class DiaryService {
     private final CatalogNutritionProvider catalogNutritionProvider;
     private final PlanningDataProvider planningDataProvider;
     private final CurrentUserProvider currentUserProvider;
-    private final CurrentUserZoneIdProvider currentUserZoneIdProvider;
+    private final CurrentUserTemporalContextProvider temporalContextProvider;
     private final Clock clock;
     private final JdbcTemplate jdbcTemplate;
 
@@ -39,7 +40,7 @@ class DiaryService {
             CatalogNutritionProvider catalogNutritionProvider,
             PlanningDataProvider planningDataProvider,
             CurrentUserProvider currentUserProvider,
-            CurrentUserZoneIdProvider currentUserZoneIdProvider,
+            CurrentUserTemporalContextProvider temporalContextProvider,
             Clock clock,
             JdbcTemplate jdbcTemplate) {
         this.dailyLogs = dailyLogs;
@@ -47,7 +48,7 @@ class DiaryService {
         this.catalogNutritionProvider = catalogNutritionProvider;
         this.planningDataProvider = planningDataProvider;
         this.currentUserProvider = currentUserProvider;
-        this.currentUserZoneIdProvider = currentUserZoneIdProvider;
+        this.temporalContextProvider = temporalContextProvider;
         this.clock = clock;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -148,13 +149,14 @@ class DiaryService {
     @Transactional
     DailyLogResponse addWater(LocalDate date, CreateWaterRequest request) {
         UUID userId = currentUserProvider.requireCurrentUser().id();
-        ZoneId timeZone = currentUserZoneIdProvider.requireCurrentUserZoneId();
-        validateWaterDate(date, request.loggedAt(), timeZone);
         String fingerprint = DiaryIdempotencyFingerprint.of(
                 "ADD_WATER", date, request.loggedAt(), request.volumeMl());
         return idempotent(userId, date, request.requestId(), "ADD_WATER", fingerprint, () -> {
+            CurrentUserTemporalContext temporalContext =
+                    temporalContextProvider.requireCurrentUserTemporalContext();
+            Instant loggedAt = resolveWaterTimestamp(date, request.loggedAt(), temporalContext);
             DailyLog log = findOrCreate(userId, date);
-            log.addWater(request.loggedAt(), request.volumeMl(), clock.instant());
+            log.addWater(loggedAt, request.volumeMl(), clock.instant());
             return log;
         });
     }
@@ -162,7 +164,10 @@ class DiaryService {
     @Transactional
     DailyLogResponse updateWater(LocalDate date, UUID waterId, UpdateWaterRequest request) {
         DailyLog log = requireOwnedForUpdate(date);
-        validateWaterDate(date, request.loggedAt(), currentUserZoneIdProvider.requireCurrentUserZoneId());
+        validateWaterDate(
+                date,
+                request.loggedAt(),
+                temporalContextProvider.requireCurrentUserTemporalContext().timeZone());
         log.waterById(waterId).update(request.loggedAt(), request.volumeMl(), clock.instant());
         return response(log);
     }
@@ -209,7 +214,7 @@ class DiaryService {
         if (targetDate.equals(request.sourceDate())) {
             throw new DiaryValidationException("sourceDate", "A origem deve ser diferente do dia de destino.");
         }
-        ZoneId timeZone = currentUserZoneIdProvider.requireCurrentUserZoneId();
+        ZoneId timeZone = temporalContextProvider.requireCurrentUserTemporalContext().timeZone();
         String fingerprint = DiaryIdempotencyFingerprint.of("COPY_DAY", targetDate, request.sourceDate());
         return idempotent(userId, targetDate, request.requestId(), "COPY_DAY", fingerprint, () -> {
             DailyLog source = requireLog(userId, request.sourceDate());
@@ -301,6 +306,24 @@ class DiaryService {
             throw new DiaryValidationException(
                     "loggedAt", "O horário da água deve pertencer à data do diário no fuso do perfil.");
         }
+    }
+
+    private static Instant resolveWaterTimestamp(
+            LocalDate diaryDate,
+            Instant requestedTimestamp,
+            CurrentUserTemporalContext temporalContext) {
+        if (requestedTimestamp != null) {
+            validateWaterDate(diaryDate, requestedTimestamp, temporalContext.timeZone());
+            return requestedTimestamp;
+        }
+        if (diaryDate.equals(temporalContext.today())) {
+            return temporalContext.serverNow();
+        }
+        return LocalDateTime.of(
+                        diaryDate,
+                        temporalContext.serverNow().atZone(temporalContext.timeZone()).toLocalTime())
+                .atZone(temporalContext.timeZone())
+                .toInstant();
     }
 
     private static Instant moveToDatePreservingLocalTime(Instant source, LocalDate targetDate, ZoneId timeZone) {

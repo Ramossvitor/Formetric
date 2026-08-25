@@ -1,8 +1,8 @@
 package dev.formetric.planning;
 
 import dev.formetric.identity.CurrentUserProvider;
+import dev.formetric.identity.CurrentUserTemporalContextProvider;
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -16,17 +16,17 @@ class PlanningService {
     private final NutritionGoalPeriodRepository nutritionGoalPeriods;
     private final TdeePeriodRepository tdeePeriods;
     private final CurrentUserProvider currentUserProvider;
-    private final Clock clock;
+    private final CurrentUserTemporalContextProvider temporalContextProvider;
 
     PlanningService(
             NutritionGoalPeriodRepository nutritionGoalPeriods,
             TdeePeriodRepository tdeePeriods,
             CurrentUserProvider currentUserProvider,
-            Clock clock) {
+            CurrentUserTemporalContextProvider temporalContextProvider) {
         this.nutritionGoalPeriods = nutritionGoalPeriods;
         this.tdeePeriods = tdeePeriods;
         this.currentUserProvider = currentUserProvider;
-        this.clock = clock;
+        this.temporalContextProvider = temporalContextProvider;
     }
 
     @Transactional(readOnly = true)
@@ -56,10 +56,12 @@ class PlanningService {
         List<NutrientTargetDefinition> targets = PlanningRules.validateAndNormalizeTargets(
                 request.targets().stream().map(NutrientTargetRequest::toDefinition).toList());
         PlanningRules.validateCalorieTarget(request.calorieTarget(), targets);
-        Instant now = clock.instant();
+        var temporalContext = temporalContextProvider.requireCurrentUserTemporalContext();
+        Instant now = temporalContext.serverNow();
 
         try {
-            closeOpenNutritionPeriodWhenAppendingCurrentOrFuture(userId, request.validFrom(), now);
+            closeOpenNutritionPeriodWhenAppendingCurrentOrFuture(
+                    userId, request.validFrom(), temporalContext.today(), now);
             NutritionGoalPeriod period = NutritionGoalPeriod.create(
                     userId,
                     request.validFrom(),
@@ -96,10 +98,12 @@ class PlanningService {
         var userId = currentUserProvider.requireCurrentUser().id();
         PlanningRules.validateInterval(request.validFrom(), request.validTo());
         PlanningRules.validatePositive("kcalPerDay", request.kcalPerDay());
-        Instant now = clock.instant();
+        var temporalContext = temporalContextProvider.requireCurrentUserTemporalContext();
+        Instant now = temporalContext.serverNow();
 
         try {
-            closeOpenTdeePeriodWhenAppendingCurrentOrFuture(userId, request.validFrom(), now);
+            closeOpenTdeePeriodWhenAppendingCurrentOrFuture(
+                    userId, request.validFrom(), temporalContext.today(), now);
             TdeePeriod period = TdeePeriod.create(
                     userId, request.validFrom(), request.validTo(), request.kcalPerDay(), now);
             return TdeePeriodResponse.from(tdeePeriods.saveAndFlush(period));
@@ -110,8 +114,8 @@ class PlanningService {
     }
 
     private void closeOpenNutritionPeriodWhenAppendingCurrentOrFuture(
-            java.util.UUID userId, LocalDate nextValidFrom, Instant now) {
-        if (nextValidFrom.isBefore(LocalDate.now(clock))) {
+            java.util.UUID userId, LocalDate nextValidFrom, LocalDate today, Instant now) {
+        if (nextValidFrom.isBefore(today)) {
             return;
         }
         nutritionGoalPeriods.findOpenPrecedingForUpdate(userId, nextValidFrom)
@@ -120,8 +124,8 @@ class PlanningService {
     }
 
     private void closeOpenTdeePeriodWhenAppendingCurrentOrFuture(
-            java.util.UUID userId, LocalDate nextValidFrom, Instant now) {
-        if (nextValidFrom.isBefore(LocalDate.now(clock))) {
+            java.util.UUID userId, LocalDate nextValidFrom, LocalDate today, Instant now) {
+        if (nextValidFrom.isBefore(today)) {
             return;
         }
         tdeePeriods.findOpenPrecedingForUpdate(userId, nextValidFrom)

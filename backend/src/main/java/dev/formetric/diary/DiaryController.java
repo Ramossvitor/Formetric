@@ -174,7 +174,10 @@ record UpsertMealItemRequest(
         UUID requestId) {}
 
 record CreateWaterRequest(
-        @NotNull Instant loggedAt,
+        @Schema(
+                nullable = true,
+                description = "Optional instant. When omitted, the server resolves the current profile-local time on the diary date.")
+        Instant loggedAt,
         @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 3) BigDecimal volumeMl,
         UUID requestId) {}
 

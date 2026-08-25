@@ -13,11 +13,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import dev.formetric.identity.AuthenticatedUser;
 import dev.formetric.identity.CurrentUserProvider;
+import dev.formetric.identity.CurrentUserTemporalContext;
+import dev.formetric.identity.CurrentUserTemporalContextProvider;
 import dev.formetric.identity.UserRole;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -75,12 +78,17 @@ class PlanningIntegrationTests {
     @MockitoBean
     private CurrentUserProvider currentUserProvider;
 
+    @MockitoBean
+    private CurrentUserTemporalContextProvider temporalContextProvider;
+
     @BeforeEach
     void prepareUsers() {
         jdbcTemplate.update("DELETE FROM user_accounts");
         createUser(USER_ONE, "one@example.test");
         createUser(USER_TWO, "two@example.test");
         authenticate(USER_ONE);
+        when(temporalContextProvider.requireCurrentUserTemporalContext()).thenReturn(
+                temporalContext(Instant.parse("2026-08-12T12:00:00Z"), ZoneId.of("America/Sao_Paulo")));
     }
 
     @Test
@@ -99,6 +107,21 @@ class PlanningIntegrationTests {
         var bands = history.getLast().targets().getFirst().bands();
         assertFalse(bands.getFirst().countsAsAttained());
         assertTrue(bands.getLast().countsAsAttained());
+    }
+
+    @Test
+    void profileLocalTodayClosesTheOpenPeriodWhenUtcIsAlreadyOnTheNextDate() {
+        Instant eveningInSaoPaulo = Instant.parse("2026-08-13T01:00:00Z");
+        when(temporalContextProvider.requireCurrentUserTemporalContext()).thenReturn(
+                temporalContext(eveningInSaoPaulo, ZoneId.of("America/Sao_Paulo")));
+        planningService.createTdeePeriod(tdeeRequest("2026-08-01", null, "2900"));
+
+        var current = planningService.createTdeePeriod(tdeeRequest("2026-08-12", null, "3000"));
+
+        var history = planningService.listTdeePeriods();
+        assertEquals(LocalDate.of(2026, 8, 12), history.getFirst().validTo());
+        assertNull(history.getLast().validTo());
+        assertEquals(eveningInSaoPaulo, current.createdAt());
     }
 
     @Test
@@ -304,6 +327,16 @@ class PlanningIntegrationTests {
                     (id, email, password_hash, role, status, created_at, updated_at)
                 VALUES (?, ?, 'test-only', 'USER', 'ACTIVE', now(), now())
                 """, userId, email);
+    }
+
+    private static CurrentUserTemporalContext temporalContext(Instant now, ZoneId timeZone) {
+        LocalDate today = now.atZone(timeZone).toLocalDate();
+        return new CurrentUserTemporalContext(
+                now,
+                today,
+                timeZone,
+                "pt-BR",
+                today.plusDays(1).atStartOfDay(timeZone).toInstant());
     }
 
     @TestConfiguration(proxyBeanMethods = false)

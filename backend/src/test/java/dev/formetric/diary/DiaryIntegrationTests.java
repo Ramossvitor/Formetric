@@ -14,7 +14,8 @@ import dev.formetric.catalog.NutrientAmounts;
 import dev.formetric.catalog.NutritionQuality;
 import dev.formetric.identity.AuthenticatedUser;
 import dev.formetric.identity.CurrentUserProvider;
-import dev.formetric.identity.CurrentUserZoneIdProvider;
+import dev.formetric.identity.CurrentUserTemporalContext;
+import dev.formetric.identity.CurrentUserTemporalContextProvider;
 import dev.formetric.identity.UserRole;
 import dev.formetric.planning.GoalTone;
 import dev.formetric.planning.NutrientType;
@@ -71,7 +72,7 @@ class DiaryIntegrationTests {
     @Autowired private DiaryService diaryService;
     @Autowired private JdbcTemplate jdbcTemplate;
     @MockitoBean private CurrentUserProvider currentUserProvider;
-    @MockitoBean private CurrentUserZoneIdProvider currentUserZoneIdProvider;
+    @MockitoBean private CurrentUserTemporalContextProvider temporalContextProvider;
     @MockitoBean private CatalogNutritionProvider catalogNutritionProvider;
 
     @BeforeEach
@@ -80,7 +81,8 @@ class DiaryIntegrationTests {
         insertUser(USER_ONE, "diary-one@example.test");
         insertUser(USER_TWO, "diary-two@example.test");
         authenticate(USER_ONE);
-        when(currentUserZoneIdProvider.requireCurrentUserZoneId()).thenReturn(ZoneId.of("America/Sao_Paulo"));
+        when(temporalContextProvider.requireCurrentUserTemporalContext()).thenReturn(
+                temporalContext(Instant.parse("2026-08-12T12:00:00Z"), ZoneId.of("America/Sao_Paulo")));
         when(catalogNutritionProvider.resolve(
                 eq(CatalogItemType.FOOD), eq(VERSION_ID), any(BigDecimal.class), any(CatalogUnit.class), any()))
                 .thenAnswer(invocation -> resolvedSnapshot(invocation.getArgument(2), invocation.getArgument(3)));
@@ -276,9 +278,72 @@ class DiaryIntegrationTests {
     }
 
     @Test
+    void omittedWaterTimestampUsesServerNowAndReplayKeepsTheOriginalInstant() {
+        UUID requestId = UUID.randomUUID();
+        DailyLogResponse original = diaryService.addWater(
+                DATE, new CreateWaterRequest(null, new BigDecimal("250"), requestId));
+        when(temporalContextProvider.requireCurrentUserTemporalContext()).thenReturn(
+                temporalContext(Instant.parse("2026-08-12T13:00:00Z"), ZoneId.of("America/Sao_Paulo")));
+
+        DailyLogResponse replay = diaryService.addWater(
+                DATE, new CreateWaterRequest(null, new BigDecimal("250.0"), requestId));
+
+        assertThat(original.waterLogs()).hasSize(1);
+        assertThat(original.waterLogs().getFirst().loggedAt()).isEqualTo(Instant.parse("2026-08-12T12:00:00Z"));
+        assertThat(replay.waterLogs()).hasSize(1);
+        assertThat(replay.waterLogs().getFirst().loggedAt()).isEqualTo(original.waterLogs().getFirst().loggedAt());
+        assertThat(replay.waterTotalMl()).isEqualByComparingTo("250.000");
+    }
+
+    @Test
+    void explicitWaterReplayDoesNotRevalidateTheOriginalInstantAfterTheProfileTimeZoneChanges() {
+        UUID requestId = UUID.randomUUID();
+        Instant lateEveningInSaoPaulo = Instant.parse("2026-08-13T02:30:00Z");
+        DailyLogResponse original = diaryService.addWater(
+                DATE, new CreateWaterRequest(lateEveningInSaoPaulo, new BigDecimal("250"), requestId));
+        when(temporalContextProvider.requireCurrentUserTemporalContext()).thenReturn(
+                temporalContext(Instant.parse("2026-08-12T12:00:00Z"), ZoneId.of("UTC")));
+
+        DailyLogResponse replay = diaryService.addWater(
+                DATE, new CreateWaterRequest(lateEveningInSaoPaulo, new BigDecimal("250.0"), requestId));
+
+        assertThat(replay.waterLogs()).hasSize(1);
+        assertThat(replay.waterLogs().getFirst().loggedAt()).isEqualTo(original.waterLogs().getFirst().loggedAt());
+        assertThat(replay.waterLogs().getFirst().loggedAt()).isEqualTo(lateEveningInSaoPaulo);
+    }
+
+    @Test
+    void omittedWaterTimestampCombinesTheSelectedDateWithTheCurrentProfileLocalTime() {
+        LocalDate historicalDate = DATE.minusDays(2);
+
+        DailyLogResponse response = diaryService.addWater(
+                historicalDate, new CreateWaterRequest(null, new BigDecimal("500"), UUID.randomUUID()));
+
+        assertThat(response.waterLogs().getFirst().loggedAt())
+                .isEqualTo(Instant.parse("2026-08-10T12:00:00Z"));
+    }
+
+    @Test
+    void omittedHistoricalWaterTimeUsesTheEarlierOffsetDuringADstOverlap() {
+        ZoneId newYork = ZoneId.of("America/New_York");
+        when(temporalContextProvider.requireCurrentUserTemporalContext()).thenReturn(
+                temporalContext(Instant.parse("2026-11-03T06:30:00Z"), newYork));
+        LocalDate fallBackDate = LocalDate.of(2026, 11, 1);
+
+        DailyLogResponse response = diaryService.addWater(
+                fallBackDate, new CreateWaterRequest(null, new BigDecimal("500"), UUID.randomUUID()));
+
+        Instant loggedAt = response.waterLogs().getFirst().loggedAt();
+        assertThat(loggedAt).isEqualTo(Instant.parse("2026-11-01T05:30:00Z"));
+        assertThat(loggedAt.atZone(newYork).toLocalDate()).isEqualTo(fallBackDate);
+        assertThat(loggedAt.atZone(newYork).toLocalTime()).hasToString("01:30");
+    }
+
+    @Test
     void copyDayPreservesCivilWaterTimeAcrossDaylightSavingTransition() {
         ZoneId newYork = ZoneId.of("America/New_York");
-        when(currentUserZoneIdProvider.requireCurrentUserZoneId()).thenReturn(newYork);
+        when(temporalContextProvider.requireCurrentUserTemporalContext()).thenReturn(
+                temporalContext(Instant.parse("2026-03-07T12:00:00Z"), newYork));
         LocalDate sourceDate = LocalDate.of(2026, 3, 7);
         LocalDate targetDate = LocalDate.of(2026, 3, 9);
         Instant sourceInstant = sourceDate.atTime(1, 30).atZone(newYork).toInstant();
@@ -358,6 +423,16 @@ class DiaryIntegrationTests {
                 INSERT INTO user_accounts (id, email, password_hash, role, status, created_at, updated_at)
                 VALUES (?, ?, 'test-only', 'USER', 'ACTIVE', now(), now())
                 """, userId, email);
+    }
+
+    private static CurrentUserTemporalContext temporalContext(Instant now, ZoneId timeZone) {
+        LocalDate today = now.atZone(timeZone).toLocalDate();
+        return new CurrentUserTemporalContext(
+                now,
+                today,
+                timeZone,
+                "pt-BR",
+                today.plusDays(1).atStartOfDay(timeZone).toInstant());
     }
 
     private void insertTdee(UUID userId, LocalDate from, BigDecimal kcal) {

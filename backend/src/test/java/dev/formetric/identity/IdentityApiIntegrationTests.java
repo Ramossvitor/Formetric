@@ -14,6 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import dev.formetric.TestcontainersConfiguration;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,6 +117,9 @@ class IdentityApiIntegrationTests {
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(401));
+        mockMvc.perform(get("/api/v1/profile/time-context"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
         assertThat(jdbcSessionCount()).isEqualTo(sessionsBeforeAnonymousRequest);
 
         long sessionsBeforeLogin = jdbcSessionCount();
@@ -237,7 +243,7 @@ class IdentityApiIntegrationTests {
                                 {
                                   "displayName":"Nome Atualizado",
                                   "locale":"pt-BR",
-                                  "timeZone":"America/Sao_Paulo",
+                                  "timeZone":"UTC",
                                   "unitSystem":"METRIC",
                                   "birthDate":"1995-02-18",
                                   "formulaSex":"MALE"
@@ -246,10 +252,23 @@ class IdentityApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.displayName").value("Nome Atualizado"));
 
+        var userTimeContext = mockMvc.perform(get("/api/v1/profile/time-context").cookie(userCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timeZone").value("UTC"))
+                .andExpect(jsonPath("$.locale").value("pt-BR"))
+                .andReturn();
+        assertTemporalContext(userTimeContext.getResponse().getContentAsString(), "UTC");
+
         mockMvc.perform(get("/api/v1/profile").cookie(ownerCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ownerId))
                 .andExpect(jsonPath("$.displayName").value("Formetric Owner"));
+        var ownerTimeContext = mockMvc.perform(get("/api/v1/profile/time-context").cookie(ownerCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timeZone").value("America/Sao_Paulo"))
+                .andReturn();
+        assertTemporalContext(
+                ownerTimeContext.getResponse().getContentAsString(), "America/Sao_Paulo");
 
         String hash = jdbcClient.sql("SELECT password_hash FROM user_accounts WHERE email = :email")
                 .param("email", "person@example.com")
@@ -330,6 +349,20 @@ class IdentityApiIntegrationTests {
             mockMvc.perform(get(privilegedEndpoint).with(user("owner").roles("OWNER")))
                     .andExpect(status().isOk());
         }
+        mockMvc.perform(get("/v3/api-docs").with(user("owner").roles("OWNER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/profile/time-context'].get").exists())
+                .andExpect(jsonPath("$.components.schemas.TimeContextResponse.properties.serverNow").exists())
+                .andExpect(jsonPath("$.components.schemas.TimeContextResponse.properties.today").exists())
+                .andExpect(jsonPath("$.components.schemas.TimeContextResponse.properties.timeZone").exists())
+                .andExpect(jsonPath("$.components.schemas.TimeContextResponse.properties.locale").exists())
+                .andExpect(jsonPath("$.components.schemas.TimeContextResponse.properties.nextDayAt").exists())
+                .andExpect(jsonPath("$.components.schemas.TimeContextResponse.required")
+                        .value(org.hamcrest.Matchers.containsInAnyOrder(
+                                "serverNow", "today", "timeZone", "locale", "nextDayAt")))
+                .andExpect(jsonPath("$.components.schemas.CreateWaterRequest.properties.loggedAt").exists())
+                .andExpect(jsonPath("$.components.schemas.CreateWaterRequest.required")
+                        .value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("loggedAt"))));
         mockMvc.perform(get("/actuator/modulith"))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/actuator/modulith").with(user("person").roles("USER")))
@@ -431,6 +464,18 @@ class IdentityApiIntegrationTests {
         return jdbcClient.sql("SELECT COUNT(*) FROM spring_session")
                 .query(Long.class)
                 .single();
+    }
+
+    private void assertTemporalContext(String responseBody, String expectedTimeZone) throws Exception {
+        var context = objectMapper.readTree(responseBody);
+        Instant serverNow = Instant.parse(context.get("serverNow").asText());
+        ZoneId timeZone = ZoneId.of(context.get("timeZone").asText());
+        LocalDate today = LocalDate.parse(context.get("today").asText());
+        Instant nextDayAt = Instant.parse(context.get("nextDayAt").asText());
+        assertThat(timeZone.getId()).isEqualTo(expectedTimeZone);
+        assertThat(today).isEqualTo(serverNow.atZone(timeZone).toLocalDate());
+        assertThat(nextDayAt).isEqualTo(today.plusDays(1).atStartOfDay(timeZone).toInstant());
+        assertThat(nextDayAt).isAfter(serverNow);
     }
 
     private static Cookie requiredXsrfCookie(org.springframework.test.web.servlet.MvcResult result) {
