@@ -48,6 +48,10 @@ gcloud iam service-accounts add-iam-policy-binding \
   --role="roles/iam.serviceAccountUser"
 ```
 
+Esses mesmos papéis cobrem o job de migration usado pelas releases: `roles/run.developer`
+autoriza criar e executar Cloud Run Jobs e `roles/iam.serviceAccountUser` permite que o
+job rode com a identidade de runtime. Nenhuma concessão adicional é necessária.
+
 ## Serviço privado inicial e IAM
 
 `roles/run.developer` não concede invocação. Para evitar o impasse em que o workflow
