@@ -47,17 +47,24 @@ ORDER BY extname;
 
 ## Entregas posteriores
 
-Antes da próxima mudança de schema, extraia migration para um Cloud Run Job ou etapa
-protegida que:
+O job dedicado já existe: use o workflow `Deploy release`
+([deploy-release.yml](../../.github/workflows/deploy-release.yml)), que aplica as
+migrations num Cloud Run Job antes de criar a revisão. O job roda a mesma imagem
+verificada pelo CI com `SPRING_PROFILES_ACTIVE=migrate`, perfil que:
 
-- recebe credenciais diretas com privilégio de DDL;
-- executa uma vez e termina;
-- bloqueia o deploy se Flyway falhar;
-- não serve HTTP nem contém secrets de bootstrap;
-- deixa o serviço web apenas validar a versão do schema.
+- aponta datasource e Flyway para o endpoint direto (`DB_DIRECT_URL`);
+- sobe sem servidor web, portanto não serve HTTP;
+- não recebe binding algum de `BOOTSTRAP_ADMIN_*`;
+- executa uma vez e termina, com `--max-retries 0`.
 
-O usuário do pool da aplicação deve evoluir para um papel sem DDL. Grants para novas
-tabelas precisam fazer parte da migration.
+Como o Flyway roda durante o refresh do contexto, uma migration com falha derruba o
+processo com código diferente de zero; o `gcloud run jobs execute --wait` propaga essa
+falha e o passo de deploy nunca chega a ser executado. O serviço web continua aplicando
+o mesmo Flyway no startup, o que agora funciona como validação da versão do schema.
+
+Pendência conhecida: o usuário do pool da aplicação ainda é o mesmo do job e mantém
+privilégio de DDL. Ele deve evoluir para um papel sem DDL, com o job recebendo
+credenciais separadas. Grants para novas tabelas precisam fazer parte da migration.
 
 ## Expand/contract
 

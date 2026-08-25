@@ -20,8 +20,9 @@ A autorização dos dados continua sendo feita pelo Spring Security. Não use VP
 connector, load balancer ou instância mínima neste primeiro beta.
 
 > Este workflow serve somente para a baseline de um banco vazio e para criar a revisão
-> de limpeza imediatamente posterior. Antes de qualquer release futura com migration,
-> implemente o job descrito em [migrations-and-rollback.md](migrations-and-rollback.md).
+> de limpeza imediatamente posterior. Toda release posterior usa o workflow
+> `Deploy release`, que aplica as migrations num Cloud Run Job antes de criar a revisão;
+> consulte [migrations-and-rollback.md](migrations-and-rollback.md).
 
 ## Ordem de preparação
 
