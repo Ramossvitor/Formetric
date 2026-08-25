@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { seedProfileTimeContext } from '../test/profileTimeContext'
 import { clearCsrfToken } from '../api/http'
 import { analyticsQueryKey } from '../analytics/queries'
 import type { WeightLog, WeightOverview, Workout } from './api'
@@ -62,6 +63,7 @@ function notFound() {
 
 function renderApp(route: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  seedProfileTimeContext(queryClient)
   const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}><App /></MemoryRouter>
@@ -120,6 +122,7 @@ describe('treinos', () => {
 
     await user.click((await screen.findAllByRole('button', { name: 'Registrar treino' }))[0])
     const dialog = screen.getByRole('dialog', { name: 'Registrar treino' })
+    expect(within(dialog).getByLabelText('Data')).toHaveValue('2026-08-12')
     await user.type(within(dialog).getByLabelText('Título'), 'Treino idempotente')
     await user.type(within(dialog).getByLabelText('Grupos musculares'), 'Costas')
     await user.click(within(dialog).getByRole('button', { name: 'Registrar treino' }))
@@ -286,8 +289,11 @@ describe('histórico de peso', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Registrar peso' }))
     const dialog = screen.getByRole('dialog', { name: 'Registrar peso' })
-    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Registrar peso' })).toBeEnabled())
+    // The profile's today already has a weigh-in, so the form opens in edit mode.
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Salvar alterações' })).toBeEnabled())
     const dateInput = within(dialog).getByLabelText('Data')
+    expect(dateInput).toHaveValue('2026-08-12')
+    expect(within(dialog).getByLabelText('Horário')).toHaveValue('08:10')
     fireEvent.change(dateInput, { target: { value: '2025-01-01' } })
     expect(await within(dialog).findByText('Verificando se já existe uma pesagem…')).toBeInTheDocument()
     fireEvent.change(dateInput, { target: { value: '2025-01-02' } })

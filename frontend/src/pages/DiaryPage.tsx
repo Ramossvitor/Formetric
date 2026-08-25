@@ -25,10 +25,13 @@ import {
 import { CopyPanel } from '../diary/CopyPanel'
 import { DiaryDialog } from '../diary/DiaryDialog'
 import { DiarySummary } from '../diary/DiarySummary'
-import { displayDate, localIsoDate, number, requiresFastingConfirmation } from '../diary/format'
+import { displayDate, number, requiresFastingConfirmation } from '../diary/format'
 import { ItemEditor } from '../diary/ItemEditor'
 import { MealEditor } from '../diary/MealEditor'
 import { dailyLogQuery } from '../diary/queries'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
+import { formatInstantDateTime, formatInstantTime } from '../time/instant'
+import { addPlainDateDays, isPlainDate } from '../time/plainDate'
 
 type Editor =
   | { type: 'quick' }
@@ -39,9 +42,7 @@ type Editor =
   | null
 
 function shiftedDate(date: string, days: number) {
-  const value = new Date(`${date}T12:00:00`)
-  value.setDate(value.getDate() + days)
-  return localIsoDate(value)
+  return addPlainDateDays(date, days)
 }
 
 function formatTime(value: string | null) {
@@ -53,10 +54,10 @@ function statusLabel(status: DailyLog['status']) {
 }
 
 export function DiaryPage() {
-  const today = localIsoDate()
+  const { locale, timeZone, today } = useProfileTimeContext()
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedDate = searchParams.get('date')
-  const date = requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : today
+  const date = requestedDate && isPlainDate(requestedDate) ? requestedDate : today
   const [editor, setEditor] = useState<Editor>(null)
   const [fastingConfirmed, setFastingConfirmed] = useState(false)
   const queryClient = useQueryClient()
@@ -140,7 +141,7 @@ export function DiaryPage() {
         <div>
           <p className="eyebrow">Registro diário</p>
           <h1>{date === today ? 'Hoje' : 'Diário'}</h1>
-          <p className="heading-copy date-copy">{displayDate(date)}</p>
+          <p className="heading-copy date-copy">{displayDate(date, locale)}</p>
         </div>
         <div className="date-navigation">
           <button aria-label="Dia anterior" className="icon-button" onClick={() => selectDate(shiftedDate(date, -1))} type="button">‹</button>
@@ -152,7 +153,7 @@ export function DiaryPage() {
 
       <div className="diary-status-row">
         <span className={open ? 'diary-status open' : 'diary-status closed'}>{log ? statusLabel(log.status) : 'Sem registro'}</span>
-        {log?.closedAt ? <span>Fechado em {new Date(log.closedAt).toLocaleString('pt-BR')}</span> : <span>Alterações são salvas imediatamente</span>}
+        {log?.closedAt ? <span>Fechado em {formatInstantDateTime(log.closedAt, locale, timeZone)}</span> : <span>Alterações são salvas imediatamente</span>}
       </div>
 
       {mutationError ? <p className="form-error catalog-feedback" role="alert">{getErrorMessage(mutationError)}</p> : null}
@@ -212,7 +213,7 @@ export function DiaryPage() {
           <section aria-labelledby="water-title" className="diary-section water-section surface-card">
             <div className="section-title-row diary-section-heading"><div><p className="eyebrow">Hidratação</p><h2 id="water-title">Água · {number(log.waterTotalMl / 1000, 2)} L</h2></div></div>
             {open ? <div className="water-buttons">{[250, 500, 750, 1000].map((volume) => <button disabled={water.isPending} key={volume} onClick={() => water.mutate(volume)} type="button">+{volume === 1000 ? '1 L' : `${volume} ml`}</button>)}</div> : null}
-            {log.waterLogs.length > 0 ? <ol className="water-history">{log.waterLogs.map((entry) => <li key={entry.id}><time dateTime={entry.loggedAt}>{new Date(entry.loggedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</time><strong>{number(entry.volumeMl, 0)} ml</strong>{open ? <button aria-label={`Excluir água de ${number(entry.volumeMl, 0)} ml`} className="icon-button danger-icon" disabled={removeWater.isPending} onClick={() => removeWater.mutate(entry.id)} type="button">×</button> : null}</li>)}</ol> : <p className="inline-hint">Nenhum registro de água.</p>}
+            {log.waterLogs.length > 0 ? <ol className="water-history">{log.waterLogs.map((entry) => <li key={entry.id}><time dateTime={entry.loggedAt}>{formatInstantTime(entry.loggedAt, locale, timeZone)}</time><strong>{number(entry.volumeMl, 0)} ml</strong>{open ? <button aria-label={`Excluir água de ${number(entry.volumeMl, 0)} ml`} className="icon-button danger-icon" disabled={removeWater.isPending} onClick={() => removeWater.mutate(entry.id)} type="button">×</button> : null}</li>)}</ol> : <p className="inline-hint">Nenhum registro de água.</p>}
           </section>
         </>
       )}
@@ -226,7 +227,7 @@ export function DiaryPage() {
 
       {editor?.type === 'meal' ? <DiaryDialog onClose={() => setEditor(null)} title={editor.meal ? 'Editar refeição' : 'Nova refeição'}><MealEditor meal={editor.meal} onCancel={() => setEditor(null)} onSubmit={(input) => editor.meal ? editMeal.mutate({ meal: editor.meal, input }) : addMeal.mutate(input)} pending={addMeal.isPending || editMeal.isPending} /></DiaryDialog> : null}
       {editor?.type === 'item' ? <DiaryDialog onClose={() => setEditor(null)} title={editor.item ? 'Editar item' : 'Adicionar ao diário'}><ItemEditor item={editor.item} onCancel={() => setEditor(null)} onSubmit={(input) => editor.item ? editItem.mutate({ mealId: editor.mealId, itemId: editor.item.id, input }) : addItem.mutate({ mealId: editor.mealId, input })} pending={addItem.isPending || editItem.isPending} /></DiaryDialog> : null}
-      {editor?.type === 'copy' ? <DiaryDialog onClose={() => setEditor(null)} title="Copiar registros"><CopyPanel canCopyDay={!log || (log.meals.length === 0 && log.waterLogs.length === 0)} date={date} onCancel={() => setEditor(null)} onCopyDay={(sourceDate) => copyDayMutation.mutate(sourceDate)} onCopyMeal={(sourceDate, sourceMealId) => copyMealMutation.mutate({ sourceDate, sourceMealId })} pending={copyDayMutation.isPending || copyMealMutation.isPending} /></DiaryDialog> : null}
+      {editor?.type === 'copy' ? <DiaryDialog onClose={() => setEditor(null)} title="Copiar registros"><CopyPanel canCopyDay={!log || (log.meals.length === 0 && log.waterLogs.length === 0)} date={date} today={today} onCancel={() => setEditor(null)} onCopyDay={(sourceDate) => copyDayMutation.mutate(sourceDate)} onCopyMeal={(sourceDate, sourceMealId) => copyMealMutation.mutate({ sourceDate, sourceMealId })} pending={copyDayMutation.isPending || copyMealMutation.isPending} /></DiaryDialog> : null}
       {editor?.type === 'close' ? <DiaryDialog onClose={() => setEditor(null)} title="Fechar diário"><div className="dialog-form"><p className="close-copy">Depois de fechado, o dia fica somente para leitura e poderá participar dos consolidados. É possível reabrir para corrigir.</p>{requiresFastingConfirmation(log) ? <label className="fasting-confirmation"><input checked={fastingConfirmed} onChange={(event) => setFastingConfirmed(event.target.checked)} type="checkbox" /><span><strong>Confirmo que este foi um dia de jejum</strong><small>Um dia sem itens alimentares nem água só pode ser fechado com confirmação explícita. Uma refeição vazia não conta como acompanhamento.</small></span></label> : null}<div className="dialog-actions"><button className="secondary-button" onClick={() => setEditor(null)} type="button">Cancelar</button><button className="submit-button" disabled={close.isPending || (requiresFastingConfirmation(log) && !fastingConfirmed)} onClick={() => close.mutate()} type="button">{close.isPending ? 'Fechando…' : 'Confirmar fechamento'}</button></div></div></DiaryDialog> : null}
       {editor?.type === 'quick' && open ? <DiaryDialog onClose={() => setEditor(null)} title="Cadastro rápido"><div className="quick-action-grid"><button onClick={() => setEditor({ type: 'meal' })} type="button"><strong>Refeição</strong><span>Criar novo agrupamento</span></button>{log?.meals.map((meal) => <button key={meal.id} onClick={() => setEditor({ type: 'item', mealId: meal.id })} type="button"><strong>Item em {meal.name}</strong><span>Alimento ou receita</span></button>)}<button disabled={water.isPending} onClick={() => water.mutate(250)} type="button"><strong>+250 ml</strong><span>Registrar água agora</span></button><button onClick={() => setEditor({ type: 'copy' })} type="button"><strong>Copiar</strong><span>Refeição ou dia anterior</span></button></div></DiaryDialog> : null}
     </main>

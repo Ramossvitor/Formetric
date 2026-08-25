@@ -1,23 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { isPlainDate, subtractPlainDateDays } from '../time/plainDate'
 import { getDailyLog } from './api'
-import { localIsoDate } from './format'
 
-function previousDay(date: string) {
-  const value = new Date(`${date}T12:00:00`)
-  value.setDate(value.getDate() - 1)
-  return localIsoDate(value)
-}
-
-export function CopyPanel({ canCopyDay, date, pending, onCancel, onCopyDay, onCopyMeal }: {
+export function CopyPanel({ canCopyDay, date, today, pending, onCancel, onCopyDay, onCopyMeal }: {
   canCopyDay: boolean
   date: string
+  today: string
   pending: boolean
   onCancel: () => void
   onCopyDay: (sourceDate: string) => void
   onCopyMeal: (sourceDate: string, mealId: string) => void
 }) {
-  const [sourceDate, setSourceDate] = useState(previousDay(date))
+  const [sourceDate, setSourceDate] = useState(subtractPlainDateDays(date, 1))
   const [sourceMealId, setSourceMealId] = useState('')
   const source = useQuery({
     queryKey: ['diary', 'copy-source', sourceDate],
@@ -28,7 +23,7 @@ export function CopyPanel({ canCopyDay, date, pending, onCancel, onCopyDay, onCo
     <div className="dialog-form">
       <div className="field-group">
         <label htmlFor="copy-source-date">Data de origem</label>
-        <input id="copy-source-date" max={localIsoDate()} onChange={(event) => { setSourceDate(event.target.value); setSourceMealId('') }} type="date" value={sourceDate} />
+        <input id="copy-source-date" max={today} onChange={(event) => { if (!isPlainDate(event.target.value)) return; setSourceDate(event.target.value); setSourceMealId('') }} type="date" value={sourceDate} />
       </div>
       {source.isPending ? <p className="inline-hint">Carregando dia de origem…</p> : null}
       {source.isError ? <p className="form-error" role="alert">Não foi possível carregar o dia de origem.</p> : null}

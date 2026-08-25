@@ -3,6 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { fixedProfileTimeContext, seedProfileTimeContext } from '../test/profileTimeContext'
+import type { ProfileTimeContext } from '../time/api'
+import { parseInstant } from '../time/instant'
 import { clearCsrfToken } from '../api/http'
 import { analyticsQueryKey } from '../analytics/queries'
 
@@ -65,8 +68,9 @@ function notFound() {
   return jsonResponse({ title: 'Registro não encontrado', status: 404 }, { status: 404 })
 }
 
-function renderDiary(route = '/diary?date=2026-08-12') {
+function renderDiary(route = '/diary?date=2026-08-12', temporal: ProfileTimeContext = fixedProfileTimeContext) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  seedProfileTimeContext(queryClient, temporal)
   const view = render(<QueryClientProvider client={queryClient}><MemoryRouter initialEntries={[route]}><App /></MemoryRouter></QueryClientProvider>)
   return { ...view, queryClient }
 }
@@ -78,6 +82,47 @@ beforeEach(() => {
 })
 
 describe('diário', () => {
+  it('resolve hoje e o cadastro rápido pelo contexto do perfil, não pelo navegador', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return notFound()
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+
+    renderDiary('/diary?action=quick')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Cadastro rápido' })).toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/daily-logs/2026-08-12')).toBe(true)
+  })
+
+  it('formata fechamento e água no locale e fuso do perfil', async () => {
+    const temporal: ProfileTimeContext = {
+      ...fixedProfileTimeContext,
+      timeZone: 'America/Los_Angeles',
+      serverNow: parseInstant('2026-08-12T18:00:00Z'),
+      nextDayAt: parseInstant('2026-08-13T07:00:00Z'),
+    }
+    const closed = dailyLog({
+      status: 'CLOSED',
+      closedAt: '2026-08-12T23:00:00Z',
+      waterLogs: [{ id: 'water-1', loggedAt: '2026-08-12T14:30:00Z', volumeMl: 500 }],
+      waterTotalMl: 500,
+    })
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path === '/api/v1/daily-logs/2026-08-12') return jsonResponse(closed)
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+
+    renderDiary(undefined, temporal)
+
+    expect(await screen.findByText(/Fechado em/)).toHaveTextContent('12/08/2026, 16:00')
+    expect(screen.getByText('07:30')).toHaveAttribute('dateTime', '2026-08-12T14:30:00Z')
+  })
+
   it('trata 404 como dia vazio e cria na primeira refeição', async () => {
     const created = dailyLog({ meals: [meal()] })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

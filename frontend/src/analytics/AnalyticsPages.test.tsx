@@ -1,8 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { fixedProfileTimeContext, seedProfileTimeContext } from '../test/profileTimeContext'
+import type { ProfileTimeContext } from '../time/api'
+import { parseInstant } from '../time/instant'
+import { parsePlainDate } from '../time/plainDate'
+import { profileTimeContextQueryKey } from '../time/queries'
 import { sessionQuery } from '../auth/queries'
 import type { DailyAnalytics, MonthlyAnalytics } from './api'
 
@@ -101,8 +106,10 @@ function jsonResponse(body: unknown) {
 
 function renderApp(route: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  seedProfileTimeContext(queryClient)
   queryClient.setQueryData(sessionQuery.queryKey, session)
-  return render(<QueryClientProvider client={queryClient}><MemoryRouter initialEntries={[route]}><App /></MemoryRouter></QueryClientProvider>)
+  const view = render(<QueryClientProvider client={queryClient}><MemoryRouter initialEntries={[route]}><App /></MemoryRouter></QueryClientProvider>)
+  return { ...view, queryClient }
 }
 
 beforeEach(() => vi.restoreAllMocks())
@@ -169,21 +176,20 @@ describe('painéis determinísticos', () => {
     expect(screen.getByText(/meta ≥ 4,4 L/)).toBeInTheDocument()
   })
 
-  it('refaz os limites antes de habilitar a consulta diária após uma falha', async () => {
-    let boundsAttempts = 0
+  it('refaz o resumo do hoje do perfil após uma falha', async () => {
+    let dailyAttempts = 0
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input)
-      if (path === '/api/v1/analytics/bounds') {
-        boundsAttempts += 1
-        if (boundsAttempts === 1) {
+      if (path === '/api/v1/analytics/daily?date=2026-08-12') {
+        dailyAttempts += 1
+        if (dailyAttempts === 1) {
           return new Response(JSON.stringify({ title: 'Indisponível', status: 503, detail: 'Tente novamente.' }), {
             status: 503,
             headers: { 'Content-Type': 'application/problem+json' },
           })
         }
-        return jsonResponse(bounds)
+        return jsonResponse(openDaily)
       }
-      if (path === '/api/v1/analytics/daily?date=2026-08-12') return jsonResponse(openDaily)
       throw new Error(`Requisição não esperada: ${path}`)
     })
     const user = userEvent.setup()
@@ -193,6 +199,54 @@ describe('painéis determinísticos', () => {
 
     expect(await screen.findByText('Saldo previsto')).toBeInTheDocument()
     expect(fetchMock.mock.calls.map(([path]) => String(path)).some((path) => path.includes('undefined'))).toBe(false)
+  })
+
+  it('move Home, Mensal e Gráficos quando o contexto atravessa mês sem consultar bounds como relógio', async () => {
+    const nextTime: ProfileTimeContext = {
+      ...fixedProfileTimeContext,
+      serverNow: parseInstant('2026-09-01T03:00:01Z'),
+      today: parsePlainDate('2026-09-01'),
+      nextDayAt: parseInstant('2026-09-02T03:00:00Z'),
+    }
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily?date=')) {
+        const date = new URL(path, 'https://formetric.test').searchParams.get('date')!
+        return jsonResponse({ ...openDaily, date })
+      }
+      if (path.startsWith('/api/v1/analytics/monthly?month=')) {
+        const month = new URL(path, 'https://formetric.test').searchParams.get('month')!
+        return jsonResponse({ ...monthlyData, month })
+      }
+      if (path.startsWith('/api/v1/analytics/series?')) {
+        const url = new URL(path, 'https://formetric.test')
+        return jsonResponse({
+          metric: url.searchParams.get('metric'),
+          from: url.searchParams.get('from'),
+          to: url.searchParams.get('to'),
+          unit: 'KCAL',
+          points: [],
+          availabilityCounts: {},
+        })
+      }
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+
+    const home = renderApp('/')
+    await screen.findByRole('heading', { level: 1, name: 'Hoje' })
+    act(() => home.queryClient.setQueryData(profileTimeContextQueryKey, nextTime))
+    await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/analytics/daily?date=2026-09-01')).toBe(true))
+    home.unmount()
+
+    const monthly = renderApp('/analytics/monthly')
+    act(() => monthly.queryClient.setQueryData(profileTimeContextQueryKey, nextTime))
+    await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/analytics/monthly?month=2026-09')).toBe(true))
+    monthly.unmount()
+
+    const charts = renderApp('/analytics/charts')
+    act(() => charts.queryClient.setQueryData(profileTimeContextQueryKey, nextTime))
+    await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => String(path).includes('to=2026-09-01'))).toBe(true))
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/analytics/bounds')).toBe(false)
   })
 
   it('renderiza médias independentes, energia, metas e peso do contrato mensal', async () => {

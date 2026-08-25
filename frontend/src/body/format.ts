@@ -10,6 +10,7 @@ import type {
   ResultProvenance,
   SkinfoldSite,
 } from './api'
+import { formatPlainDate, wholeYearsBetweenPlainDates } from '../time/plainDate'
 
 export const protocolLabels: Record<BodyProtocol, string> = {
   NONE: 'Sem protocolo calculado',
@@ -41,7 +42,7 @@ export const compatibilityLabels: Record<ResultCompatibility, string> = {
 export const allCircumferences = Object.keys(circumferenceLabels) as CircumferenceSite[]
 export const allSkinfolds = Object.keys(skinfoldLabels) as SkinfoldSite[]
 
-export function formatBodyDate(value: string) { return new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR') }
+export function formatBodyDate(value: string, locale = 'pt-BR') { return formatPlainDate(value, locale, { dateStyle: 'short' }) }
 export function formatBodyNumber(value: number, digits = 2) { return value.toLocaleString('pt-BR', { maximumFractionDigits: digits }) }
 export function resultUnit(metric: BodyResultMetric) {
   if (metric === 'BODY_FAT_PERCENT' || metric === 'FAT_FREE_MASS_PERCENT') return '%'
@@ -59,9 +60,5 @@ export function formatDelta(value: number | null, suffix: string) {
 }
 export function ageOnDate(birthDate: string, assessmentDate: string): number | null {
   if (!birthDate || !assessmentDate) return null
-  const birth = new Date(`${birthDate}T12:00:00`); const assessment = new Date(`${assessmentDate}T12:00:00`)
-  if (Number.isNaN(birth.getTime()) || Number.isNaN(assessment.getTime()) || birth > assessment) return null
-  let age = assessment.getFullYear() - birth.getFullYear()
-  if (assessment.getMonth() < birth.getMonth() || (assessment.getMonth() === birth.getMonth() && assessment.getDate() < birth.getDate())) age -= 1
-  return age
+  return wholeYearsBetweenPlainDates(birthDate, assessmentDate)
 }

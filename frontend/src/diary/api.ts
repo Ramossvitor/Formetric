@@ -155,12 +155,19 @@ export function deleteMealItem(date: string, mealId: string, itemId: string): Pr
   return apiRequest<DailyLog>(`/api/v1/daily-logs/${date}/meals/${mealId}/items/${itemId}`, { method: 'DELETE', csrf: true })
 }
 
-export function addWater(date: string, volumeMl: number): Promise<DailyLog> {
-  const now = new Date()
-  const time = [now.getHours(), now.getMinutes(), now.getSeconds()].map((part) => String(part).padStart(2, '0')).join(':')
-  const loggedAt = new Date(`${date}T${time}`).toISOString()
+export interface AddWaterOptions {
+  loggedAt?: string
+}
+
+export function addWater(date: string, volumeMl: number, options: AddWaterOptions = {}): Promise<DailyLog> {
   return apiRequest<DailyLog>(`/api/v1/daily-logs/${date}/water`, {
-    method: 'POST', body: { loggedAt, volumeMl, requestId: crypto.randomUUID() }, csrf: true,
+    method: 'POST',
+    body: {
+      volumeMl,
+      requestId: crypto.randomUUID(),
+      ...(options.loggedAt ? { loggedAt: options.loggedAt } : {}),
+    },
+    csrf: true,
   })
 }
 

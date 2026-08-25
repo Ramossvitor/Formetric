@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { seedProfileTimeContext } from '../test/profileTimeContext'
 import { clearCsrfToken } from '../api/http'
 import { analyticsQueryKey } from '../analytics/queries'
 
@@ -73,6 +74,7 @@ function renderRoute(route: string) {
       mutations: { retry: false },
     },
   })
+  seedProfileTimeContext(queryClient)
 
   const view = render(
     <QueryClientProvider client={queryClient}>
@@ -106,6 +108,7 @@ describe('planejamento', () => {
     renderRoute('/settings/nutrition-goals')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Metas nutricionais' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Válido a partir de')).toHaveValue('2026-08-12')
     expect(screen.getByRole('heading', { name: '2.500 kcal' })).toBeInTheDocument()
     const history = screen.getByRole('heading', { name: 'Histórico de metas' }).closest('section')
     expect(history).not.toBeNull()
@@ -360,6 +363,7 @@ describe('planejamento', () => {
 
     renderRoute('/settings/tdee')
     expect(await screen.findByRole('heading', { name: '3.000 kcal/dia' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Válido a partir de')).toHaveValue('2026-08-12')
     const validFrom = screen.getByLabelText('Válido a partir de')
     const validTo = screen.getByLabelText(/Válido até/)
     await user.clear(validFrom)

@@ -3,12 +3,15 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActivityDialog } from '../activity/ActivityDialog'
 import { deleteWeightLog, upsertWeightLog, type WeightLog, type WeightLogInput } from '../activity/api'
-import { dateDaysAgo, formatDate, formatNumber, formatSignedWeight, localIsoDate } from '../activity/format'
+import { formatDate, formatNumber, formatSignedWeight } from '../activity/format'
 import { weightLogsQueryKey, weightOverviewQuery } from '../activity/queries'
 import { WeightForm } from '../activity/WeightForm'
 import { getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
 import { Icon } from '../components/Icon'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
+import { formatInstantTimeInput } from '../time/instant'
+import { subtractPlainDateDays } from '../time/plainDate'
 
 interface DateRange {
   from: string
@@ -22,8 +25,10 @@ function WeightMetric({ label, value, note }: { label: string; value: ReactNode;
 }
 
 export function WeightProgressPage() {
-  const today = localIsoDate()
-  const initialRange = useMemo(() => ({ from: dateDaysAgo(180), to: today }), [today])
+  const temporal = useProfileTimeContext()
+  const { locale, today } = temporal
+  const defaultMeasuredAt = formatInstantTimeInput(temporal.currentInstant(), temporal.timeZone)
+  const initialRange = useMemo(() => ({ from: subtractPlainDateDays(today, 180), to: today }), [today])
   const [range, setRange] = useState<DateRange>(initialRange)
   const [draftRange, setDraftRange] = useState<DateRange>(initialRange)
   const [rangeError, setRangeError] = useState<string | null>(null)
@@ -83,7 +88,7 @@ export function WeightProgressPage() {
   }
 
   function requestDelete(entry: WeightLog) {
-    if (window.confirm(`Excluir a pesagem de ${formatDate(entry.date)}? Esta ação não pode ser desfeita.`)) {
+    if (window.confirm(`Excluir a pesagem de ${formatDate(entry.date, locale)}? Esta ação não pode ser desfeita.`)) {
       remove.mutate(entry.date)
     }
   }
@@ -134,13 +139,13 @@ export function WeightProgressPage() {
       ) : overview ? (
         <>
           <section aria-label="Resumo do peso" className="weight-metric-grid">
-            <WeightMetric label="Último peso no período" note={`medido em ${formatDate(entries[0].date)}`} value={`${formatNumber(overview.currentWeightKg!)} kg`} />
+            <WeightMetric label="Último peso no período" note={`medido em ${formatDate(entries[0].date, locale)}`} value={`${formatNumber(overview.currentWeightKg!)} kg`} />
             <WeightMetric label="Mudança no período" note="primeira → última pesagem" value={overview.changeKg == null ? 'Dados insuficientes' : formatSignedWeight(overview.changeKg)} />
             <WeightMetric label="Menor peso" note="no intervalo selecionado" value={`${formatNumber(overview.minimumWeightKg!)} kg`} />
             <WeightMetric label="Maior peso" note="no intervalo selecionado" value={`${formatNumber(overview.maximumWeightKg!)} kg`} />
             <WeightMetric label="Média móvel de 7 dias" note={overview.movingAverage7 ? `${overview.movingAverage7.sampleCount} amostras na janela` : 'requer registros na janela'} value={overview.movingAverage7 ? `${formatNumber(overview.movingAverage7.valueKg, 2)} kg` : 'Dados insuficientes'} />
             <WeightMetric label="Média móvel de 14 dias" note={overview.movingAverage14 ? `${overview.movingAverage14.sampleCount} amostras na janela` : 'requer registros na janela'} value={overview.movingAverage14 ? `${formatNumber(overview.movingAverage14.valueKg, 2)} kg` : 'Dados insuficientes'} />
-            <WeightMetric label="Tendência" note={overview.trend ? `${overview.trend.sampleCount} amostras · ${formatDate(overview.trend.from)} a ${formatDate(overview.trend.to)}` : 'requer ao menos 3 amostras recentes'} value={overview.trend ? `${formatSignedWeight(overview.trend.kgPerWeek)}/semana` : 'Dados insuficientes'} />
+            <WeightMetric label="Tendência" note={overview.trend ? `${overview.trend.sampleCount} amostras · ${formatDate(overview.trend.from, locale)} a ${formatDate(overview.trend.to, locale)}` : 'requer ao menos 3 amostras recentes'} value={overview.trend ? `${formatSignedWeight(overview.trend.kgPerWeek)}/semana` : 'Dados insuficientes'} />
           </section>
           <p className="weight-method-note" role="note">Médias usam as observações existentes nas janelas civis de 7 e 14 dias relativas à pesagem mais recente. A tendência é uma regressão dos últimos 28 dias disponíveis e não uma previsão.</p>
 
@@ -152,12 +157,12 @@ export function WeightProgressPage() {
             <ol className="weight-list">
               {entries.map((entry) => (
                 <li className="weight-entry surface-card" key={entry.date}>
-                  <time dateTime={entry.date}><strong>{formatDate(entry.date)}</strong><span>{entry.measuredAt.slice(0, 5)}</span></time>
+                  <time dateTime={entry.date}><strong>{formatDate(entry.date, locale)}</strong><span>{entry.measuredAt.slice(0, 5)}</span></time>
                   <div className="weight-entry-value"><strong>{formatNumber(entry.weightKg, 2)} kg</strong>{entry.condition ? <span>{entry.condition}</span> : <span>Condição não informada</span>}</div>
                   {entry.notes ? <p>{entry.notes}</p> : null}
                   <div className="weight-entry-actions">
-                    <button aria-label={`Editar pesagem de ${formatDate(entry.date)}`} className="icon-button" disabled={save.isPending || remove.isPending} onClick={() => openEdit(entry)} type="button">✎</button>
-                    <button aria-label={`Excluir pesagem de ${formatDate(entry.date)}`} className="icon-button danger-icon" disabled={save.isPending || remove.isPending} onClick={() => requestDelete(entry)} type="button">×</button>
+                    <button aria-label={`Editar pesagem de ${formatDate(entry.date, locale)}`} className="icon-button" disabled={save.isPending || remove.isPending} onClick={() => openEdit(entry)} type="button">✎</button>
+                    <button aria-label={`Excluir pesagem de ${formatDate(entry.date, locale)}`} className="icon-button danger-icon" disabled={save.isPending || remove.isPending} onClick={() => requestDelete(entry)} type="button">×</button>
                   </div>
                 </li>
               ))}
@@ -169,6 +174,8 @@ export function WeightProgressPage() {
       {editor ? (
         <ActivityDialog dismissible={!save.isPending} onClose={() => setEditor(null)} title={editor.type === 'edit' ? 'Editar pesagem' : 'Registrar peso'}>
           <WeightForm
+            defaultDate={today}
+            defaultMeasuredAt={defaultMeasuredAt}
             entries={entries}
             entry={editor.type === 'edit' ? editor.entry : undefined}
             error={save.error}

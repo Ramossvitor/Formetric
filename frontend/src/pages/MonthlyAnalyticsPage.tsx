@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import type { GoalAttainment, MetricAggregate, MonthlyAnalytics, NutrientType } from '../analytics/api'
 import { formatDate, formatDuration, formatMonth, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels } from '../analytics/format'
-import { analyticsBoundsQuery, monthlyAnalyticsQuery } from '../analytics/queries'
+import { monthlyAnalyticsQuery } from '../analytics/queries'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 function AnalyticsTabs() {
   return (
@@ -166,25 +167,25 @@ function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
 }
 
 export function MonthlyAnalyticsPage() {
-  const bounds = useQuery(analyticsBoundsQuery)
+  const { today } = useProfileTimeContext()
   const [selectedMonth, setSelectedMonth] = useState<string>()
-  const month = selectedMonth ?? bounds.data?.today.slice(0, 7)
+  const month = selectedMonth ?? today.slice(0, 7)
   const monthly = useQuery(monthlyAnalyticsQuery(month))
-  const pending = bounds.isPending || (Boolean(month) && monthly.isPending)
-  const error = bounds.error ?? monthly.error
+  const pending = monthly.isPending
+  const error = monthly.error
 
   return (
     <main id="conteudo">
       <header className="page-heading analytics-page-heading">
         <div><p className="eyebrow">Consolidado</p><h1>{month ? formatMonth(month) : 'Resumo mensal'}</h1><p className="heading-copy">Médias e totais calculados apenas com dados históricos elegíveis.</p></div>
-        <label className="analytics-date-control"><span>Mês analisado</span><input max={bounds.data?.today.slice(0, 7)} onChange={(event) => setSelectedMonth(event.target.value)} type="month" value={month ?? ''} /></label>
+        <label className="analytics-date-control"><span>Mês analisado</span><input max={today.slice(0, 7)} onChange={(event) => setSelectedMonth(event.target.value || undefined)} type="month" value={month} /></label>
       </header>
       <AnalyticsTabs />
 
       {pending ? (
         <div className="catalog-state" role="status"><span className="route-spinner" /><p>Consolidando o mês…</p></div>
       ) : error ? (
-        <div className="catalog-state" role="alert"><p>{getErrorMessage(error)}</p><button className="secondary-button" onClick={() => { if (bounds.isError) void bounds.refetch(); else void monthly.refetch() }} type="button">Tentar novamente</button></div>
+        <div className="catalog-state" role="alert"><p>{getErrorMessage(error)}</p><button className="secondary-button" onClick={() => void monthly.refetch()} type="button">Tentar novamente</button></div>
       ) : monthly.data ? <MonthlyDashboard data={monthly.data} /> : null}
     </main>
   )

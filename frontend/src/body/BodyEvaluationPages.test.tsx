@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { seedProfileTimeContext } from '../test/profileTimeContext'
 import { clearCsrfToken } from '../api/http'
 import type { BodyEvaluationComparison, BodyEvaluationDetail, BodyEvaluationPage, BodyEvaluationVersion, BodyResult } from './api'
 import { allSkinfolds, skinfoldLabels } from './format'
@@ -32,6 +33,7 @@ function page(content = [detail()]): BodyEvaluationPage {
 function jsonResponse(body: unknown, init: ResponseInit = {}) { return new Response(JSON.stringify(body), { status: 200, ...init, headers: { 'Content-Type': 'application/json', ...init.headers } }) }
 function renderApp(route: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  seedProfileTimeContext(queryClient)
   const result = render(<QueryClientProvider client={queryClient}><MemoryRouter initialEntries={[route]}><App /></MemoryRouter></QueryClientProvider>)
   return { ...result, queryClient }
 }
@@ -54,6 +56,7 @@ describe('cadastro de avaliação corporal', () => {
     const user = userEvent.setup(); renderApp('/progress/evaluations/new')
     expect(await screen.findByRole('note')).toHaveTextContent('Sugestão do perfil')
     await user.type(screen.getByLabelText('Título'), 'Avaliação validada')
+    expect(screen.getByLabelText('Data da avaliação')).toHaveValue('2026-08-12')
     fireEvent.change(screen.getByLabelText('Data da avaliação'), { target: { value: '2026-08-12' } })
     await user.type(screen.getByLabelText('Peso (kg, opcional)'), '89.8'); await user.type(screen.getByLabelText('Altura (cm, opcional)'), '180')
     expect(screen.getByLabelText('Idade confirmada na data (opcional)')).toHaveValue(35)

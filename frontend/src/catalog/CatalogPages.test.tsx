@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { seedProfileTimeContext } from '../test/profileTimeContext'
 import { clearCsrfToken } from '../api/http'
 
 const session = {
@@ -118,6 +119,7 @@ function renderRoute(route: string) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
+  seedProfileTimeContext(queryClient)
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}><App /></MemoryRouter>

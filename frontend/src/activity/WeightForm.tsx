@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { getErrorMessage } from '../api/http'
 import { getWeightLog, type WeightLog, type WeightLogInput } from './api'
-import { currentLocalTime, localIsoDate } from './format'
 
 interface WeightFormProps {
   entry?: WeightLog
   entries: WeightLog[]
+  defaultDate: string
+  defaultMeasuredAt: string
   error: unknown
   pending: boolean
   onCancel: () => void
@@ -21,31 +22,23 @@ interface FormState {
   existing?: WeightLog
 }
 
-function stateFromEntry(entry?: WeightLog): FormState {
-  return entry
-    ? {
-        date: entry.date,
-        weightKg: String(entry.weightKg),
-        measuredAt: entry.measuredAt.slice(0, 5),
-        condition: entry.condition ?? '',
-        notes: entry.notes ?? '',
-        existing: entry,
-      }
-    : {
-        date: localIsoDate(),
-        weightKg: '',
-        measuredAt: currentLocalTime(),
-        condition: '',
-        notes: '',
-      }
+function stateFromEntry(entry: WeightLog): FormState {
+  return {
+    date: entry.date,
+    weightKg: String(entry.weightKg),
+    measuredAt: entry.measuredAt.slice(0, 5),
+    condition: entry.condition ?? '',
+    notes: entry.notes ?? '',
+    existing: entry,
+  }
 }
 
-function emptyState(date: string, measuredAt = currentLocalTime()): FormState {
+function emptyState(date: string, measuredAt: string): FormState {
   return { date, weightKg: '', measuredAt, condition: '', notes: '' }
 }
 
-export function WeightForm({ entry, entries, error, pending, onCancel, onSubmit }: WeightFormProps) {
-  const [form, setForm] = useState<FormState>(() => stateFromEntry(entry))
+export function WeightForm({ entry, entries, defaultDate, defaultMeasuredAt, error, pending, onCancel, onSubmit }: WeightFormProps) {
+  const [form, setForm] = useState<FormState>(() => entry ? stateFromEntry(entry) : emptyState(defaultDate, defaultMeasuredAt))
   const [validationError, setValidationError] = useState<string | null>(null)
   const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'error'>('idle')
   const lookupSequence = useRef(0)

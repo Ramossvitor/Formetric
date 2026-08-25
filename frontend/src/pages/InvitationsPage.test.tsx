@@ -6,6 +6,7 @@ import { clearCsrfToken } from '../api/http'
 import type { AuthSession, UserProfile } from '../auth/api'
 import { OwnerRoute, ProtectedRoute } from '../auth/ProtectedRoute'
 import { sessionQuery } from '../auth/queries'
+import { seedProfileTimeContext } from '../test/profileTimeContext'
 import { InvitationsPage } from './InvitationsPage'
 import { ProfilePage } from './ProfilePage'
 
@@ -66,6 +67,7 @@ function renderPrivateRoute(route: string, session: AuthSession) {
     },
   })
   queryClient.setQueryData(sessionQuery.queryKey, session)
+  seedProfileTimeContext(queryClient)
 
   return render(
     <QueryClientProvider client={queryClient}>

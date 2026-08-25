@@ -16,8 +16,8 @@ import {
   skinfoldLabels,
 } from '../body/format'
 import { bodyEvaluationComparisonQuery, bodyEvaluationsQuery } from '../body/queries'
-
-const dateAtOffset = (years: number) => { const date = new Date(); date.setFullYear(date.getFullYear() + years); return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10) }
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
+import { addPlainDateYears } from '../time/plainDate'
 
 function ResultValue({ result }: { result: BodyResult | null }) {
   if (!result) return <span className="comparison-missing">não informado</span>
@@ -45,8 +45,9 @@ function resultDeltaLabel(delta: BodyResultDelta) {
 }
 
 export function BodyEvaluationComparisonPage() {
+  const { today } = useProfileTimeContext()
   const [params, setParams] = useSearchParams(); const baselineId = params.get('baselineVersionId') ?? ''; const followUpId = params.get('followUpVersionId') ?? ''
-  const choices = useQuery(bodyEvaluationsQuery(dateAtOffset(-5), dateAtOffset(0), 0, 'ACTIVE'))
+  const choices = useQuery(bodyEvaluationsQuery(addPlainDateYears(today, -5), today, 0, 'ACTIVE'))
   const comparison = useQuery(bodyEvaluationComparisonQuery(baselineId, followUpId))
   function setVersion(key: 'baselineVersionId' | 'followUpVersionId', value: string) { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }) }
   const versions = choices.data?.content.map((item) => item.currentVersion) ?? []

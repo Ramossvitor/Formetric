@@ -1,3 +1,4 @@
+import { formatPlainDate } from '../time/plainDate'
 import type { WorkoutModality } from './api'
 
 export const modalityLabels: Record<WorkoutModality, string> = {
@@ -10,25 +11,8 @@ export const modalityLabels: Record<WorkoutModality, string> = {
   OTHER: 'Outra modalidade',
 }
 
-export function localIsoDate(date = new Date()) {
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
-}
-
-export function dateDaysAgo(days: number) {
-  const date = new Date()
-  date.setHours(12, 0, 0, 0)
-  date.setDate(date.getDate() - days)
-  return localIsoDate(date)
-}
-
-export function currentLocalTime() {
-  const now = new Date()
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-}
-
-export function formatDate(value: string) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', {
+export function formatDate(value: string, locale = 'pt-BR') {
+  return formatPlainDate(value, locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

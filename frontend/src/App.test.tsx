@@ -6,6 +6,7 @@ import App from './App'
 import { clearCsrfToken } from './api/http'
 import type { AuthSession } from './auth/api'
 import { sessionQuery, useLogout } from './auth/queries'
+import { fixedProfileTimeContext, seedProfileTimeContext } from './test/profileTimeContext'
 
 const authenticatedSession: AuthSession = {
   authenticated: true as const,
@@ -26,10 +27,10 @@ const userProfile = {
   formulaSex: null,
 }
 
-const analyticsBounds = { earliestDate: null, latestDate: null, today: '2026-08-13' }
+const analyticsBounds = { earliestDate: null, latestDate: null, today: fixedProfileTimeContext.today }
 
 const emptyDailyAnalytics = {
-  date: '2026-08-13',
+  date: fixedProfileTimeContext.today,
   diaryStatus: 'MISSING',
   fastingConfirmed: false,
   historicalEligible: false,
@@ -47,8 +48,9 @@ const emptyDailyAnalytics = {
 }
 
 function analyticsResponse(path: string) {
+  if (path === '/api/v1/profile/time-context') return jsonResponse(fixedProfileTimeContext)
   if (path === '/api/v1/analytics/bounds') return jsonResponse(analyticsBounds)
-  if (path === '/api/v1/analytics/daily?date=2026-08-13') return jsonResponse(emptyDailyAnalytics)
+  if (path === `/api/v1/analytics/daily?date=${fixedProfileTimeContext.today}`) return jsonResponse(emptyDailyAnalytics)
   return undefined
 }
 
@@ -74,6 +76,7 @@ function renderApp(route: string, prepare?: (queryClient: QueryClient) => void) 
       mutations: { retry: false },
     },
   })
+  seedProfileTimeContext(queryClient)
   prepare?.(queryClient)
 
   const view = render(
@@ -94,6 +97,7 @@ function renderBrowserApp(route: string, prepare?: (queryClient: QueryClient) =>
       mutations: { retry: false },
     },
   })
+  seedProfileTimeContext(queryClient)
   prepare?.(queryClient)
 
   const view = render(
@@ -218,6 +222,8 @@ describe('autenticação', () => {
     let sessionRequests = 0
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      // Authenticating clears the cache, so the time context is fetched again.
+      if (path === '/api/v1/profile/time-context') return jsonResponse(fixedProfileTimeContext)
       if (path === '/api/v1/profile' && !init?.method) {
         profileRequests += 1
         return profileRequests === 1 ? unauthorizedResponse() : jsonResponse(userProfile)

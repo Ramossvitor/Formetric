@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { ApiError, getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
 import { createNutritionGoalPeriod } from '../planning/api'
-import { formatValidity, goalSummaries, todayAsLocalIsoDate } from '../planning/format'
+import { formatValidity, goalSummaries } from '../planning/format'
 import { NutrientBandEditor } from '../planning/NutrientBandEditor'
 import '../planning/NutritionGoals.css'
 import { PlanningError, PlanningLoading } from '../planning/PlanningState'
@@ -19,11 +19,12 @@ import {
   nutritionGoalFormSchema,
   type NutritionGoalFormValues,
 } from '../planning/schemas'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 const targetIndexes = [0, 1, 2, 3, 4, 5] as const
 
 export function NutritionGoalsPage() {
-  const today = todayAsLocalIsoDate()
+  const { today } = useProfileTimeContext()
   const [editorVersion, setEditorVersion] = useState(0)
   const queryClient = useQueryClient()
   const periods = useQuery(nutritionGoalPeriodsQuery)

@@ -7,6 +7,7 @@ export const sessionQuery = queryOptions({
   queryFn: getSession,
   staleTime: 5 * 60 * 1000,
   retry: false,
+  refetchOnWindowFocus: 'always',
 })
 
 export function useLogout() {

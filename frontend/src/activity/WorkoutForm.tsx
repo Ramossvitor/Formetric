@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { getErrorMessage } from '../api/http'
 import type { Workout, WorkoutInput, WorkoutModality } from './api'
-import { localIsoDate, modalityLabels } from './format'
+import { modalityLabels } from './format'
 
 interface WorkoutFormProps {
   workout?: Workout
+  defaultDate: string
   error: unknown
   pending: boolean
   onCancel: () => void
@@ -13,8 +14,8 @@ interface WorkoutFormProps {
 
 const modalities = Object.keys(modalityLabels) as WorkoutModality[]
 
-export function WorkoutForm({ workout, error, pending, onCancel, onSubmit }: WorkoutFormProps) {
-  const [date, setDate] = useState(workout?.date ?? localIsoDate())
+export function WorkoutForm({ workout, defaultDate, error, pending, onCancel, onSubmit }: WorkoutFormProps) {
+  const [date, setDate] = useState(workout?.date ?? defaultDate)
   const [modality, setModality] = useState<WorkoutModality>(workout?.modality ?? 'STRENGTH')
   const [customModality, setCustomModality] = useState(workout?.customModality ?? '')
   const [title, setTitle] = useState(workout?.title ?? '')

@@ -9,13 +9,6 @@ const nutrientLabels: Record<Nutrient, string> = {
   WATER: 'Água',
 }
 
-export function todayAsLocalIsoDate() {
-  const today = new Date()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
-  return `${today.getFullYear()}-${month}-${day}`
-}
-
 export function formatIsoDate(date: string) {
   const [year, month, day] = date.split('-').map(Number)
   return new Intl.DateTimeFormat('pt-BR').format(new Date(year, month - 1, day))

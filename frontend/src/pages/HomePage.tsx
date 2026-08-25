@@ -9,9 +9,10 @@ import type {
   MacroNutrientType,
 } from '../analytics/api'
 import { diaryStatusLabels, formatDuration, formatLongDate, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels } from '../analytics/format'
-import { analyticsBoundsQuery, dailyAnalyticsQuery } from '../analytics/queries'
+import { dailyAnalyticsQuery } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 import { formatGoalComparison, formatGoalRange } from '../diary/format'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 const macroDefinitions: Array<{
   nutrient: MacroNutrientType
@@ -259,31 +260,31 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
 }
 
 export function HomePage() {
+  const { today } = useProfileTimeContext()
   const [selectedDate, setSelectedDate] = useState<string>()
-  const bounds = useQuery(analyticsBoundsQuery)
-  const date = selectedDate ?? bounds.data?.today
+  const date = selectedDate ?? today
   const daily = useQuery(dailyAnalyticsQuery(date))
-  const pending = bounds.isPending || (Boolean(date) && daily.isPending)
-  const error = bounds.error ?? daily.error
+  const pending = daily.isPending
+  const error = daily.error
 
   return (
     <main id="conteudo">
       <header className="page-heading analytics-page-heading">
         <div>
           <p className="eyebrow">Resumo diário</p>
-          <h1>{date === bounds.data?.today ? 'Hoje' : date ? formatLongDate(date) : 'Hoje'}</h1>
+          <h1>{date === today ? 'Hoje' : formatLongDate(date)}</h1>
           <p className="heading-copy">Dados registrados, cálculos do sistema e disponibilidade explícita.</p>
         </div>
         <label className="analytics-date-control">
           <span>Data do resumo</span>
-          <input max={bounds.data?.today} onChange={(event) => setSelectedDate(event.target.value)} type="date" value={date ?? ''} />
+          <input max={today} onChange={(event) => setSelectedDate(event.target.value || undefined)} type="date" value={date} />
         </label>
       </header>
 
       {pending ? (
         <div className="catalog-state" role="status"><span className="route-spinner" /><p>Calculando o resumo diário…</p></div>
       ) : error ? (
-        <div className="catalog-state" role="alert"><p>{getErrorMessage(error)}</p><button className="secondary-button" onClick={() => { if (bounds.isError) void bounds.refetch(); else void daily.refetch() }} type="button">Tentar novamente</button></div>
+        <div className="catalog-state" role="alert"><p>{getErrorMessage(error)}</p><button className="secondary-button" onClick={() => void daily.refetch()} type="button">Tentar novamente</button></div>
       ) : daily.data ? <DailyDashboard data={daily.data} /> : null}
     </main>
   )

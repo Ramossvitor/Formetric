@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActivityDialog } from '../activity/ActivityDialog'
 import { createWorkout, deleteWorkout, updateWorkout, type Workout, type WorkoutInput } from '../activity/api'
-import { dateDaysAgo, formatDate, formatDuration, formatNumber, localIsoDate, modalityLabels } from '../activity/format'
+import { formatDate, formatDuration, formatNumber, modalityLabels } from '../activity/format'
 import { workoutsQuery, workoutsQueryKey } from '../activity/queries'
 import { WorkoutForm } from '../activity/WorkoutForm'
 import { getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
 import { Icon } from '../components/Icon'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
+import { formatPlainDate, subtractPlainDateDays } from '../time/plainDate'
 
 interface DateRange {
   from: string
@@ -21,8 +23,8 @@ type WorkoutSaveCommand =
   | { type: 'update'; workout: Workout; input: WorkoutInput }
 
 export function WorkoutsPage() {
-  const today = localIsoDate()
-  const initialRange = useMemo(() => ({ from: dateDaysAgo(30), to: today }), [today])
+  const { locale, today } = useProfileTimeContext()
+  const initialRange = useMemo(() => ({ from: subtractPlainDateDays(today, 30), to: today }), [today])
   const [range, setRange] = useState<DateRange>(initialRange)
   const [draftRange, setDraftRange] = useState<DateRange>(initialRange)
   const [rangeError, setRangeError] = useState<string | null>(null)
@@ -152,8 +154,8 @@ export function WorkoutsPage() {
               {workouts.map((workout) => (
                 <li className="workout-card surface-card" key={workout.id}>
                   <div className="workout-date" aria-hidden="true">
-                    <strong>{new Date(`${workout.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit' })}</strong>
-                    <span>{new Date(`${workout.date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                    <strong>{formatPlainDate(workout.date, locale, { day: '2-digit' })}</strong>
+                    <span>{formatPlainDate(workout.date, locale, { month: 'short' }).replace('.', '')}</span>
                   </div>
                   <div className="workout-main">
                     <div className="workout-title-row">
@@ -167,7 +169,7 @@ export function WorkoutsPage() {
                       </div>
                     </div>
                     <p className="workout-meta">
-                      <time dateTime={workout.date}>{formatDate(workout.date)}</time>
+                      <time dateTime={workout.date}>{formatDate(workout.date, locale)}</time>
                       <span>{workout.startTime ? workout.startTime.slice(0, 5) : 'Horário não informado'}</span>
                       <strong>{formatDuration(workout.durationMinutes)}</strong>
                     </p>
@@ -185,6 +187,7 @@ export function WorkoutsPage() {
       {editor ? (
         <ActivityDialog dismissible={!save.isPending} onClose={() => setEditor(null)} title={editor.type === 'edit' ? 'Editar treino' : 'Registrar treino'}>
           <WorkoutForm
+            defaultDate={today}
             error={save.error}
             key={editor.type === 'edit' ? editor.workout.id : 'new-workout'}
             onCancel={() => setEditor(null)}

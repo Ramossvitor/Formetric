@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { ApiError, getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
 import { createTdeePeriod } from '../planning/api'
-import { formatValidity, todayAsLocalIsoDate } from '../planning/format'
+import { formatValidity } from '../planning/format'
 import { PlanningError, PlanningLoading } from '../planning/PlanningState'
 import {
   effectiveTdeeQuery,
@@ -12,11 +12,12 @@ import {
   tdeePeriodsQueryKey,
 } from '../planning/queries'
 import { tdeeFormSchema, type TdeeFormValues } from '../planning/schemas'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 const defaultTdee = 3000
 
 export function TdeeSettingsPage() {
-  const today = todayAsLocalIsoDate()
+  const { today } = useProfileTimeContext()
   const queryClient = useQueryClient()
   const periods = useQuery(tdeePeriodsQuery)
   const effective = useQuery(effectiveTdeeQuery(today))

@@ -9,6 +9,7 @@ import { getProfile, updateProfile } from '../auth/api'
 import { FullPageStatus } from '../auth/ProtectedRoute'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { profileSchema, selectableUnitSystem, type ProfileFormValues } from '../auth/schemas'
+import { profileTimeContextQueryKey } from '../time/queries'
 
 const profileQueryKey = ['profile'] as const
 
@@ -54,7 +55,9 @@ export function ProfilePage() {
         birthDate: values.birthDate || null,
         formulaSex: values.formulaSex || null,
       }),
-    onSuccess: (updatedProfile) => {
+    onSuccess: async (updatedProfile) => {
+      const temporalPreferencesChanged =
+        profile.data?.timeZone !== updatedProfile.timeZone || profile.data?.locale !== updatedProfile.locale
       queryClient.setQueryData(profileQueryKey, updatedProfile)
       queryClient.setQueryData(sessionQuery.queryKey, (currentSession) =>
         currentSession
@@ -69,6 +72,9 @@ export function ProfilePage() {
         birthDate: updatedProfile.birthDate ?? '',
         formulaSex: updatedProfile.formulaSex ?? '',
       })
+      if (temporalPreferencesChanged) {
+        await queryClient.invalidateQueries({ queryKey: profileTimeContextQueryKey, refetchType: 'active' })
+      }
       void invalidateAnalytics(queryClient)
     },
     onError: (error) => {

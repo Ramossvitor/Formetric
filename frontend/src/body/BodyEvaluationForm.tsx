@@ -30,10 +30,11 @@ import {
   sourceLabels,
 } from './format'
 
-interface ProfileSuggestion { birthDate: string | null; formulaSex: FormulaSex | null; timeZone: string }
+interface ProfileSuggestion { birthDate: string | null; formulaSex: FormulaSex | null }
 interface BodyEvaluationFormProps {
   initialVersion?: BodyEvaluationVersion
   profileSuggestion?: ProfileSuggestion
+  defaultAssessmentDate: string
   pending: boolean
   error: unknown
   onCancel: () => void
@@ -51,21 +52,12 @@ interface FormDraft {
 
 const steps = ['Dados gerais', 'Perimetrias', 'Dobras e resultados', 'Revisão'] as const
 const reportableMetrics = Object.keys(resultLabels) as BodyResultMetric[]
-const localIsoDate = (timeZone?: string) => {
-  if (timeZone) {
-    const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
-      .formatToParts(new Date())
-    const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? ''
-    return `${value('year')}-${value('month')}-${value('day')}`
-  }
-  const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
-}
 const emptyCircumferences = () => Object.fromEntries(allCircumferences.map((site) => [site, ''])) as Record<CircumferenceSite, string>
 const emptySkinfolds = () => Object.fromEntries(allSkinfolds.map((site) => [site, { side: 'RIGHT', value: '' }])) as Record<SkinfoldSite, { side: BodySide; value: string }>
 const draftKey = () => crypto.randomUUID()
 
-function initialDraft(version?: BodyEvaluationVersion, profile?: ProfileSuggestion): FormDraft {
-  const assessmentDate = version?.assessmentDate ?? localIsoDate(profile?.timeZone)
+function initialDraft(defaultAssessmentDate: string, version?: BodyEvaluationVersion, profile?: ProfileSuggestion): FormDraft {
+  const assessmentDate = version?.assessmentDate ?? defaultAssessmentDate
   const circumferences = emptyCircumferences(); const skinfolds = emptySkinfolds()
   for (const item of version?.circumferences ?? []) circumferences[item.site] = String(item.valueCm)
   for (const item of version?.skinfolds ?? []) skinfolds[item.site] = { side: item.side, value: String(item.valueMm) }
@@ -95,8 +87,8 @@ function rangeError(value: string, label: string, min: number, max: number, requ
   return !Number.isFinite(parsed) || parsed < min || parsed > max ? `${label} deve estar entre ${min} e ${max}.` : null
 }
 
-export function BodyEvaluationForm({ initialVersion, profileSuggestion, pending, error, onCancel, onSubmit }: BodyEvaluationFormProps) {
-  const [draft, setDraft] = useState(() => initialDraft(initialVersion, profileSuggestion))
+export function BodyEvaluationForm({ initialVersion, profileSuggestion, defaultAssessmentDate, pending, error, onCancel, onSubmit }: BodyEvaluationFormProps) {
+  const [draft, setDraft] = useState(() => initialDraft(defaultAssessmentDate, initialVersion, profileSuggestion))
   const [step, setStep] = useState(0); const [errors, setErrors] = useState<Record<string, string>>({}); const [reviewed, setReviewed] = useState(false)
   const headingRef = useRef<HTMLHeadingElement>(null); const firstStepRender = useRef(true)
   useEffect(() => { if (firstStepRender.current) { firstStepRender.current = false; return }; headingRef.current?.focus() }, [step])
