@@ -260,7 +260,7 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
 }
 
 export function HomePage() {
-  const { today } = useProfileTimeContext()
+  const { today, locale } = useProfileTimeContext()
   const [selectedDate, setSelectedDate] = useState<string>()
   const date = selectedDate ?? today
   const daily = useQuery(dailyAnalyticsQuery(date))
@@ -272,7 +272,7 @@ export function HomePage() {
       <header className="page-heading analytics-page-heading">
         <div>
           <p className="eyebrow">Resumo diário</p>
-          <h1>{date === today ? 'Hoje' : formatLongDate(date)}</h1>
+          <h1>{date === today ? 'Hoje' : formatLongDate(date, locale)}</h1>
           <p className="heading-copy">Dados registrados, cálculos do sistema e disponibilidade explícita.</p>
         </div>
         <label className="analytics-date-control">

@@ -5,6 +5,8 @@ import { useForm } from 'react-hook-form'
 import { ApiError, getErrorMessage } from '../api/http'
 import { createInvite, type CreatedInvite } from '../auth/api'
 import { createInviteSchema, type CreateInviteFormValues } from '../auth/schemas'
+import { formatInstantDateTime } from '../time/instant'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 const defaultInvite: CreateInviteFormValues = {
   email: '',
@@ -44,14 +46,8 @@ async function copyText(value: string, fallbackInput: HTMLInputElement | null) {
   if (!document.execCommand('copy')) throw new Error('Copy unavailable')
 }
 
-function formatExpiry(value: string) {
-  return new Date(value).toLocaleString('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
-}
-
 export function InvitationsPage() {
+  const { locale, timeZone } = useProfileTimeContext()
   const [result, setResult] = useState<InvitationResult | null>(null)
   const [copyState, setCopyState] = useState<CopyState>('idle')
   const resultHeadingRef = useRef<HTMLHeadingElement>(null)
@@ -229,7 +225,7 @@ export function InvitationsPage() {
             </div>
 
             <dl className="invitation-metadata">
-              <div><dt>Expira em</dt><dd>{formatExpiry(result.expiresAt)}</dd></div>
+              <div><dt>Expira em</dt><dd>{formatInstantDateTime(result.expiresAt, locale, timeZone)}</dd></div>
               <div><dt>Identificador</dt><dd>{result.id}</dd></div>
             </dl>
           </section>

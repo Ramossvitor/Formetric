@@ -27,6 +27,7 @@ import {
   sourceLabels,
 } from '../body/format'
 import { bodyEvaluationQuery, bodyEvaluationsQueryKey } from '../body/queries'
+import { formatInstant } from '../time/instant'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 const provenanceOrder: ResultProvenance[] = ['REPORTED', 'SYSTEM_CALCULATED', 'SYSTEM_DERIVED_FROM_REPORTED']
@@ -54,7 +55,7 @@ function VersionSnapshot({ version }: { version: BodyEvaluationVersion }) {
 }
 
 export function BodyEvaluationDetailPage() {
-  const { today } = useProfileTimeContext(); const { id = '' } = useParams(); const [editingVersion, setEditingVersion] = useState<BodyEvaluationVersion | null>(null); const [viewingVersionId, setViewingVersionId] = useState<string | null>(null); const queryClient = useQueryClient(); const evaluation = useQuery(bodyEvaluationQuery(id))
+  const { today, locale, timeZone } = useProfileTimeContext(); const { id = '' } = useParams(); const [editingVersion, setEditingVersion] = useState<BodyEvaluationVersion | null>(null); const [viewingVersionId, setViewingVersionId] = useState<string | null>(null); const queryClient = useQueryClient(); const evaluation = useQuery(bodyEvaluationQuery(id))
   useEffect(() => { setEditingVersion(null); setViewingVersionId(null) }, [id])
   const createVersion = useMutation({ mutationFn: ({ input, expectedVersion }: { input: BodyEvaluationVersionInput; expectedVersion: number }) => createBodyEvaluationVersion(id, { ...input, expectedCurrentVersionNumber: expectedVersion }), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: bodyEvaluationsQueryKey }); setEditingVersion(null) } })
   const archive = useMutation({ mutationFn: (restore: boolean) => restore ? restoreBodyEvaluation(id, evaluation.data!.identityVersion) : archiveBodyEvaluation(id, evaluation.data!.identityVersion), onSuccess: async () => { setEditingVersion(null); await queryClient.invalidateQueries({ queryKey: bodyEvaluationsQueryKey }) } })
@@ -68,7 +69,7 @@ export function BodyEvaluationDetailPage() {
     {createVersion.isError || archive.isError ? <p className="form-error" role="alert">{getErrorMessage(createVersion.error ?? archive.error)}</p> : null}
     {editingVersion ? <section className="body-version-editor"><div className="version-warning"><strong>Correção como nova versão</strong><span>A versão {editingVersion.versionNumber} permanecerá imutável no histórico.</span></div><BodyEvaluationForm defaultAssessmentDate={today} error={createVersion.error} initialVersion={editingVersion} onCancel={() => { createVersion.reset(); setEditingVersion(null) }} onSubmit={(input) => createVersion.mutate({ input, expectedVersion: editingVersion.versionNumber })} pending={createVersion.isPending} /></section> : <>
       <VersionSnapshot version={displayed} />
-      <section className="body-history surface-card" aria-labelledby="body-history-title"><div className="section-heading"><div><p className="eyebrow">Rastreabilidade</p><h2 id="body-history-title">Histórico de versões</h2></div><span className="history-count">{detail.versions.length}</span></div><ol>{detail.versions.map((version, index) => <li key={version.id}><span className="version-number">v{version.versionNumber}</span><span><strong>{version.title}</strong><small>{formatBodyDate(version.assessmentDate)} · {protocolLabels[version.protocol]}</small></span><time dateTime={version.createdAt}>{new Date(version.createdAt).toLocaleDateString('pt-BR')}</time>{version.id === displayed.id ? <span className="status-chip">Em exibição</span> : <button aria-label={`Ver versão ${version.versionNumber}`} className="text-button" onClick={() => { setViewingVersionId(version.id); window.scrollTo({ top: 0, behavior: 'smooth' }) }} type="button">Ver versão</button>}{index > 0 ? <Link aria-label={`Comparar versão ${version.versionNumber} com a atual`} to={comparisonHref(version, current)}>Comparar</Link> : null}</li>)}</ol></section>
+      <section className="body-history surface-card" aria-labelledby="body-history-title"><div className="section-heading"><div><p className="eyebrow">Rastreabilidade</p><h2 id="body-history-title">Histórico de versões</h2></div><span className="history-count">{detail.versions.length}</span></div><ol>{detail.versions.map((version, index) => <li key={version.id}><span className="version-number">v{version.versionNumber}</span><span><strong>{version.title}</strong><small>{formatBodyDate(version.assessmentDate)} · {protocolLabels[version.protocol]}</small></span><time dateTime={version.createdAt}>{formatInstant(version.createdAt, locale, timeZone, { dateStyle: 'short' })}</time>{version.id === displayed.id ? <span className="status-chip">Em exibição</span> : <button aria-label={`Ver versão ${version.versionNumber}`} className="text-button" onClick={() => { setViewingVersionId(version.id); window.scrollTo({ top: 0, behavior: 'smooth' }) }} type="button">Ver versão</button>}{index > 0 ? <Link aria-label={`Comparar versão ${version.versionNumber} com a atual`} to={comparisonHref(version, current)}>Comparar</Link> : null}</li>)}</ol></section>
     </>}
   </main>
 }

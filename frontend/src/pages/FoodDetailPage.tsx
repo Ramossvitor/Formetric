@@ -7,6 +7,8 @@ import { CatalogError, CatalogLoading } from '../catalog/CatalogState'
 import { FoodForm } from '../catalog/FoodForm'
 import { formatNutrition, qualityLabels, unitLabels } from '../catalog/format'
 import { foodQuery, foodsQueryKey } from '../catalog/queries'
+import { formatInstant } from '../time/instant'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 function NutritionGrid({ nutrition }: { nutrition: Parameters<typeof formatNutrition>[0] }) {
   return (
@@ -17,6 +19,7 @@ function NutritionGrid({ nutrition }: { nutrition: Parameters<typeof formatNutri
 }
 
 export function FoodDetailPage() {
+  const { locale, timeZone } = useProfileTimeContext()
   const { id = '' } = useParams()
   const [editing, setEditing] = useState(false)
   const queryClient = useQueryClient()
@@ -128,7 +131,7 @@ export function FoodDetailPage() {
                 <li key={item.id}>
                   <span className="version-number">v{item.versionNumber}</span>
                   <span><strong>{item.name}</strong><small>{item.referenceQuantity.toLocaleString('pt-BR')} {unitLabels[item.referenceUnit]} · {item.caloriesKcal.toLocaleString('pt-BR')} kcal</small></span>
-                  <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</time>
+                  <time dateTime={item.createdAt}>{formatInstant(item.createdAt, locale, timeZone, { dateStyle: 'short' })}</time>
                 </li>
               ))}
             </ol>

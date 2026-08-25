@@ -17,7 +17,7 @@ import { useProfileTimeContext } from '../time/ProfileTimeContext'
 const defaultTdee = 3000
 
 export function TdeeSettingsPage() {
-  const { today } = useProfileTimeContext()
+  const { today, locale } = useProfileTimeContext()
   const queryClient = useQueryClient()
   const periods = useQuery(tdeePeriodsQuery)
   const effective = useQuery(effectiveTdeeQuery(today))
@@ -91,7 +91,7 @@ export function TdeeSettingsPage() {
           </h2>
           <p>
             {effective.data
-              ? formatValidity(effective.data.validFrom, effective.data.validTo)
+              ? formatValidity(effective.data.validFrom, effective.data.validTo, locale)
               : 'Crie um período com início hoje ou em uma data anterior.'}
           </p>
         </div>
@@ -197,7 +197,7 @@ export function TdeeSettingsPage() {
                   <div className="period-heading">
                     <div>
                       <strong>{period.kcalPerDay.toLocaleString('pt-BR')} kcal/dia</strong>
-                      <span>{formatValidity(period.validFrom, period.validTo)}</span>
+                      <span>{formatValidity(period.validFrom, period.validTo, locale)}</span>
                     </div>
                     {effective.data?.id === period.id ? <span className="status-chip">Vigente</span> : null}
                   </div>

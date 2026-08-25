@@ -1,6 +1,7 @@
 import type { AnalyticsAvailability, AnalyticsMetric, DiaryAnalyticsStatus, NutrientType } from './api'
 import type { WorkoutModality } from '../activity/api'
 import { modalityLabels } from '../activity/format'
+import { formatPlainDate } from '../time/plainDate'
 
 const numberFormatters = new Map<number, Intl.NumberFormat>()
 
@@ -52,21 +53,16 @@ export function formatSigned(value: number, unit: string, fractionDigits = 0) {
   return `${prefix}${formatNumber(Math.abs(value), fractionDigits)} ${unit}`
 }
 
-export function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
-    .format(new Date(`${value}T12:00:00`))
-    .replace('.', '')
+export function formatDate(value: string, locale: string) {
+  return formatPlainDate(value, locale, { day: '2-digit', month: 'short' }).replace('.', '')
 }
 
-export function formatLongDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
-    .format(new Date(`${value}T12:00:00`))
+export function formatLongDate(value: string, locale: string) {
+  return formatPlainDate(value, locale, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export function formatMonth(value: string) {
-  const [year, month] = value.split('-').map(Number)
-  const label = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
-    .format(new Date(year!, month! - 1, 1))
+export function formatMonth(value: string, locale: string) {
+  const label = formatPlainDate(`${value}-01`, locale, { month: 'long', year: 'numeric' })
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 

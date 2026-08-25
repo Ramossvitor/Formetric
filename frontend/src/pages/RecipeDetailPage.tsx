@@ -7,6 +7,8 @@ import { CatalogError, CatalogLoading } from '../catalog/CatalogState'
 import { formatNutrition, unitLabels } from '../catalog/format'
 import { recipeQuery, recipesQueryKey } from '../catalog/queries'
 import { RecipeForm } from '../catalog/RecipeForm'
+import { formatInstant } from '../time/instant'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 
 function NutritionBlock({ nutrition, title }: { nutrition: NutritionValues | null; title: string }) {
   return (
@@ -20,6 +22,7 @@ function NutritionBlock({ nutrition, title }: { nutrition: NutritionValues | nul
 }
 
 export function RecipeDetailPage() {
+  const { locale, timeZone } = useProfileTimeContext()
   const { id = '' } = useParams()
   const [editing, setEditing] = useState(false)
   const navigate = useNavigate()
@@ -119,7 +122,7 @@ export function RecipeDetailPage() {
                 <li key={item.id}>
                   <span className="version-number">v{item.versionNumber}</span>
                   <span><strong>{item.name}</strong><small>{item.ingredients.length} ingredientes · {item.totalNutrition.caloriesKcal.toLocaleString('pt-BR')} kcal</small></span>
-                  <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</time>
+                  <time dateTime={item.createdAt}>{formatInstant(item.createdAt, locale, timeZone, { dateStyle: 'short' })}</time>
                 </li>
               ))}
             </ol>

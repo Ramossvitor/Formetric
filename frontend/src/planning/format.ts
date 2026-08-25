@@ -1,3 +1,4 @@
+import { formatPlainDate } from '../time/plainDate'
 import type { GoalBand, NutritionGoalPeriod, Nutrient } from './api'
 
 const nutrientLabels: Record<Nutrient, string> = {
@@ -9,17 +10,16 @@ const nutrientLabels: Record<Nutrient, string> = {
   WATER: 'Água',
 }
 
-export function formatIsoDate(date: string) {
-  const [year, month, day] = date.split('-').map(Number)
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(year, month - 1, day))
+export function formatIsoDate(date: string, locale: string) {
+  return formatPlainDate(date, locale, { dateStyle: 'short' })
 }
 
-export function formatValidity(validFrom: string, validTo: string | null) {
+export function formatValidity(validFrom: string, validTo: string | null, locale: string) {
   if (!validTo) {
-    return `Desde ${formatIsoDate(validFrom)}`
+    return `Desde ${formatIsoDate(validFrom, locale)}`
   }
 
-  return `${formatIsoDate(validFrom)} — antes de ${formatIsoDate(validTo)}`
+  return `${formatIsoDate(validFrom, locale)} — antes de ${formatIsoDate(validTo, locale)}`
 }
 
 function thresholdBand(bands: GoalBand[]) {

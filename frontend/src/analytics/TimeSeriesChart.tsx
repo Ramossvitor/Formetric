@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import type { AnalyticsSeries } from './api'
+import { useProfileTimeContext } from '../time/ProfileTimeContext'
 import { availabilityLabels, formatDate, formatNumber, metricLabels } from './format'
 
 const WIDTH = 800
@@ -32,6 +33,7 @@ function segmentPaths(points: Array<PlotPoint | null>) {
 }
 
 export function TimeSeriesChart({ series }: { series: AnalyticsSeries }) {
+  const { locale } = useProfileTimeContext()
   const accessibleId = useId()
   const values = series.points
     .filter((point) => point.availability === 'AVAILABLE' && point.value != null)
@@ -75,7 +77,7 @@ export function TimeSeriesChart({ series }: { series: AnalyticsSeries }) {
     <figure className="analytics-chart-figure">
       <svg aria-labelledby={`${accessibleId}-title ${accessibleId}-description`} preserveAspectRatio="xMidYMid meet" role="img" viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
         <title id={`${accessibleId}-title`}>{metricLabels[series.metric]} por dia</title>
-        <desc id={`${accessibleId}-description`}>De {formatDate(series.from)} a {formatDate(series.to)}, com {values.length} de {series.points.length} pontos disponíveis. Lacunas interrompem a linha e não são interpoladas.</desc>
+        <desc id={`${accessibleId}-description`}>De {formatDate(series.from, locale)} a {formatDate(series.to, locale)}, com {values.length} de {series.points.length} pontos disponíveis. Lacunas interrompem a linha e não são interpoladas.</desc>
         <g className="chart-grid">
           {[0, 0.5, 1].map((ratio) => {
             const y = PADDING_TOP + ratio * plotHeight
@@ -88,13 +90,13 @@ export function TimeSeriesChart({ series }: { series: AnalyticsSeries }) {
           {segments.filter((segment) => segment.length > 1).map((segment) => (
             <polyline key={`${segment[0]!.date}-${segment.at(-1)!.date}`} points={segment.map((point) => `${point.x},${point.y}`).join(' ')} />
           ))}
-          {points.map((point) => point ? <circle cx={point.x} cy={point.y} key={point.date} r={series.points.length > 100 ? 2 : 3.5}><title>{`${formatDate(point.date)}: ${formatNumber(point.value, series.metric === 'WEIGHT' ? 2 : 1)} ${series.unit}`}</title></circle> : null)}
+          {points.map((point) => point ? <circle cx={point.x} cy={point.y} key={point.date} r={series.points.length > 100 ? 2 : 3.5}><title>{`${formatDate(point.date, locale)}: ${formatNumber(point.value, series.metric === 'WEIGHT' ? 2 : 1)} ${series.unit}`}</title></circle> : null)}
         </g>
         <g className="chart-date-ticks">
           {dateTicks.map((point) => {
             const index = series.points.findIndex((candidate) => candidate.date === point!.date)
             const x = PADDING_X + (index / denominator) * plotWidth
-            return <text key={point!.date} textAnchor={index === 0 ? 'start' : index === series.points.length - 1 ? 'end' : 'middle'} x={x} y={HEIGHT - 12}>{formatDate(point!.date)}</text>
+            return <text key={point!.date} textAnchor={index === 0 ? 'start' : index === series.points.length - 1 ? 'end' : 'middle'} x={x} y={HEIGHT - 12}>{formatDate(point!.date, locale)}</text>
           })}
         </g>
       </svg>

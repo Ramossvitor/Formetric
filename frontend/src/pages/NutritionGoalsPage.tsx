@@ -24,7 +24,7 @@ import { useProfileTimeContext } from '../time/ProfileTimeContext'
 const targetIndexes = [0, 1, 2, 3, 4, 5] as const
 
 export function NutritionGoalsPage() {
-  const { today } = useProfileTimeContext()
+  const { today, locale } = useProfileTimeContext()
   const [editorVersion, setEditorVersion] = useState(0)
   const queryClient = useQueryClient()
   const periods = useQuery(nutritionGoalPeriodsQuery)
@@ -111,7 +111,7 @@ export function NutritionGoalsPage() {
             </h2>
             <p>
               {effective.data
-                ? formatValidity(effective.data.validFrom, effective.data.validTo)
+                ? formatValidity(effective.data.validFrom, effective.data.validTo, locale)
                 : 'Crie um período com início hoje ou em uma data anterior.'}
             </p>
           </div>
@@ -246,7 +246,7 @@ export function NutritionGoalsPage() {
                           ? 'Meta nominal não configurada'
                           : `${period.calorieTarget.toLocaleString('pt-BR')} kcal/dia`}
                       </strong>
-                      <span>{formatValidity(period.validFrom, period.validTo)}</span>
+                      <span>{formatValidity(period.validFrom, period.validTo, locale)}</span>
                     </div>
                     {effective.data?.id === period.id ? <span className="status-chip">Vigente</span> : null}
                   </div>

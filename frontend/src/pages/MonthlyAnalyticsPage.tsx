@@ -73,6 +73,7 @@ function AttainmentRow({ item }: { item: GoalAttainment }) {
 }
 
 function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
+  const { locale } = useProfileTimeContext()
   const hasElapsedDays = data.elapsedCalendarDays > 0
   const orderedGoalAttainment = [...data.goalAttainment].sort(
     (first, second) => attainmentOrder[first.nutrient] - attainmentOrder[second.nutrient],
@@ -119,10 +120,10 @@ function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
           <span>{data.energy.missingNutritionDays} dia{data.energy.missingNutritionDays === 1 ? '' : 's'} sem nutrição calculável</span>
         </div>
         <div className="analytics-extremes-grid">
-          <article><span>Maior déficit</span>{data.energy.largestDeficit ? <><strong>{formatSigned(data.energy.largestDeficit.balanceKcal, 'kcal')}</strong><small>{formatDate(data.energy.largestDeficit.date)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
-          <article><span>Maior superávit</span>{data.energy.largestSurplus ? <><strong>{formatSigned(data.energy.largestSurplus.balanceKcal, 'kcal')}</strong><small>{formatDate(data.energy.largestSurplus.date)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
-          <article><span>Maior consumo</span>{data.highestConsumption ? <><strong>{formatNumber(data.highestConsumption.caloriesKcal)} kcal</strong><small>{formatDate(data.highestConsumption.date)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
-          <article><span>Menor consumo</span>{data.lowestConsumption ? <><strong>{formatNumber(data.lowestConsumption.caloriesKcal)} kcal</strong><small>{formatDate(data.lowestConsumption.date)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
+          <article><span>Maior déficit</span>{data.energy.largestDeficit ? <><strong>{formatSigned(data.energy.largestDeficit.balanceKcal, 'kcal')}</strong><small>{formatDate(data.energy.largestDeficit.date, locale)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
+          <article><span>Maior superávit</span>{data.energy.largestSurplus ? <><strong>{formatSigned(data.energy.largestSurplus.balanceKcal, 'kcal')}</strong><small>{formatDate(data.energy.largestSurplus.date, locale)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
+          <article><span>Maior consumo</span>{data.highestConsumption ? <><strong>{formatNumber(data.highestConsumption.caloriesKcal)} kcal</strong><small>{formatDate(data.highestConsumption.date, locale)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
+          <article><span>Menor consumo</span>{data.lowestConsumption ? <><strong>{formatNumber(data.lowestConsumption.caloriesKcal)} kcal</strong><small>{formatDate(data.lowestConsumption.date, locale)}</small></> : <strong className="analytics-missing">Sem dado</strong>}</article>
         </div>
       </section>
 
@@ -167,7 +168,7 @@ function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
 }
 
 export function MonthlyAnalyticsPage() {
-  const { today } = useProfileTimeContext()
+  const { today, locale } = useProfileTimeContext()
   const [selectedMonth, setSelectedMonth] = useState<string>()
   const month = selectedMonth ?? today.slice(0, 7)
   const monthly = useQuery(monthlyAnalyticsQuery(month))
@@ -177,7 +178,7 @@ export function MonthlyAnalyticsPage() {
   return (
     <main id="conteudo">
       <header className="page-heading analytics-page-heading">
-        <div><p className="eyebrow">Consolidado</p><h1>{month ? formatMonth(month) : 'Resumo mensal'}</h1><p className="heading-copy">Médias e totais calculados apenas com dados históricos elegíveis.</p></div>
+        <div><p className="eyebrow">Consolidado</p><h1>{month ? formatMonth(month, locale) : 'Resumo mensal'}</h1><p className="heading-copy">Médias e totais calculados apenas com dados históricos elegíveis.</p></div>
         <label className="analytics-date-control"><span>Mês analisado</span><input max={today.slice(0, 7)} onChange={(event) => setSelectedMonth(event.target.value || undefined)} type="month" value={month} /></label>
       </header>
       <AnalyticsTabs />
