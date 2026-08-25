@@ -35,6 +35,7 @@ pnpm-debug.log*
 playwright-report/
 test-results/
 blob-report/
+.playwright-mcp/
 
 # IDEs and editors
 .idea/
