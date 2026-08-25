@@ -1,0 +1,23 @@
+spring:
+  config:
+    activate:
+      on-profile: migrate
+  main:
+    web-application-type: none
+  datasource:
+    url: ${DB_DIRECT_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 0
+  flyway:
+    url: ${DB_DIRECT_URL}
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+formetric:
+  bootstrap:
+    admin-email: ""
+    admin-password: ""
+    admin-display-name: ""
