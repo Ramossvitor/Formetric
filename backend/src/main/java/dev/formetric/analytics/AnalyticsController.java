@@ -56,12 +56,6 @@ class AnalyticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return analyticsService.series(metric, from, to);
     }
-
-    @GetMapping("/bounds")
-    @Operation(summary = "Read the combined available date bounds for diary, workout and weight data")
-    AnalyticsBoundsResponse bounds() {
-        return analyticsService.bounds();
-    }
 }
 
 record DailyAnalyticsResponse(
@@ -211,7 +205,4 @@ record AnalyticsSeriesPointResponse(
         LocalDate date,
         BigDecimal value,
         AnalyticsAvailability availability) {
-}
-
-record AnalyticsBoundsResponse(LocalDate earliestDate, LocalDate latestDate, LocalDate today) {
 }

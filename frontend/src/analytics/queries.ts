@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query'
-import { getAnalyticsBounds, getAnalyticsSeries, getDailyAnalytics, getMonthlyAnalytics, type AnalyticsMetric } from './api'
+import { getAnalyticsSeries, getDailyAnalytics, getMonthlyAnalytics, type AnalyticsMetric } from './api'
 
 export const analyticsQueryKey = ['analytics'] as const
 
@@ -7,12 +7,6 @@ export const analyticsQueryKey = ['analytics'] as const
 export function invalidateAnalytics(queryClient: QueryClient) {
   return queryClient.invalidateQueries({ queryKey: analyticsQueryKey })
 }
-
-export const analyticsBoundsQuery = queryOptions({
-  queryKey: [...analyticsQueryKey, 'bounds'],
-  queryFn: getAnalyticsBounds,
-  staleTime: 5 * 60 * 1000,
-})
 
 export function dailyAnalyticsQuery(date: string | undefined) {
   return queryOptions({

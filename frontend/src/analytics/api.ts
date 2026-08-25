@@ -166,12 +166,6 @@ export interface AnalyticsSeries {
   points: AnalyticsSeriesPoint[]
 }
 
-export interface AnalyticsBounds {
-  earliestDate: string | null
-  latestDate: string | null
-  today: string
-}
-
 export function getDailyAnalytics(date: string): Promise<DailyAnalytics> {
   return apiRequest<DailyAnalytics>(`/api/v1/analytics/daily?${new URLSearchParams({ date })}`)
 }
@@ -182,8 +176,4 @@ export function getMonthlyAnalytics(month: string): Promise<MonthlyAnalytics> {
 
 export function getAnalyticsSeries(metric: AnalyticsMetric, from: string, to: string): Promise<AnalyticsSeries> {
   return apiRequest<AnalyticsSeries>(`/api/v1/analytics/series?${new URLSearchParams({ metric, from, to })}`)
-}
-
-export function getAnalyticsBounds(): Promise<AnalyticsBounds> {
-  return apiRequest<AnalyticsBounds>('/api/v1/analytics/bounds')
 }

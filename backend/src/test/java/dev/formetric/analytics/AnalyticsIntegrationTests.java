@@ -232,13 +232,7 @@ class AnalyticsIntegrationTests {
 
     @Test
     @WithMockUser(username = "analytics-user")
-    void currentZoneBoundsFutureMonthAndTenantIsolationRemainExplicit() throws Exception {
-        mockMvc.perform(get("/api/v1/analytics/bounds"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.earliestDate").value("2026-08-01"))
-                .andExpect(jsonPath("$.latestDate").value("2026-08-06"))
-                .andExpect(jsonPath("$.today").value("2026-08-12"));
-
+    void futureMonthAndTenantIsolationRemainExplicit() throws Exception {
         mockMvc.perform(get("/api/v1/analytics/monthly").queryParam("month", "2026-09"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.throughDate").doesNotExist())
@@ -307,7 +301,7 @@ class AnalyticsIntegrationTests {
 
     @Test
     void analyticsRequiresAuthentication() throws Exception {
-        mockMvc.perform(get("/api/v1/analytics/bounds"))
+        mockMvc.perform(get("/api/v1/analytics/daily").queryParam("date", "2026-08-01"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
@@ -320,7 +314,6 @@ class AnalyticsIntegrationTests {
                 .andExpect(jsonPath("$.paths['/api/v1/analytics/daily'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/analytics/monthly'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/analytics/series'].get").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/analytics/bounds'].get").exists())
                 .andExpect(jsonPath("$.components.schemas.GoalProgressResponse.properties.bandTone").exists())
                 .andExpect(jsonPath("$.components.schemas.DiaryGoalProgressResponse.properties.bandTone").exists())
                 .andExpect(jsonPath("$.components.schemas.CreateNutritionGoalPeriodRequest.properties.targets.maxItems")

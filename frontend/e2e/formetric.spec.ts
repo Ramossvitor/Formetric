@@ -209,9 +209,9 @@ test('connects weight, workout and body records to monthly and chart analytics',
   const member = await acceptInvite(browser, invite.token, `Tracking ${testSuffix}`)
 
   try {
-    const boundsResponse = await member.page.request.get('/api/v1/analytics/bounds')
-    await expect(boundsResponse).toBeOK()
-    const { today } = await boundsResponse.json() as { today: string }
+    const timeContextResponse = await member.page.request.get('/api/v1/profile/time-context')
+    await expect(timeContextResponse).toBeOK()
+    const { today } = await timeContextResponse.json() as { today: string }
 
     await member.page.goto('/progress/weight?action=new')
     const weightDialog = member.page.getByRole('dialog', { name: 'Registrar peso' })

@@ -16,8 +16,6 @@ const session = {
   user: { id: 'user-1', email: 'vitor@example.com', displayName: 'Vitor Ramos', role: 'USER' as const },
 }
 
-const bounds = { earliestDate: '2026-07-01', latestDate: '2026-08-12', today: '2026-08-12' }
-
 const openDaily: DailyAnalytics = {
   date: '2026-08-12',
   diaryStatus: 'OPEN',
@@ -118,7 +116,6 @@ describe('painéis determinísticos', () => {
   it('usa o hoje do servidor e distingue projeção aberta de saldo histórico', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input)
-      if (path === '/api/v1/analytics/bounds') return jsonResponse(bounds)
       if (path === '/api/v1/analytics/daily?date=2026-08-12') return jsonResponse(openDaily)
       throw new Error(`Requisição não esperada: ${path}`)
     })
@@ -162,7 +159,6 @@ describe('painéis determinísticos', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input)
-      if (path === '/api/v1/analytics/bounds') return jsonResponse(bounds)
       if (path === '/api/v1/analytics/daily?date=2026-08-12') return jsonResponse(withoutValues)
       throw new Error(`Requisição não esperada: ${path}`)
     })
@@ -201,7 +197,7 @@ describe('painéis determinísticos', () => {
     expect(fetchMock.mock.calls.map(([path]) => String(path)).some((path) => path.includes('undefined'))).toBe(false)
   })
 
-  it('move Home, Mensal e Gráficos quando o contexto atravessa mês sem consultar bounds como relógio', async () => {
+  it('move Home, Mensal e Gráficos quando o contexto do perfil atravessa o mês', async () => {
     const nextTime: ProfileTimeContext = {
       ...fixedProfileTimeContext,
       serverNow: parseInstant('2026-09-01T03:00:01Z'),
@@ -246,13 +242,11 @@ describe('painéis determinísticos', () => {
     const charts = renderApp('/analytics/charts')
     act(() => charts.queryClient.setQueryData(profileTimeContextQueryKey, nextTime))
     await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => String(path).includes('to=2026-09-01'))).toBe(true))
-    expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/analytics/bounds')).toBe(false)
   })
 
   it('renderiza médias independentes, energia, metas e peso do contrato mensal', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input)
-      if (path === '/api/v1/analytics/bounds') return jsonResponse(bounds)
       if (path === '/api/v1/analytics/monthly?month=2026-08') return jsonResponse(monthlyData)
       throw new Error(`Requisição não esperada: ${path}`)
     })
@@ -288,7 +282,6 @@ describe('painéis determinísticos', () => {
     }
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input)
-      if (path === '/api/v1/analytics/bounds') return jsonResponse(bounds)
       if (path === '/api/v1/analytics/monthly?month=2026-08') return jsonResponse(legacyMonthly)
       throw new Error(`Requisição não esperada: ${path}`)
     })
@@ -305,7 +298,6 @@ describe('painéis determinísticos', () => {
   it('solicita séries dentro do limite e preserva os motivos das lacunas', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input)
-      if (path === '/api/v1/analytics/bounds') return jsonResponse(bounds)
       if (path.startsWith('/api/v1/analytics/series?')) {
         const params = new URL(path, 'https://formetric.test').searchParams
         const metric = params.get('metric')!

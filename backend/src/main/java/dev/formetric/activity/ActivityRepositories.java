@@ -23,10 +23,6 @@ interface WorkoutRepository extends JpaRepository<Workout, UUID> {
 
     @EntityGraph(attributePaths = "muscleGroups")
     Optional<Workout> findByIdAndUserId(UUID id, UUID userId);
-
-    Optional<Workout> findFirstByUserIdOrderByDateAsc(UUID userId);
-
-    Optional<Workout> findFirstByUserIdOrderByDateDesc(UUID userId);
 }
 
 interface WeightLogRepository extends JpaRepository<WeightLog, UUID> {
@@ -35,10 +31,6 @@ interface WeightLogRepository extends JpaRepository<WeightLog, UUID> {
             UUID userId, LocalDate from, LocalDate to);
 
     Optional<WeightLog> findByUserIdAndDate(UUID userId, LocalDate date);
-
-    Optional<WeightLog> findFirstByUserIdOrderByDateAsc(UUID userId);
-
-    Optional<WeightLog> findFirstByUserIdOrderByDateDesc(UUID userId);
 }
 
 interface WorkoutIdempotencyRepository

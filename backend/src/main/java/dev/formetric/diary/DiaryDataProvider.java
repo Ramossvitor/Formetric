@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -119,28 +118,6 @@ public class DiaryDataProvider {
         });
     }
 
-    @Transactional(readOnly = true)
-    public Optional<DateBounds> bounds() {
-        UUID userId = currentUserProvider.requireCurrentUser().id();
-        Map<String, Object> result = jdbcTemplate.queryForMap(
-                """
-                SELECT min(log_date) AS earliest_date, max(log_date) AS latest_date
-                FROM daily_logs
-                WHERE user_id = :userId
-                """,
-                Map.of("userId", userId));
-        LocalDate earliest = toLocalDate(result.get("earliest_date"));
-        LocalDate latest = toLocalDate(result.get("latest_date"));
-        return earliest == null ? Optional.empty() : Optional.of(new DateBounds(earliest, latest));
-    }
-
-    private static LocalDate toLocalDate(Object value) {
-        if (value instanceof LocalDate localDate) {
-            return localDate;
-        }
-        return value instanceof Date date ? date.toLocalDate() : null;
-    }
-
     private static void requireDate(LocalDate date, String name) {
         if (date == null) {
             throw new IllegalArgumentException(name + " is required");
@@ -159,8 +136,5 @@ public class DiaryDataProvider {
             BigDecimal fiberG,
             int waterEntryCount,
             BigDecimal waterMl) {
-    }
-
-    public record DateBounds(LocalDate earliestDate, LocalDate latestDate) {
     }
 }

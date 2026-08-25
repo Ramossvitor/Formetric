@@ -198,25 +198,6 @@ class AnalyticsService {
         return new AnalyticsSeriesResponse(metric, unit(metric), from, to, points);
     }
 
-    AnalyticsBoundsResponse bounds() {
-        Optional<DiaryDataProvider.DateBounds> diaryBounds = diaryDataProvider.bounds();
-        Optional<ActivityDataProvider.DateBounds> activityBounds = activityDataProvider.bounds();
-        List<LocalDate> earliest = java.util.stream.Stream.of(
-                        diaryBounds.map(DiaryDataProvider.DateBounds::earliestDate),
-                        activityBounds.map(ActivityDataProvider.DateBounds::earliestDate))
-                .flatMap(Optional::stream)
-                .toList();
-        List<LocalDate> latest = java.util.stream.Stream.of(
-                        diaryBounds.map(DiaryDataProvider.DateBounds::latestDate),
-                        activityBounds.map(ActivityDataProvider.DateBounds::latestDate))
-                .flatMap(Optional::stream)
-                .toList();
-        return new AnalyticsBoundsResponse(
-                earliest.stream().min(LocalDate::compareTo).orElse(null),
-                latest.stream().max(LocalDate::compareTo).orElse(null),
-                today());
-    }
-
     private AnalyticsSeriesPointResponse seriesPoint(
             AnalyticsMetric metric,
             LocalDate date,

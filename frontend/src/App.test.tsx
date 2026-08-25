@@ -27,8 +27,6 @@ const userProfile = {
   formulaSex: null,
 }
 
-const analyticsBounds = { earliestDate: null, latestDate: null, today: fixedProfileTimeContext.today }
-
 const emptyDailyAnalytics = {
   date: fixedProfileTimeContext.today,
   diaryStatus: 'MISSING',
@@ -49,7 +47,6 @@ const emptyDailyAnalytics = {
 
 function analyticsResponse(path: string) {
   if (path === '/api/v1/profile/time-context') return jsonResponse(fixedProfileTimeContext)
-  if (path === '/api/v1/analytics/bounds') return jsonResponse(analyticsBounds)
   if (path === `/api/v1/analytics/daily?date=${fixedProfileTimeContext.today}`) return jsonResponse(emptyDailyAnalytics)
   return undefined
 }
