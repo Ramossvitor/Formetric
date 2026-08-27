@@ -1,11 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { setRecipeFavorite } from '../catalog/api'
-import { CatalogError, CatalogLoading } from '../catalog/CatalogState'
+import { CatalogCount, CatalogError, CatalogLoading, CatalogLoadMore } from '../catalog/CatalogState'
 import { formatNumber } from '../catalog/format'
-import { recipesQuery, recipesQueryKey } from '../catalog/queries'
+import { recipesInfiniteQuery, recipesQueryKey } from '../catalog/queries'
 import { useDebouncedValue } from '../catalog/useDebouncedValue'
 
 export function RecipesPage() {
@@ -14,8 +14,10 @@ export function RecipesPage() {
   const [catalogView, setCatalogView] = useState<'active' | 'archived'>('active')
   const debouncedSearch = useDebouncedValue(search)
   const queryClient = useQueryClient()
-  const recipes = useQuery(recipesQuery(debouncedSearch, favoritesOnly, catalogView === 'archived'))
-  const visibleRecipes = recipes.data?.content.filter((recipe) => recipe.archived === (catalogView === 'archived')) ?? []
+  const recipes = useInfiniteQuery(recipesInfiniteQuery(debouncedSearch, favoritesOnly, catalogView === 'archived'))
+  const loadedRecipes = recipes.data?.pages.flatMap((page) => page.content) ?? []
+  const visibleRecipes = loadedRecipes.filter((recipe) => recipe.archived === (catalogView === 'archived'))
+  const totalRecipes = recipes.data?.pages[0]?.totalElements ?? 0
   const favorite = useMutation({
     mutationFn: ({ id, value }: { id: string; value: boolean }) => setRecipeFavorite(id, value),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: recipesQueryKey }),
@@ -49,7 +51,7 @@ export function RecipesPage() {
       {recipes.isError ? <CatalogError error={recipes.error} onRetry={() => void recipes.refetch()} /> : null}
       {favorite.isError ? <p className="form-error catalog-feedback" role="alert">{getErrorMessage(favorite.error)}</p> : null}
 
-      {recipes.data && visibleRecipes.length === 0 ? (
+      {recipes.data && visibleRecipes.length === 0 && !recipes.hasNextPage ? (
         <section className="empty-state surface-card">
           <span aria-hidden="true">♨</span>
           <h2>{catalogView === 'archived' ? 'Nenhuma receita arquivada' : debouncedSearch || favoritesOnly ? 'Nenhuma receita encontrada' : 'Nenhuma receita cadastrada'}</h2>
@@ -58,9 +60,16 @@ export function RecipesPage() {
         </section>
       ) : null}
 
-      {recipes.data && visibleRecipes.length > 0 ? (
+      {recipes.data && (visibleRecipes.length > 0 || recipes.hasNextPage) ? (
         <section aria-label="Resultados" className="recipe-grid">
-          <p aria-live="polite" className="result-count">{visibleRecipes.length} {visibleRecipes.length === 1 ? 'receita' : 'receitas'} {catalogView === 'archived' ? 'arquivadas' : 'ativas'}</p>
+          <CatalogCount
+            gender="f"
+            hasMore={recipes.hasNextPage}
+            loaded={visibleRecipes.length}
+            noun={catalogView === 'archived' ? ['receita arquivada', 'receitas arquivadas'] : ['receita ativa', 'receitas ativas']}
+            showTotal={catalogView !== 'archived'}
+            total={totalRecipes}
+          />
           {visibleRecipes.map((recipe) => {
             const version = recipe.currentVersion
             return (
@@ -77,6 +86,7 @@ export function RecipesPage() {
               </article>
             )
           })}
+          {recipes.hasNextPage ? <CatalogLoadMore isLoading={recipes.isFetchingNextPage} onLoadMore={() => void recipes.fetchNextPage()} /> : null}
         </section>
       ) : null}
     </main>

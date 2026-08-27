@@ -2,7 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { useFieldArray, useForm } from 'react-hook-form'
 import type { FoodSummary, RecipeVersion, RecipeVersionInput } from './api'
-import { CatalogError, CatalogLoading } from './CatalogState'
+import { CATALOG_PAGE_SIZE } from './api'
+import { CatalogError, CatalogLoading, CatalogTruncationHint } from './CatalogState'
 import { unitLabels } from './format'
 import { foodsQuery } from './queries'
 import { recipeFormSchema, type RecipeFormValues } from './schemas'
@@ -72,6 +73,9 @@ export function RecipeForm({ initialVersion, pending, submitLabel, onCancel, onS
   if (foods.isError) return <CatalogError error={foods.error} onRetry={() => void foods.refetch()} />
 
   const availableFoods = foods.data.content
+  // O seletor busca uma página só e não tem campo de busca: sem este aviso, quem tem um catálogo
+  // maior que a página conclui que o alimento não existe.
+  const truncated = foods.data.totalElements > availableFoods.length
 
   return (
     <form
@@ -148,6 +152,7 @@ export function RecipeForm({ initialVersion, pending, submitLabel, onCancel, onS
                   ))}
                 </select>
                 {errors.ingredients?.[index]?.foodVersionId ? <span className="field-error">{errors.ingredients[index]?.foodVersionId?.message}</span> : null}
+                {truncated ? <CatalogTruncationHint message={`A lista mostra apenas os primeiros ${CATALOG_PAGE_SIZE} alimentos do catálogo.`} /> : null}
               </div>
               <div className="field-group">
                 <label htmlFor={`ingredient-${index}-quantity`}>Quantidade</label>

@@ -1,11 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { setFoodFavorite } from '../catalog/api'
-import { CatalogError, CatalogLoading } from '../catalog/CatalogState'
+import { CatalogCount, CatalogError, CatalogLoading, CatalogLoadMore } from '../catalog/CatalogState'
 import { formatNumber, qualityLabels, unitLabels } from '../catalog/format'
-import { foodsQuery, foodsQueryKey } from '../catalog/queries'
+import { foodsInfiniteQuery, foodsQueryKey } from '../catalog/queries'
 import { useDebouncedValue } from '../catalog/useDebouncedValue'
 
 export function FoodsPage() {
@@ -14,8 +14,10 @@ export function FoodsPage() {
   const [catalogView, setCatalogView] = useState<'active' | 'archived'>('active')
   const debouncedSearch = useDebouncedValue(search)
   const queryClient = useQueryClient()
-  const foods = useQuery(foodsQuery(debouncedSearch, favoritesOnly, catalogView === 'archived'))
-  const visibleFoods = foods.data?.content.filter((food) => food.archived === (catalogView === 'archived')) ?? []
+  const foods = useInfiniteQuery(foodsInfiniteQuery(debouncedSearch, favoritesOnly, catalogView === 'archived'))
+  const loadedFoods = foods.data?.pages.flatMap((page) => page.content) ?? []
+  const visibleFoods = loadedFoods.filter((food) => food.archived === (catalogView === 'archived'))
+  const totalFoods = foods.data?.pages[0]?.totalElements ?? 0
   const favoriteMutation = useMutation({
     mutationFn: ({ id, favorite }: { id: string; favorite: boolean }) => setFoodFavorite(id, favorite),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: foodsQueryKey }),
@@ -63,7 +65,7 @@ export function FoodsPage() {
       {foods.isError ? <CatalogError error={foods.error} onRetry={() => void foods.refetch()} /> : null}
       {favoriteMutation.isError ? <p className="form-error catalog-feedback" role="alert">{getErrorMessage(favoriteMutation.error)}</p> : null}
 
-      {foods.data && visibleFoods.length === 0 ? (
+      {foods.data && visibleFoods.length === 0 && !foods.hasNextPage ? (
         <section className="empty-state surface-card">
           <span aria-hidden="true">⌕</span>
           <h2>{catalogView === 'archived' ? 'Nenhum alimento arquivado' : debouncedSearch || favoritesOnly ? 'Nenhum alimento encontrado' : 'Sua biblioteca está vazia'}</h2>
@@ -72,9 +74,16 @@ export function FoodsPage() {
         </section>
       ) : null}
 
-      {foods.data && visibleFoods.length > 0 ? (
+      {foods.data && (visibleFoods.length > 0 || foods.hasNextPage) ? (
         <section aria-label="Resultados" className="catalog-list">
-          <p aria-live="polite" className="result-count">{visibleFoods.length} {visibleFoods.length === 1 ? 'alimento' : 'alimentos'} {catalogView === 'archived' ? 'arquivados' : 'ativos'}</p>
+          <CatalogCount
+            gender="m"
+            hasMore={foods.hasNextPage}
+            loaded={visibleFoods.length}
+            noun={catalogView === 'archived' ? ['alimento arquivado', 'alimentos arquivados'] : ['alimento ativo', 'alimentos ativos']}
+            showTotal={catalogView !== 'archived'}
+            total={totalFoods}
+          />
           {visibleFoods.map((food) => {
             const version = food.currentVersion
             return (
@@ -104,6 +113,7 @@ export function FoodsPage() {
               </article>
             )
           })}
+          {foods.hasNextPage ? <CatalogLoadMore isLoading={foods.isFetchingNextPage} onLoadMore={() => void foods.fetchNextPage()} /> : null}
         </section>
       ) : null}
     </main>

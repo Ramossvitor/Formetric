@@ -326,4 +326,34 @@ describe('catálogo', () => {
     const body = JSON.parse(String(createCall?.[1]?.body))
     expect(body.ingredients).toEqual([{ foodVersionId: foodVersion.id, quantity: 30, unit: 'G', referenceQuantityEquivalent: null }])
   })
+
+  it('carrega as páginas seguintes do catálogo em vez de truncar em silêncio', async () => {
+    const secondFood = {
+      ...food,
+      id: 'food-2',
+      currentVersion: { ...foodVersion, id: 'food-version-2', name: 'Arroz integral' },
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path.includes('/api/v1/foods?')) {
+        const requested = new URLSearchParams(path.split('?')[1]).get('page')
+        return jsonResponse(requested === '1'
+          ? { content: [secondFood], page: 1, size: 100, totalElements: 2, totalPages: 2 }
+          : { content: [food], page: 0, size: 100, totalElements: 2, totalPages: 2 })
+      }
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+    const user = userEvent.setup()
+    renderRoute('/foods')
+
+    expect(await screen.findByText('1 de 2 alimentos ativos')).toBeInTheDocument()
+    expect(screen.queryByText('Arroz integral')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Carregar mais' }))
+
+    expect(await screen.findByText('Arroz integral')).toBeInTheDocument()
+    expect(screen.getByText('2 alimentos ativos')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Carregar mais' })).not.toBeInTheDocument()
+  })
 })

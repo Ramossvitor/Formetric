@@ -4,7 +4,7 @@ import type { DataQuality, FoodSummary, FoodUnit, RecipeSummary } from '../catal
 import { qualityLabels, unitLabels } from '../catalog/format'
 import { foodsQuery, recipesQuery } from '../catalog/queries'
 import { useDebouncedValue } from '../catalog/useDebouncedValue'
-import { CatalogError, CatalogLoading } from '../catalog/CatalogState'
+import { CatalogError, CatalogLoading, CatalogTruncationHint } from '../catalog/CatalogState'
 import type { MealItem, MealItemInput } from './api'
 
 type CatalogChoice =
@@ -102,6 +102,11 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
   if (foods.isPending || recipes.isPending) return <CatalogLoading message="Carregando alimentos e receitas…" />
   if (foods.isError || recipes.isError) return <CatalogError error={foods.error ?? recipes.error} onRetry={() => { void foods.refetch(); void recipes.refetch() }} />
 
+  // O seletor busca uma página só. Sem este aviso, um catálogo maior que a página perde itens
+  // silenciosamente e o usuário conclui que o alimento não existe.
+  const truncated = foods.data.totalElements > foods.data.content.length
+    || recipes.data.totalElements > recipes.data.content.length
+
   const measure = measureChoices.find((candidate) => candidate.key === measureKey)
   const numericQuantity = Number(quantity)
   const valid = selected && measure && Number.isFinite(numericQuantity) && numericQuantity > 0
@@ -130,6 +135,7 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
           <option value="">Selecione…</option>
           {choices.map((choice) => <option key={`${choice.type}-${choice.id}`} value={choice.id}>{choice.name}{choice.type === 'RECIPE' ? ' · receita' : ''}</option>)}
         </select>
+        {truncated ? <CatalogTruncationHint message="A lista mostra apenas os primeiros resultados. Pesquise para encontrar o que falta." /> : null}
       </div>
       <div className="item-measure-grid">
         <div className="field-group">

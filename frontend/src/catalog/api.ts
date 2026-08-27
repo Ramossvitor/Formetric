@@ -165,8 +165,10 @@ export function normalizeFoodRequest(input: CreateFoodRequest): CreateFoodReques
   }
 }
 
-export function searchFoods(query = '', favorite = false, includeArchived = false): Promise<FoodSearchResult> {
-  const params = new URLSearchParams({ page: '0', size: '100' })
+export const CATALOG_PAGE_SIZE = 100
+
+export function searchFoods(query = '', favorite = false, includeArchived = false, page = 0): Promise<FoodSearchResult> {
+  const params = new URLSearchParams({ page: String(page), size: String(CATALOG_PAGE_SIZE) })
   if (query.trim()) params.set('query', query.trim())
   if (favorite) params.set('favorite', 'true')
   if (includeArchived) params.set('includeArchived', 'true')
@@ -216,8 +218,8 @@ export function restoreFood(id: string): Promise<void> {
   })
 }
 
-export function listRecipes(query = '', favorite = false, includeArchived = false): Promise<RecipeSearchResult> {
-  const params = new URLSearchParams({ page: '0', size: '100' })
+export function listRecipes(query = '', favorite = false, includeArchived = false, page = 0): Promise<RecipeSearchResult> {
+  const params = new URLSearchParams({ page: String(page), size: String(CATALOG_PAGE_SIZE) })
   if (query.trim()) params.set('query', query.trim())
   if (favorite) params.set('favorite', 'true')
   if (includeArchived) params.set('includeArchived', 'true')
