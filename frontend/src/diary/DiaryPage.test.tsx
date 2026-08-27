@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
@@ -310,5 +310,82 @@ describe('diário', () => {
     await user.click(await screen.findByRole('button', { name: 'Duplicar dia inteiro' }))
     const call = fetchMock.mock.calls.find(([path, init]) => path === '/api/v1/daily-logs/2026-08-12/copy' && init?.method === 'POST')
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({ sourceDate: '2026-08-11', requestId: '11111111-1111-4111-8111-111111111111' })
+  })
+
+  it('mostra o erro de gravação dentro do diálogo, sem fechá-lo', async () => {
+    const initial = dailyLog({ meals: [] })
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'diary-csrf', headerName: 'X-XSRF-TOKEN' })
+      if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(initial)
+      if (path === '/api/v1/daily-logs/2026-08-12/meals' && init?.method === 'POST') {
+        return jsonResponse({ title: 'Conflito', detail: 'Já existe uma refeição nessa posição.', status: 409 }, { status: 409 })
+      }
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+    const user = userEvent.setup()
+    renderDiary()
+
+    await user.click(await screen.findByRole('button', { name: '+ Refeição' }))
+    await user.type(screen.getByLabelText('Nome da refeição'), 'Almoço')
+    await user.click(screen.getAllByRole('button', { name: 'Adicionar refeição' }).at(-1)!)
+
+    const dialog = await screen.findByRole('dialog')
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Já existe uma refeição nessa posição.')
+    expect(within(dialog).getByLabelText('Nome da refeição')).toHaveValue('Almoço')
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+  })
+
+  it('limpa o erro anterior ao reabrir o diálogo', async () => {
+    const initial = dailyLog({ meals: [] })
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'diary-csrf', headerName: 'X-XSRF-TOKEN' })
+      if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(initial)
+      if (path === '/api/v1/daily-logs/2026-08-12/meals' && init?.method === 'POST') {
+        return jsonResponse({ title: 'Conflito', detail: 'Já existe uma refeição nessa posição.', status: 409 }, { status: 409 })
+      }
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+    const user = userEvent.setup()
+    renderDiary()
+
+    await user.click(await screen.findByRole('button', { name: '+ Refeição' }))
+    await user.type(screen.getByLabelText('Nome da refeição'), 'Almoço')
+    await user.click(screen.getAllByRole('button', { name: 'Adicionar refeição' }).at(-1)!)
+    expect(await within(await screen.findByRole('dialog')).findByRole('alert')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Fechar' }))
+    await user.click(screen.getByRole('button', { name: '+ Refeição' }))
+
+    expect(within(await screen.findByRole('dialog')).queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('não devolve o erro do diálogo como aviso da página depois de fechá-lo', async () => {
+    const initial = dailyLog({ meals: [] })
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'diary-csrf', headerName: 'X-XSRF-TOKEN' })
+      if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(initial)
+      if (path === '/api/v1/daily-logs/2026-08-12/meals' && init?.method === 'POST') {
+        return jsonResponse({ title: 'Conflito', detail: 'Já existe uma refeição nessa posição.', status: 409 }, { status: 409 })
+      }
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+    const user = userEvent.setup()
+    renderDiary()
+
+    await user.click(await screen.findByRole('button', { name: '+ Refeição' }))
+    await user.type(screen.getByLabelText('Nome da refeição'), 'Almoço')
+    await user.click(screen.getAllByRole('button', { name: 'Adicionar refeição' }).at(-1)!)
+    expect(await within(await screen.findByRole('dialog')).findByRole('alert')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Fechar' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
