@@ -45,7 +45,9 @@ connector, load balancer ou instância mínima neste primeiro beta.
     deploy remove explicitamente os três bindings de bootstrap.
 11. Desabilite as versões de bootstrap, exclua a revisão que ainda as referencia e
     conclua o checklist de exposição pública abaixo.
-12. Somente então conceda `roles/run.invoker` a `allUsers` no serviço e execute o
+12. Provisione a cópia diária do banco e prove a restauração conforme
+    [../backup/README.md](../backup/README.md).
+13. Somente então conceda `roles/run.invoker` a `allUsers` no serviço e execute o
     workflow com `bootstrap_owner=false` e `promote=true`.
 
 O workflow exige CI verde para o SHA, baixa a imagem que passou pelo E2E integrado,
@@ -61,7 +63,9 @@ não é uma fronteira de acesso.
   reinicia em cold starts, não é compartilhado entre instâncias e precisa ser validado
   atrás do proxy do Cloud Run. Mantenha uma instância e beta restrito; proteção de edge
   ou limiter compartilhado é requisito antes de abertura ampla.
-- Execute um teste de restore Neon, confirme retenção e registre o ponto de restauração.
+- Provisione a cópia diária conforme [../backup/README.md](../backup/README.md) e execute o
+  teste de restauração numa branch descartável. O histórico nativo do Neon Free cobre poucas
+  horas; ele não substitui a cópia externa quando o defeito só é percebido no dia seguinte.
 - Confirme cookies `Secure`, headers, CORS/CSRF e ausência de Swagger/Actuator além de
   health no perfil `prod`.
 
@@ -139,11 +143,15 @@ dados corporais. Depois de validar a telemetria, uma exclusão apenas para healt
 - Acompanhe CU-hours, storage e transferência no Neon.
 - Budget alerts não são um teto por si só; habilite spend cap quando disponível.
 
-O plano gratuito do Neon possui retenção curta. Para abrir o produto a terceiros, a
-decisão de backup/restore deve ser explícita e revista antes de superar um beta pessoal.
+O plano gratuito do Neon possui retenção curta. A decisão tomada para o piloto foi ficar nele e
+compensar com a cópia diária externa descrita em [../backup/README.md](../backup/README.md):
+perda máxima de 24 horas, retenção de 30 dias e restauração provada antes do convite. Reveja
+essa escolha antes de superar um beta pessoal.
 
 ## Documentos relacionados
 
+- [go-live.md](go-live.md): sequência do zero até os primeiros usuários.
 - [E2E.md](../E2E.md): ambiente integrado local/CI.
 - [wif-and-secrets.md](wif-and-secrets.md): identidade sem chave e secrets.
 - [migrations-and-rollback.md](migrations-and-rollback.md): política de banco e retorno.
+- [../backup/README.md](../backup/README.md): cópia diária do banco e restauração.

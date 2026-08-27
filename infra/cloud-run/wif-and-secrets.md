@@ -110,7 +110,7 @@ gcloud iam workload-identity-pools providers create-oidc formetric-github \
   --workload-identity-pool=github \
   --issuer-uri="https://token.actions.githubusercontent.com" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref,attribute.environment=assertion.environment,attribute.workflow_ref=assertion.workflow_ref" \
-  --attribute-condition="assertion.repository=='Ramossvitor/Formetric' && assertion.ref=='refs/heads/main' && assertion.environment=='production' && assertion.workflow_ref=='Ramossvitor/Formetric/.github/workflows/deploy-candidate.yml@refs/heads/main'"
+  --attribute-condition="assertion.repository=='Ramossvitor/Formetric' && assertion.ref=='refs/heads/main' && assertion.environment=='production' && assertion.workflow_ref in ['Ramossvitor/Formetric/.github/workflows/deploy-candidate.yml@refs/heads/main', 'Ramossvitor/Formetric/.github/workflows/deploy-release.yml@refs/heads/main']"
 
 gcloud iam service-accounts add-iam-policy-binding \
   formetric-deploy@PROJECT_ID.iam.gserviceaccount.com \
@@ -119,10 +119,16 @@ gcloud iam service-accounts add-iam-policy-binding \
 ```
 
 A condição do provider e as regras do GitHub Environment precisam concordar: somente
-`Ramossvitor/Formetric`, branch `main`, o arquivo identificado como
-`.github/workflows/deploy-candidate.yml` e a aprovação do ambiente `production`.
+`Ramossvitor/Formetric`, branch `main`, a aprovação do ambiente `production` e exatamente
+os dois workflows que implantam — `.github/workflows/deploy-candidate.yml`, que cria a
+baseline, e `.github/workflows/deploy-release.yml`, que aplica migrations e publica as
+releases seguintes. Ambos autenticam neste mesmo provider; deixar apenas o primeiro na
+lista faz o deploy de release falhar na autenticação do Google, e falhar tarde — depois
+de o revisor já ter aprovado o Environment.
+
 Não reduza a condição a repositório e branch: isso permitiria que outro workflow na
-`main` solicitasse a mesma identidade sem passar pelos revisores do Environment.
+`main` solicitasse a mesma identidade sem passar pelos revisores do Environment. Ao criar
+um novo workflow que precise implantar, acrescente o `workflow_ref` dele aqui de propósito.
 
 ## Secret Manager
 
