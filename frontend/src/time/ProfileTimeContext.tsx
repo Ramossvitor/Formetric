@@ -34,7 +34,7 @@ export function ProfileTimeContextProvider({ children }: { children: ReactNode }
   }, [queryClient, value])
 
   if (query.isPending) {
-    return <TimeContextStatus message="Sincronizando data e fuso do perfilâ€¦" />
+    return <TimeContextStatus message="Sincronizando data e fuso do perfil…" />
   }
 
   if (query.isError) {
