@@ -1,0 +1,215 @@
+name: Publish backup image
+
+# Publica a imagem do job de cópia diária do banco. É disparada à mão, e não por push, pelo mesmo
+# motivo dos deploys: publicar uma imagem que roda com acesso de leitura ao banco inteiro é um ato
+# deliberado, com aprovação humana no Environment `production`.
+#
+# Esta é a terceira workflow que autentica no provider WIF. O `workflow_ref` dela precisa constar
+# da `attribute-condition` descrita em infra/cloud-run/wif-and-secrets.md, junto com as duas de
+# deploy; sem isso a autenticação no Google falha.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type PUBLISH_BACKUP_IMAGE
+        required: true
+        type: string
+      tag:
+        description: Image tag to publish, such as 1 or 2026-08-27
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-backup-image
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish the backup job image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      ARTIFACT_REGISTRY_REPOSITORY: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+    steps:
+      - name: Validate request and configuration
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "The backup image must be published from main." >&2
+            exit 1
+          fi
+          if [[ "$CONFIRMATION" != "PUBLISH_BACKUP_IMAGE" ]]; then
+            echo "The confirmation value must be PUBLISH_BACKUP_IMAGE." >&2
+            exit 1
+          fi
+          if [[ ! "$TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$ ]]; then
+            echo "The tag must be a simple Docker tag, without a registry path or digest." >&2
+            exit 1
+          fi
+          required=(
+            GCP_PROJECT_ID GCP_REGION ARTIFACT_REGISTRY_REPOSITORY
+            GCP_WORKLOAD_IDENTITY_PROVIDER GCP_DEPLOY_SERVICE_ACCOUNT
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing GitHub production variable: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Authenticate to Google Cloud with OIDC
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Configure Artifact Registry authentication
+        shell: bash
+        run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - name: Resolve the image reference
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          # Uma vez só: o scan precisa da referência como valor literal de `with:`, e os passos de
+          # shell abaixo repetiriam a mesma concatenação em quatro lugares.
+          repository="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/formetric-backup"
+          echo "IMAGE_REPOSITORY=${repository}" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG_REF=${repository}:${TAG}" >> "$GITHUB_ENV"
+
+      - name: Refuse to overwrite an existing tag
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          # Uma tag reaproveitada faria o job de backup rodar código diferente do que foi revisado
+          # sem que nada no Cloud Run mudasse. Publicar é sempre criar, nunca substituir.
+          #
+          # O `describe` também sai com erro por falta de permissão, indisponibilidade da API ou
+          # nome de repositório trocado. Tratar isso como "a tag está livre" faria a guarda abrir
+          # justamente quando menos se sabe, então só a resposta explícita de não encontrado
+          # libera a publicação.
+          if describe_output="$(gcloud artifacts docker images describe "$IMAGE_TAG_REF" 2>&1)"; then
+            echo "The tag ${TAG} already exists in the registry. Choose a new one." >&2
+            exit 1
+          elif ! printf '%s' "$describe_output" | grep -qi 'not found'; then
+            printf '%s\n' "$describe_output" >&2
+            echo "Could not determine whether ${TAG} already exists; refusing to publish." >&2
+            exit 1
+          fi
+
+      - name: Build the image
+        shell: bash
+        run: docker build -f infra/backup/Dockerfile -t "$IMAGE_TAG_REF" infra/backup
+
+      - name: Verify the client major matches the database
+        shell: bash
+        run: |
+          # Um pg_dump anterior à major do servidor se recusa a exportar. Descobrir isso aqui é
+          # barato; descobrir na madrugada, com o alerta de falha, não é.
+          version="$(docker run --rm --entrypoint pg_dump "$IMAGE_TAG_REF" --version)"
+          echo "$version"
+          if [[ "$version" != *"(PostgreSQL) 17."* ]]; then
+            echo "The image must ship pg_dump 17 to match the production server." >&2
+            exit 1
+          fi
+
+      # Mesmo portão dos deploys, e pela mesma razão elevada: esta imagem roda com acesso de
+      # leitura ao banco inteiro. O digest fixado no Dockerfile congela a camada base, não as
+      # vulnerabilidades dela.
+      - name: Scan the image before publishing
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.74.0
+          scan-type: image
+          image-ref: ${{ env.IMAGE_TAG_REF }}
+          format: sarif
+          output: backup-trivy.sarif
+          severity: CRITICAL,HIGH
+          scanners: vuln
+          ignore-unfixed: true
+          limit-severities-for-sarif: true
+          exit-code: '1'
+
+      - name: Preserve backup scan report
+        if: always() && hashFiles('backup-trivy.sarif') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: backup-image-scan-${{ github.sha }}
+          path: backup-trivy.sarif
+          retention-days: 30
+
+      - name: Publish the image
+        id: publish
+        shell: bash
+        run: |
+          push_output="$(docker push "$IMAGE_TAG_REF" 2>&1)"
+          printf '%s\n' "$push_output"
+          pushed_digest="$(printf '%s\n' "$push_output" | sed -nE \
+            's/^.*digest: (sha256:[a-f0-9]{64}) size:.*$/\1/p' | tail -n 1)"
+          if [[ ! "$pushed_digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "docker push did not return a valid immutable digest for $IMAGE_TAG_REF." >&2
+            exit 1
+          fi
+
+          # A referência do resumo é a que o operador cola no `gcloud run jobs deploy`. Resolver a
+          # tag de novo diria apenas para onde ela aponta agora; o que precisa ser verdade é que
+          # ela aponta para os bytes que este run enviou.
+          registry_digest="$(gcloud artifacts docker images describe \
+            "${IMAGE_REPOSITORY}@${pushed_digest}" \
+            --project "$GCP_PROJECT_ID" \
+            --format='value(image_summary.digest)')"
+          if [[ "$registry_digest" != "$pushed_digest" ]]; then
+            echo "Artifact Registry did not confirm the digest returned by docker push." >&2
+            exit 1
+          fi
+
+          echo "image_ref=${IMAGE_REPOSITORY}@${pushed_digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Write publication summary
+        if: always()
+        shell: bash
+        env:
+          IMAGE_REF: ${{ steps.publish.outputs.image_ref }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # Num run que falhou não existe referência, e anunciar uma vazia sob a instrução de
+          # implantar com ela é pior do que não escrever resumo nenhum.
+          {
+            echo "## Backup image"
+            echo
+            echo "- Tag: \`$TAG\`"
+            echo "- Source commit: \`$GITHUB_SHA\`"
+            echo
+            if [[ -n "$IMAGE_REF" ]]; then
+              echo "- Immutable reference: \`$IMAGE_REF\`"
+              echo
+              echo "Deploy the Cloud Run job with the immutable reference above, never the tag."
+            else
+              echo "No image was published: this run failed before the push was confirmed."
+              echo "Nothing in Artifact Registry changed. Fix the failure and dispatch again."
+            fi
+            echo "See \`infra/backup/README.md\`."
+          } >> "$GITHUB_STEP_SUMMARY"

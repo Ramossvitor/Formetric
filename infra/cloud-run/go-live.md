@@ -31,12 +31,12 @@ do passo 1 assim mesmo: ele é o que impede que um erro de configuração vire o
 4. Crie Artifact Registry, service accounts, pool WIF e secrets conforme
    [wif-and-secrets.md](wif-and-secrets.md).
 
-> **Atenção ao WIF.** A `attribute-condition` do provider precisa aceitar os **dois** workflows
-> que implantam: `deploy-candidate.yml` e `deploy-release.yml`. Ambos autenticam no mesmo
-> provider. Se só o primeiro estiver na lista, o deploy de release falha na autenticação do
-> Google — e falha tarde, depois de o revisor já ter aprovado o Environment.
+> **Atenção ao WIF.** A `attribute-condition` do provider precisa aceitar os **três** workflows
+> que autenticam nele: `deploy-candidate.yml`, `deploy-release.yml` e `publish-backup-image.yml`.
+> Faltar um faz aquele workflow falhar na autenticação do Google — e falhar tarde, depois de o
+> revisor já ter aprovado o Environment.
 
-**Aceite:** `gcloud iam workload-identity-pools providers describe` mostra os dois `workflow_ref`
+**Aceite:** `gcloud iam workload-identity-pools providers describe` mostra os três `workflow_ref`
 na condição, e os quatro secrets permanentes existem com uma versão cada.
 
 ## 2. GitHub Environment
@@ -53,8 +53,18 @@ na condição, e os quatro secrets permanentes existem com uma versão cada.
 ## 3. Baseline e primeiro proprietário
 
 Pré-crie o serviço privado de manutenção e a permissão de invocação específica do deploy
-([wif-and-secrets.md](wif-and-secrets.md)). Confirme que o SHA que você vai implantar tem
-execução verde do workflow `CI`.
+([wif-and-secrets.md](wif-and-secrets.md)).
+
+> **O SHA precisa ter CI verde, e com menos de 7 dias.** Os workflows de deploy não reconstroem
+> a imagem: eles baixam do run do `CI` daquele commit exatamente o artefato que passou pelo E2E
+> integrado e pelo scan de vulnerabilidades. Como
+> [ci.yml](../../.github/workflows/ci.yml) guarda esse artefato por `retention-days: 7`, um
+> commit mais antigo **não é implantável** — o deploy morre no `gh run download` com uma
+> mensagem que não explica o motivo.
+>
+> Se isso acontecer, re-execute o workflow `CI` naquele SHA para gerar um artefato novo; não é
+> preciso commit nenhum. E prefira começar o go-live logo depois de um CI verde, para ter a
+> janela inteira.
 
 O bootstrap acontece em duas revisões, e essa separação é o ponto do procedimento — a primeira
 revisão carrega os três secrets temporários do proprietário, a segunda os remove:
@@ -73,8 +83,8 @@ tráfego ou a servir de rollback. A revisão de bootstrap nunca é alvo de rollb
 
 ## 4. Cópia do banco, antes de qualquer dado real
 
-Provisione o job diário e **execute o teste de restauração** conforme
-[../backup/README.md](../backup/README.md).
+Publique a imagem pelo workflow **Publish backup image**, crie o job e o agendamento, e
+**execute o teste de restauração** conforme [../backup/README.md](../backup/README.md).
 
 Este passo vem antes do convite de propósito: a partir do momento em que as pessoas entram, os
 dados são reais e insubstituíveis. Guarde uma cópia da frase secreta da cifra fora do Google,

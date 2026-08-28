@@ -10,14 +10,20 @@ restauração provada antes de convidar as pessoas.
 O risco que isso cobre não é "o Neon quebrar sozinho" — é uma migration defeituosa, um bug de
 isolamento, um comando de manutenção errado ou uma exclusão acidental alterarem dados reais.
 
-## Onde roda, e por que nos EUA
+## Onde roda cada peça, e por quê
 
-O job e o bucket ficam em `us-central1`, e não em `southamerica-east1` como o resto da
-aplicação. É uma decisão deliberada de custo: os 5 GB permanentemente gratuitos do Cloud
-Storage só existem nas regiões `us-central1`, `us-east1` e `us-west1`, e manter o job na mesma
-região do bucket evita a cobrança de tráfego entre regiões — que tornaria a solução paga mesmo
-com o armazenamento gratuito. O Cloud Run Job e o Cloud Scheduler cabem no free tier
-permanente, e a leitura do Neon entra como tráfego de entrada, que não é cobrado.
+| Peça | Região | Motivo |
+|---|---|---|
+| Bucket | `us-central1` | Os 5 GB permanentemente gratuitos do Cloud Storage só existem em `us-central1`, `us-east1` e `us-west1`. |
+| Job e agendamento | `southamerica-east1` | Junto da imagem e do banco: o Cloud Run baixa a imagem a cada execução, e na mesma região isso não é cobrado. |
+
+A escolha das regiões é o que mantém o custo em zero, e a intuição aqui engana: parece natural
+colocar o job junto do bucket, mas é o arranjo caro. A imagem tem centenas de MB e é baixada
+todo dia; o dump cifrado tem poucos MB e sobe uma vez. Vale otimizar para o tráfego da imagem,
+não para o do dump.
+
+O Cloud Run Job e o Cloud Scheduler cabem no free tier permanente, e a leitura do Neon entra
+como tráfego de entrada, que não é cobrado.
 
 O app e o banco continuam em São Paulo. Só as cópias saem do país, e por isso saem cifradas.
 
@@ -102,23 +108,31 @@ frase de uma tentativa anterior, remova com `remove-iam-policy-binding` antes de
 
 ### Publicar a imagem
 
-O repositório do Artifact Registry já existe (o mesmo do app). Publique a imagem de backup nele:
+A publicação é feita pelo workflow **Publish backup image**
+([publish-backup-image.yml](../../.github/workflows/publish-backup-image.yml)), acionado
+manualmente em Actions com a tag desejada. Ele autentica por WIF, sem chave de longa duração, e
+publica no repositório `formetric` que já existe — o mesmo do app, em `southamerica-east1`.
 
-```bash
-REGION=southamerica-east1
-IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/formetric/formetric-backup:1"
+Como ele passa pelo Environment `production`, a publicação exige a mesma aprovação humana de um
+deploy. É deliberado: esta imagem roda com acesso de leitura ao banco inteiro.
 
-gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
-docker build -f infra/backup/Dockerfile -t "$IMAGE" infra/backup
-docker push "$IMAGE"
-```
+O workflow imprime no resumo a referência `@sha256:` publicada. Use **essa referência imutável**
+no passo seguinte, nunca a tag.
 
 ### Criar o job e o agendamento
 
+O job fica em `southamerica-east1`, junto da imagem e do banco — **não na região do bucket**. O
+Cloud Run baixa a imagem a cada execução: mantê-la na mesma região torna esse tráfego gratuito.
+O que atravessa o continente passa a ser só o dump cifrado, de poucos MB. O caminho inverso —
+job perto do bucket — puxaria centenas de MB por dia entre continentes e custaria mais do que
+todo o resto da solução economiza.
+
 ```bash
+IMAGE="southamerica-east1-docker.pkg.dev/${PROJECT_ID}/formetric/formetric-backup@sha256:DIGEST"
+
 gcloud run jobs deploy formetric-backup \
   --project="$PROJECT_ID" \
-  --region=us-central1 \
+  --region=southamerica-east1 \
   --image="$IMAGE" \
   --service-account="$BACKUP_SA" \
   --set-env-vars="BACKUP_BUCKET=${BUCKET}" \
@@ -130,10 +144,10 @@ gcloud run jobs deploy formetric-backup \
 # 03:00 em São Paulo, quando ninguém está registrando refeição.
 gcloud scheduler jobs create http formetric-backup-diario \
   --project="$PROJECT_ID" \
-  --location=us-central1 \
+  --location=southamerica-east1 \
   --schedule="0 3 * * *" \
   --time-zone="America/Sao_Paulo" \
-  --uri="https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/formetric-backup:run" \
+  --uri="https://southamerica-east1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/formetric-backup:run" \
   --http-method=POST \
   --oauth-service-account-email="$BACKUP_SA"
 ```
@@ -142,7 +156,7 @@ O Scheduler precisa poder disparar o job:
 
 ```bash
 gcloud run jobs add-iam-policy-binding formetric-backup \
-  --project="$PROJECT_ID" --region=us-central1 \
+  --project="$PROJECT_ID" --region=southamerica-east1 \
   --member="serviceAccount:${BACKUP_SA}" \
   --role="roles/run.invoker"
 ```
@@ -248,8 +262,11 @@ tabelas existentes.
   pessoas sobra folga, mas a falha, quando vier, é um OOM de madrugada e sem cópia daquele dia.
   Acompanhe o tamanho impresso na última linha do log: passando de ~150 MB, aumente `--memory`
   antes de continuar, ou migre para upload resumable com `pg_dump | openssl | curl` em fluxo.
-- **A imagem é fixada por digest.** Ao atualizar o `postgres:17-alpine`, refixe o digest no
-  [Dockerfile](Dockerfile) e reconstrua.
+- **A imagem é fixada por digest, e atualizá-la são três passos.** Refixe o digest do
+  `postgres:17-alpine` no [Dockerfile](Dockerfile), publique pelo workflow **Publish backup
+  image** com uma **tag nova** — a anterior é recusada, publicar é sempre criar — e reimplante o
+  job com a nova referência `@sha256:`. Parar no primeiro passo não muda nada em produção: o
+  Cloud Run continua puxando o digest antigo.
 
 ## Documentos relacionados
 

@@ -8,17 +8,30 @@ administradora. Substitua apenas identificadores. Nenhuma chave JSON é criada.
 ```bash
 gcloud config set project PROJECT_ID
 gcloud services enable \
+  cloudresourcemanager.googleapis.com \
+  iam.googleapis.com \
   run.googleapis.com \
   artifactregistry.googleapis.com \
   secretmanager.googleapis.com \
   iamcredentials.googleapis.com \
-  sts.googleapis.com
+  sts.googleapis.com \
+  storage.googleapis.com \
+  cloudscheduler.googleapis.com \
+  monitoring.googleapis.com \
+  logging.googleapis.com
 
 gcloud artifacts repositories create formetric \
   --repository-format=docker \
   --location=southamerica-east1 \
   --description="Formetric production images"
 ```
+
+As duas primeiras APIs costumam já vir ligadas em projetos novos, mas habilitá-las de novo é
+inofensivo e evita descobrir o contrário no meio do caminho — são elas que sustentam
+`gcloud projects` e `gcloud iam service-accounts`. As quatro últimas servem à cópia diária do
+banco: bucket, agendamento, alerta de falha e os logs que o alerta observa. Sem elas os comandos
+de [../backup/README.md](../backup/README.md) falham no meio da execução, depois de metade dos
+recursos já existir.
 
 Crie duas identidades distintas:
 
@@ -110,7 +123,7 @@ gcloud iam workload-identity-pools providers create-oidc formetric-github \
   --workload-identity-pool=github \
   --issuer-uri="https://token.actions.githubusercontent.com" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref,attribute.environment=assertion.environment,attribute.workflow_ref=assertion.workflow_ref" \
-  --attribute-condition="assertion.repository=='Ramossvitor/Formetric' && assertion.ref=='refs/heads/main' && assertion.environment=='production' && assertion.workflow_ref in ['Ramossvitor/Formetric/.github/workflows/deploy-candidate.yml@refs/heads/main', 'Ramossvitor/Formetric/.github/workflows/deploy-release.yml@refs/heads/main']"
+  --attribute-condition="assertion.repository=='Ramossvitor/Formetric' && assertion.ref=='refs/heads/main' && assertion.environment=='production' && assertion.workflow_ref in ['Ramossvitor/Formetric/.github/workflows/deploy-candidate.yml@refs/heads/main', 'Ramossvitor/Formetric/.github/workflows/deploy-release.yml@refs/heads/main', 'Ramossvitor/Formetric/.github/workflows/publish-backup-image.yml@refs/heads/main']"
 
 gcloud iam service-accounts add-iam-policy-binding \
   formetric-deploy@PROJECT_ID.iam.gserviceaccount.com \
@@ -120,15 +133,21 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 A condição do provider e as regras do GitHub Environment precisam concordar: somente
 `Ramossvitor/Formetric`, branch `main`, a aprovação do ambiente `production` e exatamente
-os dois workflows que implantam — `.github/workflows/deploy-candidate.yml`, que cria a
-baseline, e `.github/workflows/deploy-release.yml`, que aplica migrations e publica as
-releases seguintes. Ambos autenticam neste mesmo provider; deixar apenas o primeiro na
-lista faz o deploy de release falhar na autenticação do Google, e falhar tarde — depois
-de o revisor já ter aprovado o Environment.
+os três workflows autorizados:
+
+| Workflow | Para quê |
+|---|---|
+| `deploy-candidate.yml` | Baseline inicial e bootstrap do proprietário. |
+| `deploy-release.yml` | Migrations e todas as releases seguintes. |
+| `publish-backup-image.yml` | Imagem do job de cópia diária do banco. |
+
+Os três autenticam neste mesmo provider. Deixar algum de fora faz aquele workflow falhar na
+autenticação do Google, e falhar tarde — depois de o revisor já ter aprovado o Environment.
 
 Não reduza a condição a repositório e branch: isso permitiria que outro workflow na
-`main` solicitasse a mesma identidade sem passar pelos revisores do Environment. Ao criar
-um novo workflow que precise implantar, acrescente o `workflow_ref` dele aqui de propósito.
+`main` solicitasse a mesma identidade sem passar pelos revisores do Environment. **Ao criar um
+workflow novo que autentique aqui, acrescentar o `workflow_ref` dele a esta lista faz parte da
+mudança** — não é um passo posterior de configuração.
 
 ## Secret Manager
 
