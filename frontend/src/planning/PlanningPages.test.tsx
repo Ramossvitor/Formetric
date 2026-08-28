@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../test/user'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { seedProfileTimeContext } from '../test/profileTimeContext'
@@ -322,7 +322,7 @@ describe('planejamento', () => {
 
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
 
     renderRoute('/settings/nutrition-goals')
     await screen.findByRole('heading', { name: 'Definir metas e classificações' })
@@ -359,7 +359,7 @@ describe('planejamento', () => {
 
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
 
     renderRoute('/settings/tdee')
     expect(await screen.findByRole('heading', { name: '3.000 kcal/dia' })).toBeInTheDocument()

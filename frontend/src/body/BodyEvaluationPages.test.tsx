@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../test/user'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { seedProfileTimeContext } from '../test/profileTimeContext'
@@ -53,7 +53,7 @@ describe('cadastro de avaliação corporal', () => {
       if (path === '/api/v1/body-evaluations/evaluation-1') return jsonResponse(detail())
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); renderApp('/progress/evaluations/new')
+    const user = setupUser(); renderApp('/progress/evaluations/new')
     expect(await screen.findByRole('note')).toHaveTextContent('Sugestão do perfil')
     await user.type(screen.getByLabelText('Título'), 'Avaliação validada')
     expect(screen.getByLabelText('Data da avaliação')).toHaveValue('2026-08-12')
@@ -104,7 +104,7 @@ describe('cadastro de avaliação corporal', () => {
       if (path === '/api/v1/body-evaluations/evaluation-1') return jsonResponse(detail())
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); renderApp('/progress/evaluations/new')
+    const user = setupUser(); renderApp('/progress/evaluations/new')
     await user.type(await screen.findByLabelText('Título'), 'Avaliação parcial')
     await user.click(screen.getByRole('button', { name: 'Continuar' }))
     await user.click(screen.getByRole('button', { name: 'Continuar' }))
@@ -122,7 +122,7 @@ describe('cadastro de avaliação corporal', () => {
       if (path === '/api/v1/profile') return jsonResponse({ ...session.user, locale: 'pt-BR', timeZone: 'America/Sao_Paulo', unitSystem: 'METRIC', birthDate: null, formulaSex: null })
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); renderApp('/progress/evaluations/new')
+    const user = setupUser(); renderApp('/progress/evaluations/new')
     await user.type(await screen.findByLabelText('Título'), 'JP7 incompleta')
     await user.click(screen.getByRole('button', { name: 'Continuar' }))
     await user.click(screen.getByRole('button', { name: 'Continuar' }))
@@ -147,7 +147,7 @@ describe('detalhe e versionamento', () => {
       if (path === '/api/v1/body-evaluations/evaluation-1/versions' && init?.method === 'POST') { versionBody = JSON.parse(String(init.body)); return jsonResponse(detail(), { status: 201 }) }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); renderApp('/progress/evaluations/evaluation-1')
+    const user = setupUser(); renderApp('/progress/evaluations/evaluation-1')
     expect((await screen.findAllByText('Informado no laudo')).length).toBeGreaterThan(0)
     expect(screen.getByText('Calculado pelo sistema')).toBeInTheDocument()
     expect(screen.getByText('Derivado de valor informado')).toBeInTheDocument()
@@ -181,7 +181,7 @@ describe('detalhe e versionamento', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); const { queryClient } = renderApp('/progress/evaluations/evaluation-1')
+    const user = setupUser(); const { queryClient } = renderApp('/progress/evaluations/evaluation-1')
     await user.click(await screen.findByRole('button', { name: 'Criar nova versão' }))
     current = detail({
       currentVersion: { ...version, id: 'version-3', versionNumber: 3, title: 'Alteração concorrente' },
@@ -204,7 +204,7 @@ describe('detalhe e versionamento', () => {
       if (path === '/api/v1/body-evaluations/evaluation-1') return jsonResponse(detail())
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); renderApp('/progress/evaluations/evaluation-1')
+    const user = setupUser(); renderApp('/progress/evaluations/evaluation-1')
     await user.click(await screen.findByRole('button', { name: 'Criar nova versão' }))
     for (let index = 0; index < 3; index += 1) await user.click(screen.getByRole('button', { name: 'Continuar' }))
     const confirmation = screen.getByRole('checkbox', { name: /Revisei e confirmo/ })
@@ -240,7 +240,7 @@ describe('detalhe e versionamento', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); renderApp('/progress/evaluations/evaluation-1')
+    const user = setupUser(); renderApp('/progress/evaluations/evaluation-1')
     await user.click(await screen.findByRole('button', { name: 'Arquivar' }))
     expect(window.confirm).toHaveBeenCalledOnce()
     expect(await screen.findByRole('button', { name: 'Restaurar' })).toBeInTheDocument()
@@ -328,7 +328,7 @@ describe('navegação de evolução', () => {
       if (path.startsWith('/api/v1/body-evaluations?')) return jsonResponse(page())
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup(); renderApp('/progress/evaluations')
+    const user = setupUser(); renderApp('/progress/evaluations')
     expect(await screen.findByRole('heading', { name: 'Avaliação de agosto' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Arquivadas' }))
     expect(await screen.findByRole('heading', { name: 'Avaliação antiga' })).toBeInTheDocument()

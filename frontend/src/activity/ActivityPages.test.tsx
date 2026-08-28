@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../test/user'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { seedProfileTimeContext } from '../test/profileTimeContext'
@@ -84,7 +84,7 @@ describe('navegação de registros', () => {
       if (String(input) === '/api/v1/auth/session') return jsonResponse(session)
       throw new Error(`Requisição não esperada: ${String(input)}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderApp('/')
 
     await user.click(await screen.findByRole('button', { name: 'Abrir cadastro rápido' }))
@@ -115,7 +115,7 @@ describe('treinos', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     const analyticsKey = [...analyticsQueryKey, 'monthly', '2026-08'] as const
     const { queryClient } = renderApp('/workouts')
     queryClient.setQueryData(analyticsKey, { workouts: { sessionCount: 0 } })
@@ -155,7 +155,7 @@ describe('treinos', () => {
       if (path.startsWith('/api/v1/workouts?')) return jsonResponse([workout])
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderApp('/workouts')
 
     const opener = await screen.findByRole('button', { name: 'Registrar treino' })
@@ -187,7 +187,7 @@ describe('treinos', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderApp('/workouts?action=new')
 
     const dialog = await screen.findByRole('dialog', { name: 'Registrar treino' })
@@ -242,7 +242,7 @@ describe('treinos', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderApp('/workouts')
 
     await user.click(await screen.findByRole('button', { name: 'Editar Peito + bíceps' }))
@@ -284,7 +284,7 @@ describe('histórico de peso', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderApp('/progress/weight')
 
     await user.click(await screen.findByRole('button', { name: 'Registrar peso' }))
@@ -335,7 +335,7 @@ describe('histórico de peso', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderApp('/progress/weight')
 
     expect((await screen.findAllByText('89,8 kg')).length).toBeGreaterThan(0)
@@ -386,7 +386,7 @@ describe('histórico de peso', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderApp('/progress/weight')
 
     expect((await screen.findAllByText('Dados insuficientes')).length).toBeGreaterThanOrEqual(4)

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../test/user'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { seedProfileTimeContext } from '../test/profileTimeContext'
@@ -149,7 +149,7 @@ describe('catálogo', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderRoute('/foods')
 
     await screen.findByRole('heading', { name: 'Sua biblioteca está vazia' })
@@ -168,7 +168,7 @@ describe('catálogo', () => {
       if (path === '/api/v1/foods/food-1') return jsonResponse(food)
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderRoute('/foods/new')
 
     await screen.findByRole('heading', { name: 'Novo alimento' })
@@ -214,7 +214,7 @@ describe('catálogo', () => {
       if (path === '/api/v1/foods/food-1') return jsonResponse(food)
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderRoute('/foods/food-1')
 
     await user.click(await screen.findByRole('button', { name: 'Criar nova versão' }))
@@ -260,7 +260,7 @@ describe('catálogo', () => {
       if (path.includes('/api/v1/foods?')) return jsonResponse(page([{ ...food, favorite }]))
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderRoute('/foods')
 
     const toggle = await screen.findByRole('button', { name: 'Favoritar Whey Bodybuilders' })
@@ -284,7 +284,7 @@ describe('catálogo', () => {
       if (path.includes('/api/v1/foods?')) return jsonResponse(page([archivedFood]))
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderRoute('/foods')
 
     await screen.findByRole('heading', { name: 'Sua biblioteca está vazia' })
@@ -308,7 +308,7 @@ describe('catálogo', () => {
       if (path === '/api/v1/recipes/recipe-1') return jsonResponse(recipe)
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderRoute('/recipes/new')
 
     await user.type(await screen.findByLabelText('Nome'), 'Shake de whey')
@@ -344,7 +344,7 @@ describe('catálogo', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderRoute('/foods')
 
     expect(await screen.findByText('1 de 2 alimentos ativos')).toBeInTheDocument()

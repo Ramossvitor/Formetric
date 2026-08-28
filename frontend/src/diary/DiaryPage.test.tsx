@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../test/user'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { fixedProfileTimeContext, seedProfileTimeContext } from '../test/profileTimeContext'
@@ -133,7 +133,7 @@ describe('diário', () => {
       if (path === '/api/v1/daily-logs/2026-08-12/meals' && init?.method === 'POST') return jsonResponse(created, { status: 201 })
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     const analyticsKey = [...analyticsQueryKey, 'daily', '2026-08-12'] as const
     const { queryClient } = renderDiary()
     queryClient.setQueryData(analyticsKey, { nutrition: { caloriesKcal: 0 } })
@@ -169,7 +169,7 @@ describe('diário', () => {
       if (path.endsWith('/meals/meal-1/items') && init?.method === 'POST') return jsonResponse(updated, { status: 201 })
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: '+ Adicionar alimento ou receita' }))
@@ -201,7 +201,7 @@ describe('diário', () => {
       if (path.endsWith('/water/water-1') && init?.method === 'DELETE') return jsonResponse(initial)
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: '+500 ml' }))
@@ -225,7 +225,7 @@ describe('diário', () => {
       if (path.endsWith('/reopen') && init?.method === 'POST') return jsonResponse(reopened)
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: 'Fechar dia' }))
@@ -253,7 +253,7 @@ describe('diário', () => {
       if (path.endsWith('/close') && init?.method === 'POST') return jsonResponse(closed)
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: 'Fechar dia' }))
@@ -275,7 +275,7 @@ describe('diário', () => {
       if (path.endsWith('/meals/copy') && init?.method === 'POST') return jsonResponse(target, { status: 201 })
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: 'Copiar registros' }))
@@ -303,7 +303,7 @@ describe('diário', () => {
       if (path.endsWith('/copy') && init?.method === 'POST') return jsonResponse(target, { status: 201 })
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: 'Copiar registros' }))
@@ -324,7 +324,7 @@ describe('diário', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: '+ Refeição' }))
@@ -349,7 +349,7 @@ describe('diário', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: '+ Refeição' }))
@@ -375,7 +375,7 @@ describe('diário', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: '+ Refeição' }))

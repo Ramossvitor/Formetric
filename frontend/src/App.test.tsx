@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from './test/user'
 import { BrowserRouter, MemoryRouter } from 'react-router-dom'
 import App from './App'
 import { clearCsrfToken } from './api/http'
@@ -155,7 +155,7 @@ describe('autenticação', () => {
 
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
 
     const oldPrivateKey = ['analytics', 'monthly', 'old-account'] as const
     const { queryClient } = renderApp('/login', (client) => {
@@ -198,7 +198,7 @@ describe('autenticação', () => {
       }
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     const { queryClient } = renderApp('/login', (client) => client.setQueryData(oldPrivateKey, { private: true }))
 
     await screen.findByRole('heading', { name: 'Acesse sua conta' })
@@ -233,7 +233,7 @@ describe('autenticação', () => {
       if (path === '/api/v1/auth/login' && init?.method === 'POST') return jsonResponse(authenticatedSession)
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
     const { queryClient } = renderBrowserApp('/profile?tab=privacy', (client) => {
       client.setQueryData(sessionQuery.queryKey, authenticatedSession)
       client.setQueryData(oldAnalyticsKey, { netBalanceKcal: -4500 })
@@ -272,7 +272,7 @@ describe('autenticação', () => {
 
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
 
     const oldPrivateKey = ['analytics', 'daily', 'old-account'] as const
     const { queryClient } = renderBrowserApp('/accept-invite#token=convite-unico', (client) => {
@@ -365,7 +365,7 @@ describe('autenticação', () => {
 
       throw new Error(`Requisição não esperada: ${path}`)
     })
-    const user = userEvent.setup()
+    const user = setupUser()
 
     render(
       <QueryClientProvider client={queryClient}>
