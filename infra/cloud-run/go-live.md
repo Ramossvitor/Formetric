@@ -26,7 +26,8 @@ do passo 1 assim mesmo: ele é o que impede que um erro de configuração vire o
 
 1. Crie ou selecione o projeto Google Cloud, habilite o faturamento e configure **budget alert
    e spend cap** antes de qualquer outra coisa.
-2. Crie o projeto Neon com PostgreSQL 17 na região AWS São Paulo e uma branch `production`.
+2. Crie o projeto Neon na região AWS São Paulo (a versão atual do Postgres no Neon é a 18,
+   que é a major que todo o stack usa) e uma branch `production`.
 3. Teste todas as migrations numa branch Neon descartável e apague-a em seguida.
 4. Crie Artifact Registry, service accounts, pool WIF e secrets conforme
    [wif-and-secrets.md](wif-and-secrets.md).

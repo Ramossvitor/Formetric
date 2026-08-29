@@ -1,6 +1,6 @@
 # Infraestrutura local
 
-O ambiente de desenvolvimento usa PostgreSQL 17 em Docker. É necessário ter Docker com Compose v2 instalado.
+O ambiente de desenvolvimento usa PostgreSQL 18 em Docker. É necessário ter Docker com Compose v2 instalado.
 
 Na raiz do repositório, crie a configuração local e inicie o banco:
 

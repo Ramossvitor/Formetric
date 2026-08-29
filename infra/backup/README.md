@@ -37,8 +37,8 @@ O app e o banco continuam em São Paulo. Só as cópias saem do país, e por iss
    do Cloud Storage, autenticando com o token do metadata server.
 
 Os segredos chegam por `--set-secrets`, como no job de migrations — o script nunca chama a API
-do Secret Manager. A imagem parte do `postgres:17-alpine` oficial para garantir um `pg_dump` na
-mesma major do servidor: um cliente mais antigo se recusa a exportar de um servidor 17.
+do Secret Manager. A imagem parte do `postgres:18-alpine` oficial para garantir um `pg_dump` na
+mesma major do servidor: um cliente mais antigo se recusa a exportar de um servidor 18.
 
 A retenção de 30 dias é uma regra de ciclo de vida do bucket, não do script.
 
@@ -222,7 +222,7 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
     --secret=formetric-backup-passphrase --project="$PROJECT_ID")
 
 # 3. Crie uma branch descartável no Neon e pegue a URL direta dela.
-#    Restaure com a versão 17 do cliente.
+#    Restaure com a versão 18 do cliente.
 pg_restore --no-owner --no-privileges -d "postgresql://USUARIO:SENHA@HOST_DA_BRANCH/formetric?sslmode=require" /tmp/backup.dump
 
 # 4. Confirme que os dados vieram, tabela a tabela.
@@ -263,7 +263,7 @@ tabelas existentes.
   Acompanhe o tamanho impresso na última linha do log: passando de ~150 MB, aumente `--memory`
   antes de continuar, ou migre para upload resumable com `pg_dump | openssl | curl` em fluxo.
 - **A imagem é fixada por digest, e atualizá-la são três passos.** Refixe o digest do
-  `postgres:17-alpine` no [Dockerfile](Dockerfile), publique pelo workflow **Publish backup
+  `postgres:18-alpine` no [Dockerfile](Dockerfile), publique pelo workflow **Publish backup
   image** com uma **tag nova** — a anterior é recusada, publicar é sempre criar — e reimplante o
   job com a nova referência `@sha256:`. Parar no primeiro passo não muda nada em produção: o
   Cloud Run continua puxando o digest antigo.

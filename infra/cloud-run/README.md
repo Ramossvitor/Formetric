@@ -8,7 +8,7 @@ inseridos diretamente no Neon, no Secret Manager ou em uma CLI autenticada.
 ## Topologia inicial
 
 - Cloud Run e Artifact Registry em `southamerica-east1`.
-- Neon PostgreSQL 17 em AWS São Paulo.
+- Neon PostgreSQL 18 em AWS São Paulo.
 - Billing por requisição, 1 vCPU, 1 GiB, concorrência 20.
 - Zero instâncias mínimas e no máximo uma instância durante a baseline do Flyway.
 - Aplicação acessível pela URL `run.app`; domínio próprio fica para depois.
@@ -28,7 +28,7 @@ connector, load balancer ou instância mínima neste primeiro beta.
 
 1. Crie/selecione um projeto Google Cloud com billing e configure um budget ou spend
    cap antes de liberar tráfego.
-2. Crie o projeto Neon com PostgreSQL 17 na região AWS São Paulo e uma branch
+2. Crie o projeto Neon com PostgreSQL 18 na região AWS São Paulo e uma branch
    `production`.
 3. Teste todas as migrations numa branch Neon descartável e apague-a depois.
 4. Crie o Artifact Registry, as service accounts, o pool WIF e os secrets conforme
