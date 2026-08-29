@@ -45,7 +45,7 @@ class ActivityIntegrationTests {
 
     @Container
     static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
+            new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {

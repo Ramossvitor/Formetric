@@ -1,7 +1,7 @@
 # Testes E2E da imagem integrada
 
 O ambiente E2E compila o frontend, incorpora os assets ao JAR, inicia a imagem final
-com PostgreSQL 17 e executa Chromium contra `http://127.0.0.1:18080`. Ele não usa Neon,
+com PostgreSQL 18 e executa Chromium contra `http://127.0.0.1:18080`. Ele não usa Neon,
 credenciais de produção nem mocks de rede.
 
 ## Fluxos cobertos

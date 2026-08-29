@@ -20,7 +20,7 @@ class PlanningMigrationTests {
 
     @Container
     static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
+            new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
 
     @Test
     void v8PreservesLegacyGoalsAndOnlyExpandsCanonicalTargetTypes() throws Exception {

@@ -131,8 +131,8 @@ jobs:
           # barato; descobrir na madrugada, com o alerta de falha, não é.
           version="$(docker run --rm --entrypoint pg_dump "$IMAGE_TAG_REF" --version)"
           echo "$version"
-          if [[ "$version" != *"(PostgreSQL) 17."* ]]; then
-            echo "The image must ship pg_dump 17 to match the production server." >&2
+          if [[ "$version" != *"(PostgreSQL) 18."* ]]; then
+            echo "The image must ship pg_dump 18 to match the production server." >&2
             exit 1
           fi
 
