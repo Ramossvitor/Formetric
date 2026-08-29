@@ -7,12 +7,14 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     hikari:
+      # O binding aqui é direto no HikariConfig, que só aceita long em milissegundos —
+      # sufixos de duração ("10s") derrubam o contexto na inicialização.
       maximum-pool-size: 5
       minimum-idle: 0
-      connection-timeout: 10s
-      validation-timeout: 5s
-      idle-timeout: 2m
-      max-lifetime: 25m
+      connection-timeout: 10000
+      validation-timeout: 5000
+      idle-timeout: 120000
+      max-lifetime: 1500000
   flyway:
     url: ${DB_DIRECT_URL}
     user: ${DB_USERNAME}
