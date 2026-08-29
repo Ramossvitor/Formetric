@@ -28,12 +28,17 @@ RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -ntp package -DskipTests
 
 
-FROM eclipse-temurin:21-jre-alpine@sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c AS runtime
+FROM eclipse-temurin:21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699 AS runtime
 
+# O digest congela os pacotes, não as CVEs descobertas depois; os pins abaixo corrigem base
+# vulnerável sem esperar imagem nova (openssl 3.5.8-r0 cobre a CVE-2026-14456).
 RUN apk add --no-cache --upgrade \
         libexpat=2.8.3-r0 \
         p11-kit=0.26.2-r0 \
-        p11-kit-trust=0.26.2-r0 && \
+        p11-kit-trust=0.26.2-r0 \
+        libcrypto3=3.5.8-r0 \
+        libssl3=3.5.8-r0 \
+        openssl=3.5.8-r0 && \
     addgroup -S formetric && \
     adduser -S -G formetric -h /app formetric
 
