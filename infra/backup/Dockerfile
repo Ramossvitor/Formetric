@@ -5,7 +5,11 @@
 # Storage com o token do metadata server, então a CLI do gcloud não é necessária aqui.
 FROM postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
 
+# O gosu vem da imagem oficial para o entrypoint do servidor, que este job não usa — o
+# processo já nasce como o usuário `backup`. Removê-lo elimina um binário Go inteiro do
+# alcance do scan de vulnerabilidades sem perder função alguma.
 RUN apk add --no-cache curl openssl && \
+    rm -f /usr/local/bin/gosu && \
     addgroup -S backup && \
     adduser -S -G backup -h /home/backup backup
 
