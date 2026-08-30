@@ -132,11 +132,18 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 # O smoke privado dos deploys chama a URL da candidata com um ID token da identidade de
 # deploy. A credencial federada não emite ID token diretamente; o workflow o obtém por
-# impersonação, o que exige este papel adicional para o mesmo principalSet:
+# impersonação. Como a autenticação do workflow já executa as chamadas de API como a
+# própria service account, quem pede o token é ela mesma — o papel precisa valer para os
+# dois membros:
 gcloud iam service-accounts add-iam-policy-binding \
   formetric-deploy@PROJECT_ID.iam.gserviceaccount.com \
   --role="roles/iam.serviceAccountTokenCreator" \
   --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/Ramossvitor/Formetric"
+
+gcloud iam service-accounts add-iam-policy-binding \
+  formetric-deploy@PROJECT_ID.iam.gserviceaccount.com \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="serviceAccount:formetric-deploy@PROJECT_ID.iam.gserviceaccount.com"
 ```
 
 A condição do provider e as regras do GitHub Environment precisam concordar: somente
