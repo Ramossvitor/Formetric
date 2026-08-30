@@ -278,7 +278,10 @@ jobs:
         run: |
           service_url="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
             --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format 'value(status.url)')"
-          identity_token="$(gcloud auth print-identity-token --audiences="$service_url")"
+          # A credencial federada do WIF não emite ID token diretamente; o token sai por
+          # impersonação da service account de deploy (exige roles/iam.serviceAccountTokenCreator
+          # para o principalSet — ver infra/cloud-run/wif-and-secrets.md).
+          identity_token="$(gcloud auth print-identity-token             --impersonate-service-account="$GCP_DEPLOY_SERVICE_ACCOUNT"             --audiences="$service_url" --include-email)"
           request_headers=(-H "Authorization: Bearer $identity_token")
 
           curl "${request_headers[@]}" --fail --silent --show-error \
