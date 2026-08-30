@@ -25,10 +25,12 @@ class ProductionConfigurationTests {
         assertThat(properties.getProperty("spring.datasource.password")).isEqualTo("${DB_PASSWORD}");
         assertThat(properties.getProperty("spring.datasource.hikari.maximum-pool-size")).isEqualTo(5);
         assertThat(properties.getProperty("spring.datasource.hikari.minimum-idle")).isEqualTo(0);
-        assertThat(properties.getProperty("spring.datasource.hikari.connection-timeout")).isEqualTo("10s");
-        assertThat(properties.getProperty("spring.datasource.hikari.validation-timeout")).isEqualTo("5s");
-        assertThat(properties.getProperty("spring.datasource.hikari.idle-timeout")).isEqualTo("2m");
-        assertThat(properties.getProperty("spring.datasource.hikari.max-lifetime")).isEqualTo("25m");
+        // Milissegundos crus: o bloco hikari vai direto para o HikariConfig, que não aceita
+        // sufixos de duração — "10s" derruba o contexto na inicialização (visto no Cloud Run).
+        assertThat(properties.getProperty("spring.datasource.hikari.connection-timeout")).isEqualTo(10000);
+        assertThat(properties.getProperty("spring.datasource.hikari.validation-timeout")).isEqualTo(5000);
+        assertThat(properties.getProperty("spring.datasource.hikari.idle-timeout")).isEqualTo(120000);
+        assertThat(properties.getProperty("spring.datasource.hikari.max-lifetime")).isEqualTo(1500000);
         assertThat(properties.getProperty("spring.flyway.url")).isEqualTo("${DB_DIRECT_URL}");
         assertThat(properties.getProperty("server.port")).isEqualTo("${PORT}");
         assertThat(properties.getProperty("server.shutdown")).isEqualTo("graceful");
