@@ -138,6 +138,8 @@ export function ProfilePage() {
             <input
               {...register('displayName')}
               aria-invalid={Boolean(errors.displayName)}
+              autoCapitalize="words"
+              autoComplete="name"
               id="profile-name"
               type="text"
             />
@@ -146,7 +148,16 @@ export function ProfilePage() {
 
           <div className="field-group">
             <label htmlFor="profile-locale">Idioma</label>
-            <input {...register('locale')} aria-invalid={Boolean(errors.locale)} id="profile-locale" type="text" />
+            <input
+              {...register('locale')}
+              aria-invalid={Boolean(errors.locale)}
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
+              id="profile-locale"
+              spellCheck={false}
+              type="text"
+            />
             {errors.locale ? <span className="field-error">{errors.locale.message}</span> : null}
           </div>
 
@@ -155,7 +166,11 @@ export function ProfilePage() {
             <input
               {...register('timeZone')}
               aria-invalid={Boolean(errors.timeZone)}
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
               id="profile-time-zone"
+              spellCheck={false}
               type="text"
             />
             {errors.timeZone ? <span className="field-error">{errors.timeZone.message}</span> : null}
@@ -178,7 +193,7 @@ export function ProfilePage() {
 
           <div className="field-group">
             <label htmlFor="profile-birth-date">Data de nascimento</label>
-            <input {...register('birthDate')} id="profile-birth-date" type="date" />
+            <input {...register('birthDate')} autoComplete="bday" id="profile-birth-date" type="date" />
           </div>
 
           <div className="field-group full-field">

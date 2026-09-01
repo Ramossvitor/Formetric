@@ -179,7 +179,7 @@ export function NutritionGoalsPage() {
                     id="goal-calorie-target"
                     min="0"
                     step="0.001"
-                    type="number"
+                    inputMode="decimal" type="number"
                   />
                   <span>kcal</span>
                 </div>

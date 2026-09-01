@@ -38,7 +38,7 @@ export function RecipesPage() {
         <label className="search-field" htmlFor="recipe-search">
           <span aria-hidden="true">⌕</span>
           <span className="visually-hidden">Pesquisar receitas</span>
-          <input autoComplete="off" id="recipe-search" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar macarrão, frango…" type="search" value={search} />
+          <input autoCapitalize="none" autoCorrect="off" enterKeyHint="search" spellCheck={false} autoComplete="off" id="recipe-search" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar macarrão, frango…" type="search" value={search} />
         </label>
         <button aria-pressed={favoritesOnly} className={favoritesOnly ? 'filter-chip active' : 'filter-chip'} onClick={() => setFavoritesOnly((current) => !current)} type="button">★ Favoritos</button>
         <div aria-label="Status das receitas" className="catalog-status-filter" role="group">

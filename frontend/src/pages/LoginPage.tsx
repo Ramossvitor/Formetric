@@ -107,6 +107,7 @@ export function LoginPage() {
               aria-describedby={errors.password ? 'password-error' : undefined}
               aria-invalid={Boolean(errors.password)}
               autoComplete="current-password"
+              enterKeyHint="go"
               id="password"
               type="password"
             />

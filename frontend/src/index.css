@@ -87,6 +87,12 @@
   --fs-caption: 0.75rem;
   --fs-footnote: 0.8125rem;
 
+  /* Movimento. `--dur-press` é curto de propósito: o retorno do toque precisa acontecer dentro do
+     tempo em que o dedo ainda está na tela, senão vira animação em vez de resposta. */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-press: 90ms;
+  --dur-fast: 160ms;
+
   /* Camadas. Os valores são os que o arquivo já usava; o que muda é passarem a ter nome. */
   --z-raised: 1;
   --z-sticky-actions: 3;
@@ -126,6 +132,28 @@ button {
   font: inherit;
 }
 
+/* O realce nativo de toque foi suprimido acima e nada tinha tomado o lugar dele: não existia um
+   único `:active` no app, então tocar em qualquer botão não devolvia um pixel. Numa rede lenta
+   isso se lê como "o toque não pegou", e o usuário toca de novo.
+
+   Usa a propriedade `scale` isolada, e não `transform`, porque metade destes elementos já carrega
+   um `transform` próprio — o FAB é rotacionado 45°, o link de pular conteúdo é deslocado para
+   fora da tela — e um `transform` aqui apagaria o de lá. Em link dentro de texto corrido o efeito
+   simplesmente não se aplica, porque transformações não valem para caixa inline: exatamente o que
+   se quer, já que encolher uma palavra no meio de um parágrafo seria estranho. */
+button,
+a[href],
+[role='button'] {
+  transition: scale var(--dur-fast) var(--ease-out);
+}
+
+button:not(:disabled):active,
+a[href]:active,
+[role='button']:not([aria-disabled='true']):active {
+  scale: 0.97;
+  transition-duration: var(--dur-press);
+}
+
 /* Rede de segurança do zoom do iOS. Não substitui as regras de classe — elas vencem por
    especificidade e cada uma foi corrigida no App.css — mas garante que um controle NOVO, escrito
    sem regra própria, já nasça acima do piso. `max()` em vez de `16px` fixo para não encolher um
@@ -148,7 +176,8 @@ a {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: 3px;
 }
@@ -159,6 +188,21 @@ select:focus-visible {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    /* Faltava zerar animação: o spinner de rota gira em laço infinito e aparece em toda abertura
+       de sessão e em toda busca, ou seja, era justamente o movimento que mais rodava para quem
+       pediu para reduzir movimento. Ele continua visível — só para de girar. */
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* O retorno de toque vira mudança de cor em vez de encolhimento: informa o mesmo sem mover
+     nada. */
+  button:not(:disabled):active,
+  a[href]:active,
+  [role='button']:not([aria-disabled='true']):active {
+    scale: 1;
+    filter: brightness(0.94);
   }
 }
 

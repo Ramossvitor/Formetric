@@ -93,7 +93,7 @@ export function FoodForm({ initialVersion, pending, submitLabel, onCancel, onSub
           </div>
           <div className="field-group full-field">
             <label htmlFor="food-brand">Marca <span className="optional-label">opcional</span></label>
-            <input {...register('brand', { setValueAs: nullableText })} id="food-brand" />
+            <input {...register('brand', { setValueAs: nullableText })} autoCapitalize="words" autoCorrect="off" id="food-brand" spellCheck={false} />
           </div>
           <div className="field-group full-field">
             <label htmlFor="food-notes">Observações <span className="optional-label">opcional</span></label>
@@ -107,7 +107,7 @@ export function FoodForm({ initialVersion, pending, submitLabel, onCancel, onSub
         <div className="catalog-form-grid compact-columns">
           <div className="field-group">
             <label htmlFor="food-reference-quantity">Quantidade</label>
-            <input {...register('referenceQuantity', { valueAsNumber: true })} id="food-reference-quantity" min="0" step="0.01" type="number" />
+            <input {...register('referenceQuantity', { valueAsNumber: true })} id="food-reference-quantity" min="0" step="0.01" inputMode="decimal" type="number" />
             {errors.referenceQuantity ? <span className="field-error">{errors.referenceQuantity.message}</span> : null}
           </div>
           <div className="field-group">
@@ -133,7 +133,7 @@ export function FoodForm({ initialVersion, pending, submitLabel, onCancel, onSub
             <div className="field-group" key={name}>
               <label htmlFor={`food-${name}`}>{label}</label>
               <div className="number-with-unit">
-                <input {...register(name, { valueAsNumber: true })} aria-invalid={Boolean(errors[name])} id={`food-${name}`} min="0" step="0.01" type="number" />
+                <input {...register(name, { valueAsNumber: true })} aria-invalid={Boolean(errors[name])} id={`food-${name}`} min="0" step="0.01" inputMode="decimal" type="number" />
                 <span>{unit}</span>
               </div>
               {errors[name] ? <span className="field-error">{errors[name]?.message}</span> : null}
@@ -142,7 +142,7 @@ export function FoodForm({ initialVersion, pending, submitLabel, onCancel, onSub
           <div className="field-group">
             <label htmlFor="food-sodium">Sódio <span className="optional-label">opcional</span></label>
             <div className="number-with-unit">
-              <input {...register('sodiumMg', { setValueAs: nullableNumber })} id="food-sodium" min="0" step="0.01" type="number" />
+              <input {...register('sodiumMg', { setValueAs: nullableNumber })} id="food-sodium" min="0" step="0.01" inputMode="decimal" type="number" />
               <span>mg</span>
             </div>
             {errors.sodiumMg ? <span className="field-error">{errors.sodiumMg.message}</span> : null}
@@ -162,7 +162,7 @@ export function FoodForm({ initialVersion, pending, submitLabel, onCancel, onSub
           <div className="field-group">
             <label htmlFor="food-uncertainty">Incerteza <span className="optional-label">opcional</span></label>
             <div className="number-with-unit">
-              <input {...register('kcalUncertainty', { setValueAs: nullableNumber })} id="food-uncertainty" min="0" step="1" type="number" />
+              <input {...register('kcalUncertainty', { setValueAs: nullableNumber })} id="food-uncertainty" min="0" step="1" inputMode="numeric" type="number" />
               <span>± kcal</span>
             </div>
           </div>
@@ -194,7 +194,7 @@ export function FoodForm({ initialVersion, pending, submitLabel, onCancel, onSub
               </div>
               <div className="field-group">
                 <label htmlFor={`serving-${index}-quantity`}>Quantidade</label>
-                <input {...register(`servings.${index}.quantity`, { valueAsNumber: true })} id={`serving-${index}-quantity`} min="0" step="0.01" type="number" />
+                <input {...register(`servings.${index}.quantity`, { valueAsNumber: true })} id={`serving-${index}-quantity`} min="0" step="0.01" inputMode="decimal" type="number" />
               </div>
               <div className="field-group">
                 <label htmlFor={`serving-${index}-unit`}>Unidade</label>
@@ -204,7 +204,7 @@ export function FoodForm({ initialVersion, pending, submitLabel, onCancel, onSub
               </div>
               <div className="field-group">
                 <label htmlFor={`serving-${index}-equivalent`}>Equivale na referência</label>
-                <input {...register(`servings.${index}.referenceQuantityEquivalent`, { valueAsNumber: true })} id={`serving-${index}-equivalent`} min="0" step="0.01" type="number" />
+                <input {...register(`servings.${index}.referenceQuantityEquivalent`, { valueAsNumber: true })} id={`serving-${index}-equivalent`} min="0" step="0.01" inputMode="decimal" type="number" />
               </div>
               <button aria-label={`Remover porção ${index + 1}`} className="remove-row-button" onClick={() => servings.remove(index)} type="button">×</button>
             </div>

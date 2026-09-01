@@ -153,7 +153,7 @@ export function TdeeSettingsPage() {
                   id="tdee-kcal"
                   min="0"
                   step="0.001"
-                  type="number"
+                  inputMode="decimal" type="number"
                 />
                 <span>kcal/dia</span>
               </div>
