@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
@@ -6,6 +6,7 @@ import { setFoodFavorite } from '../catalog/api'
 import { CatalogCount, CatalogError, CatalogLoading, CatalogLoadMore } from '../catalog/CatalogState'
 import { formatNumber, qualityLabels, unitLabels } from '../catalog/format'
 import { foodsInfiniteQuery, foodsQueryKey } from '../catalog/queries'
+import { useFavoriteToggle } from '../catalog/useFavoriteToggle'
 import { useDebouncedValue } from '../catalog/useDebouncedValue'
 
 export function FoodsPage() {
@@ -13,15 +14,11 @@ export function FoodsPage() {
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [catalogView, setCatalogView] = useState<'active' | 'archived'>('active')
   const debouncedSearch = useDebouncedValue(search)
-  const queryClient = useQueryClient()
   const foods = useInfiniteQuery(foodsInfiniteQuery(debouncedSearch, favoritesOnly, catalogView === 'archived'))
   const loadedFoods = foods.data?.pages.flatMap((page) => page.content) ?? []
   const visibleFoods = loadedFoods.filter((food) => food.archived === (catalogView === 'archived'))
   const totalFoods = foods.data?.pages[0]?.totalElements ?? 0
-  const favoriteMutation = useMutation({
-    mutationFn: ({ id, favorite }: { id: string; favorite: boolean }) => setFoodFavorite(id, favorite),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: foodsQueryKey }),
-  })
+  const favoriteMutation = useFavoriteToggle({ queryKey: foodsQueryKey, setFavorite: setFoodFavorite })
 
   return (
     <main id="conteudo">
@@ -108,7 +105,6 @@ export function FoodsPage() {
                   aria-label={food.favorite ? `Remover ${version.name} dos favoritos` : `Favoritar ${version.name}`}
                   aria-pressed={food.favorite}
                   className={food.favorite ? 'favorite-button active' : 'favorite-button'}
-                  disabled={favoriteMutation.isPending}
                   onClick={() => favoriteMutation.mutate({ id: food.id, favorite: !food.favorite })}
                   type="button"
                 >

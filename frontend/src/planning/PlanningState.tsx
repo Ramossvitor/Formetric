@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../api/http'
+import { Skeleton, SkeletonRows } from '../components/Skeleton'
 
 interface PlanningLoadingProps {
   message: string
@@ -7,9 +8,10 @@ interface PlanningLoadingProps {
 export function PlanningLoading({ message }: PlanningLoadingProps) {
   return (
     <main id="conteudo">
-      <div className="planning-state" role="status">
-        <span className="route-spinner" aria-hidden="true" />
-        <p>{message}</p>
+      <div aria-busy="true" className="catalog-skeleton" role="status">
+        <span className="visually-hidden">{message}</span>
+        <Skeleton height={92} radius={20} />
+        <SkeletonRows rows={3} height={72} />
       </div>
     </main>
   )

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useIsFetching, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
@@ -40,6 +40,9 @@ export function AuthenticatedLayout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const location = useLocation()
   const online = useConnectionStatus()
+  // Com o conteúdo anterior preservado durante a troca de data ou de busca, é esta barra que diz
+  // que algo está a caminho. Um lugar só, para nenhuma tela precisar montar o próprio indicador.
+  const updating = useIsFetching() > 0
   useKeyboardInset()
 
   // Trocar de tela sem voltar ao topo deixava o usuário no meio de uma página nova, na altura em
@@ -130,6 +133,8 @@ export function AuthenticatedLayout() {
       </aside>
 
       <div className="page">
+        {updating ? <span aria-hidden="true" className="updating-bar" /> : null}
+
         {online ? null : (
           <p className="offline-banner" role="status">
             <Icon name="sparkle" size={16} />

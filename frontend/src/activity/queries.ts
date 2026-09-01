@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions } from '@tanstack/react-query'
 import { getWeightOverview, listWorkouts } from './api'
 
 export const activityQueryKey = ['activity'] as const
@@ -9,6 +9,7 @@ export function workoutsQuery(from: string, to: string) {
   return queryOptions({
     queryKey: [...workoutsQueryKey, { from, to }],
     queryFn: () => listWorkouts(from, to),
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -16,5 +17,6 @@ export function weightOverviewQuery(from: string, to: string) {
   return queryOptions({
     queryKey: [...weightLogsQueryKey, 'overview', { from, to }],
     queryFn: () => getWeightOverview(from, to),
+    placeholderData: keepPreviousData,
   })
 }
