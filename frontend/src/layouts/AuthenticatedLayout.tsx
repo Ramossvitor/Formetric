@@ -1,6 +1,6 @@
 import { useIsFetching, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
@@ -10,11 +10,14 @@ import { Icon, type IconName } from '../components/Icon'
 import { useConnectionStatus } from './useConnectionStatus'
 import { useKeyboardInset } from './useKeyboardInset'
 
+// Quatro destinos e um botão de adicionar, para dez telas. "Evolução" e "Mais" são portas, não
+// telas finais: cada uma reúne o que não cabia na barra, e nenhum destino do app fica sem caminho
+// previsível — treinos, por exemplo, só era alcançável pelo cadastro rápido.
 const navigation: Array<{ label: string; icon: IconName; to: string }> = [
   { label: 'Hoje', icon: 'home', to: '/' },
   { label: 'Diário', icon: 'book', to: '/diary' },
-  { label: 'Evolução', icon: 'trend', to: '/progress/evaluations' },
-  { label: 'Perfil', icon: 'settings', to: '/profile' },
+  { label: 'Evolução', icon: 'trend', to: '/progress' },
+  { label: 'Mais', icon: 'settings', to: '/more' },
 ]
 
 const catalogNavigation: Array<{ label: string; icon: IconName; to: string }> = [
@@ -54,7 +57,15 @@ function QuickAddSheet({ children, onClose }: { children: ReactNode; onClose: ()
 export function AuthenticatedLayout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const online = useConnectionStatus()
+  // Telas fora dos quatro destinos da barra são "profundas": num app instalado não há botão voltar
+  // do navegador, e sair de /foods/:id dependia do gesto do sistema, que no iOS praticamente não
+  // existe em modo standalone.
+  const deep = !navigation.some((item) => item.to === location.pathname)
+  // `location.key` é 'default' na primeira entrada do histórico: aí voltar sairia do app, e o
+  // caminho certo é subir para a tela inicial.
+  const canGoBack = location.key !== 'default'
   // Com o conteúdo anterior preservado durante a troca de data ou de busca, é esta barra que diz
   // que algo está a caminho. Um lugar só, para nenhuma tela precisar montar o próprio indicador.
   const updating = useIsFetching() > 0
@@ -149,7 +160,16 @@ export function AuthenticatedLayout() {
         )}
 
         <header className="mobile-header">
-          <Brand />
+          {deep ? (
+            <button
+              aria-label="Voltar"
+              className="icon-button header-back"
+              onClick={() => (canGoBack ? navigate(-1) : navigate('/'))}
+              type="button"
+            >
+              <Icon name="chevron" size={20} />
+            </button>
+          ) : <Brand />}
           <Link className="avatar avatar-link" to="/profile" aria-label="Abrir perfil">
             {initials(user?.displayName ?? '')}
           </Link>

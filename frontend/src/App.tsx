@@ -12,9 +12,11 @@ import { InviteAcceptancePage } from './pages/InviteAcceptancePage'
 import { InvitationsPage } from './pages/InvitationsPage'
 import { NewFoodPage } from './pages/NewFoodPage'
 import { NewRecipePage } from './pages/NewRecipePage'
+import { MorePage } from './pages/MorePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { NutritionGoalsPage } from './pages/NutritionGoalsPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { ProgressHubPage } from './pages/ProgressHubPage'
 import { RecipeDetailPage } from './pages/RecipeDetailPage'
 import { RecipesPage } from './pages/RecipesPage'
 import { TdeeSettingsPage } from './pages/TdeeSettingsPage'
@@ -44,7 +46,8 @@ function App() {
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<HomePage />} />
           <Route element={<DiaryPage />} path="diary" />
-          <Route element={<Navigate replace to="/progress/evaluations" />} path="progress" />
+          <Route element={<ProgressHubPage />} path="progress" />
+          <Route element={<MorePage />} path="more" />
           <Route
             element={<Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando peso…</p></div>}><WeightProgressPage /></Suspense>}
             path="progress/weight"

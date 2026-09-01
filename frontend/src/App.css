@@ -241,6 +241,11 @@
   text-align: center;
 }
 
+/* O chevron aponta para a direita no conjunto de ícones; aqui ele volta. */
+.header-back > .icon {
+  rotate: 180deg;
+}
+
 .mobile-header {
   display: flex;
   min-height: 68px;
@@ -1269,6 +1274,79 @@ h2 {
 
 .settings-card {
   margin-top: 16px;
+}
+
+/* Lista de destinos de uma porta (Evolução, Mais). Mesma anatomia da lista agrupada do panorama:
+   ícone, duas linhas de texto e chevron, com o fio começando depois do ícone. */
+.hub-section-title {
+  margin: var(--space-6) 0 var(--space-2);
+  color: var(--text-soft);
+  font-size: var(--fs-caption);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hub-list {
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+}
+
+.hub-item {
+  display: grid;
+  min-height: 68px;
+  align-items: center;
+  gap: var(--space-3);
+  grid-template-columns: 36px minmax(0, 1fr) var(--tap);
+  padding: 0 var(--space-4);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hub-item + .hub-item {
+  border-top: 1px solid var(--hairline);
+}
+
+.hub-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--radius-chip);
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.hub-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.hub-copy strong {
+  font-size: var(--fs-headline);
+  font-weight: 650;
+}
+
+.hub-copy small {
+  color: var(--text-soft);
+  font-size: var(--fs-footnote);
+}
+
+.hub-chevron {
+  display: grid;
+  width: var(--tap);
+  height: var(--tap);
+  place-items: center;
+  color: var(--text-soft);
+}
+
+.logout-action {
+  width: 100%;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  color: var(--danger-text);
 }
 
 .settings-link-list {
