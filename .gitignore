@@ -36,6 +36,9 @@ playwright-report/
 test-results/
 blob-report/
 .playwright-mcp/
+# Capturas de antes/depois das guardas de layout. Ficam fora do versionamento de propósito: a
+# conferência é humana e local, e a renderização de fonte difere entre Windows e o Linux do CI.
+screenshots/
 
 # IDEs and editors
 .idea/

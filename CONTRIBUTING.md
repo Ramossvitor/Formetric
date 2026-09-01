@@ -50,6 +50,36 @@ Cada commit deve representar uma unidade lógica completa. Antes de criá-lo:
 - Cubra regras de negócio com testes unitários e persistência com PostgreSQL real
   através de Testcontainers.
 
+### Layout no celular
+
+O app é usado principalmente no celular, e nenhuma das suítes enxerga um defeito de layout
+sozinha: o jsdom não calcula caixas, e os testes de componente buscam por texto e papel. Duas
+catracas cobrem essa lacuna, e ambas falham com a lista do que corrigir.
+
+`frontend/tools/css-contract.ts` lê as folhas de estilo como texto e recusa controle de
+formulário abaixo de 16px (é o que faz o Safari do iOS ampliar o viewport ao focar o campo e
+nunca desfazer o zoom), `font: inherit` em controle, `vh`, e `env(safe-area-inset-*)` sem
+fallback. Roda dentro do `npm test`.
+
+`frontend/e2e/layout-guards.spec.ts` mede a página renderizada em 320, 375 e 412px: nenhuma rota
+pode rolar de lado, nenhum controle pode ficar abaixo de 16px depois da cascata, nenhum alvo de
+toque pode ter caixa menor que 44px. Roda dentro do `npm run test:e2e`.
+
+As duas partem de uma linha de base versionada, porque as violações são corrigidas ao longo de
+várias ondas. Depois de corrigir um lote, aperte a catraca:
+
+```
+UPDATE_CSS_BASELINE=1 npm test -- css-contract
+UPDATE_LAYOUT_BASELINE=1 npm run test:e2e -- layout-guards
+```
+
+Para comparar uma tela antes e depois de uma mudança, capture as duas pontas e olhe lado a lado
+(`screenshots/` é ignorada pelo git):
+
+```
+CAPTURE_SCREENSHOTS=screenshots/antes npm run test:e2e -- layout-guards
+```
+
 ## Segurança e privacidade
 
 Nunca versione:
