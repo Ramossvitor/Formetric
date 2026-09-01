@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { type CSSProperties, type ReactNode, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { type CSSProperties, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import type {
   DailyAnalytics,
@@ -8,11 +8,12 @@ import type {
   GoalTone,
   MacroNutrientType,
 } from '../analytics/api'
-import { diaryStatusLabels, formatDuration, formatLongDate, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels } from '../analytics/format'
+import { diaryStatusLabels, formatDuration, formatLongDate, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels, pluralize } from '../analytics/format'
 import { dailyAnalyticsQuery } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 import { formatGoalComparison, formatGoalRange } from '../diary/format'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
+import { isPlainDate } from '../time/plainDate'
 
 const macroDefinitions: Array<{
   nutrient: MacroNutrientType
@@ -53,6 +54,18 @@ function MissingValue({ children }: { children: ReactNode }) {
   return <span className="analytics-missing">{children}</span>
 }
 
+/**
+ * A mesma frase de ausência, agora levando a quem sabe resolvê-la.
+ *
+ * Numa conta recém-criada esta tela mostra dez negações seguidas — sem meta, sem TDEE, sem
+ * registro — e nenhuma delas dizia onde configurar nada. Era a primeira coisa que um piloto de dez
+ * pessoas encontrava, e o caminho para sair dali passava por adivinhar que a resposta estava no
+ * Perfil.
+ */
+function MissingWithFix({ children, to }: { children: ReactNode; to: string }) {
+  return <Link className="analytics-missing analytics-missing-link" to={to}>{children}<Icon name="chevron" size={14} /></Link>
+}
+
 function MacroRow({ data, goal, nutrient, nutritionKey }: {
   data: DailyAnalytics
   goal: GoalProgress | undefined
@@ -79,7 +92,9 @@ function MacroRow({ data, goal, nutrient, nutritionKey }: {
         role="group"
       >
         <span aria-hidden="true" className={`goal-state-dot ${goalToneClass(goal)}`} />
-        <span>{state}{comparison ? ` · ${comparison}` : ''}</span>
+        {goal
+          ? <span>{state}{comparison ? ` · ${comparison}` : ''}</span>
+          : <Link className="goal-state-fix" to="/settings/nutrition-goals">{state}</Link>}
         {goal?.attained != null ? <strong>{goal.attained ? 'atingida' : 'fora da meta'}</strong> : null}
       </div>
     </div>
@@ -135,7 +150,7 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
     ? 'Nenhum treino'
     : data.workouts.modalities.length > 0
       ? data.workouts.modalities.map(formatWorkoutModality).join(' · ')
-      : `${data.workouts.sessionCount} sessão${data.workouts.sessionCount === 1 ? '' : 'ões'}`
+      : pluralize(data.workouts.sessionCount, 'sessão', 'sessões')
 
   return (
     <>
@@ -170,7 +185,9 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
             role="group"
           >
             <span aria-hidden="true" className={`goal-state-dot ${goalToneClass(calorieGoal)}`} />
-            <span>{calorieClassificationStage}: {calorieClassification}</span>
+            {calorieGoal
+              ? <span>{calorieClassificationStage}: {calorieClassification}</span>
+              : <Link className="goal-state-fix" to="/settings/nutrition-goals">{calorieClassificationStage}: {calorieClassification}</Link>}
             {calorieGoal?.attained != null ? (
               <strong>{calorieGoal.attained ? 'atingida' : 'fora da meta'}</strong>
             ) : null}
@@ -181,12 +198,14 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
             <span>
               <small>{projected ? 'Saldo previsto' : 'Saldo fechado'}</small>
               {balance == null
-                ? <MissingValue>{data.energyBalanceAvailability === 'MISSING_TDEE' ? 'Configure o TDEE' : 'Ainda indisponível'}</MissingValue>
+                ? data.energyBalanceAvailability === 'MISSING_TDEE'
+                  ? <MissingWithFix to="/settings/tdee">Configure o TDEE</MissingWithFix>
+                  : <MissingValue>Ainda indisponível</MissingValue>
                 : <strong>{formatSigned(balance, 'kcal')}</strong>}
             </span>
             <span className="estimate-label">{projected ? 'projeção' : data.historicalEligible ? 'confirmado' : 'pendente'}</span>
           </div>
-          <p className="daily-tdee">TDEE vigente: {data.tdeeKcal == null ? <strong>não configurado</strong> : <strong>{formatNumber(data.tdeeKcal)} kcal</strong>}</p>
+          <p className="daily-tdee">TDEE vigente: {data.tdeeKcal == null ? <Link to="/settings/tdee"><strong>não configurado</strong></Link> : <strong>{formatNumber(data.tdeeKcal)} kcal</strong>}</p>
         </div>
 
         <div className="macro-summary">
@@ -207,6 +226,13 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
           </div>
         </div>
       </section>
+
+      {data.diaryStatus === 'MISSING' ? (
+        <Link className="start-day-action" to={`/diary?date=${data.date}&action=quick`}>
+          <Icon name="plus" size={18} />
+          Começar o registro deste dia
+        </Link>
+      ) : null}
 
       <section aria-labelledby="panorama" className="overview-section">
         <div className="section-title-row">
@@ -229,7 +255,7 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
             <div className="metric-copy">
               <span className="metric-label">Treino</span>
               <strong className="metric-title">{workoutLabel}</strong>
-              <span className="metric-note">{data.workouts.sessionCount === 0 ? 'Nenhuma sessão registrada' : `${formatDuration(data.workouts.totalDurationMinutes)} · ${data.workouts.sessionCount} sessão${data.workouts.sessionCount === 1 ? '' : 'ões'}`}</span>
+              <span className="metric-note">{data.workouts.sessionCount === 0 ? 'Nenhuma sessão registrada' : `${formatDuration(data.workouts.totalDurationMinutes)} · ${pluralize(data.workouts.sessionCount, 'sessão', 'sessões')}`}</span>
             </div>
             <Link aria-label="Abrir treinos" className="card-action ghost" to="/workouts"><Icon name="chevron" size={18} /></Link>
           </article>
@@ -261,11 +287,23 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
 
 export function HomePage() {
   const { today, locale } = useProfileTimeContext()
-  const [selectedDate, setSelectedDate] = useState<string>()
-  const date = selectedDate ?? today
+  // A data vive na URL, e não em estado local, pelo mesmo motivo que no diário: recarregar a página
+  // mantinha "Hoje" no título e o dado de outro dia embaixo, e o botão voltar do aparelho saía do
+  // app em vez de desfazer a troca de data. `replace` porque percorrer uma semana não deveria
+  // encher o histórico com sete paradas.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedDate = searchParams.get('date')
+  const date = requestedDate && isPlainDate(requestedDate) ? requestedDate : today
   const daily = useQuery(dailyAnalyticsQuery(date))
   const pending = daily.isPending
   const error = daily.error
+
+  function selectDate(nextDate: string) {
+    const params = new URLSearchParams(searchParams)
+    if (!nextDate || nextDate === today) params.delete('date')
+    else params.set('date', nextDate)
+    setSearchParams(params, { replace: true })
+  }
 
   return (
     <main id="conteudo">
@@ -275,10 +313,15 @@ export function HomePage() {
           <h1>{date === today ? 'Hoje' : formatLongDate(date, locale)}</h1>
           <p className="heading-copy">Dados registrados, cálculos do sistema e disponibilidade explícita.</p>
         </div>
-        <label className="analytics-date-control">
-          <span>Data do resumo</span>
-          <input max={today} onChange={(event) => setSelectedDate(event.target.value || undefined)} type="date" value={date} />
-        </label>
+        <div className="analytics-date-group">
+          <label className="analytics-date-control">
+            <span>Data do resumo</span>
+            <input max={today} onChange={(event) => selectDate(event.target.value)} type="date" value={date} />
+          </label>
+          {date === today ? null : (
+            <button className="text-button" onClick={() => selectDate(today)} type="button">Voltar para hoje</button>
+          )}
+        </div>
       </header>
 
       {pending ? (

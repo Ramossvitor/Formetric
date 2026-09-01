@@ -227,6 +227,20 @@
   min-height: var(--fill-h);
 }
 
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px calc(18px + var(--safe-right)) 10px calc(18px + var(--safe-left));
+  color: var(--orange-text);
+  background: var(--orange-soft);
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  text-align: center;
+}
+
 .mobile-header {
   display: flex;
   min-height: 68px;
@@ -813,6 +827,15 @@ h2 {
 
 .desktop-only {
   display: none;
+}
+
+/* A aplicação continua montada por baixo da barreira de identidade: o que se perde é a visão
+   dela, não o estado. O ocultamento em si mora no componente, junto da condição que o produz. */
+.route-status-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--background);
 }
 
 .route-status {
@@ -2637,6 +2660,77 @@ h2 {
 .dialog-actions > *,
 .copy-actions > * {
   flex: 1;
+}
+
+/* Lista de escolha do diário. Cada linha é um alvo de 56px com o nome e o resumo nutricional que
+   decide entre dois itens parecidos; o rádio fica visível porque é ele que comunica a escolha
+   única — um cartão marcado só pela borda não diz que as opções são exclusivas. */
+.catalog-choice-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.catalog-choice-group > legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+}
+
+.catalog-choice-list {
+  display: grid;
+  overflow-y: auto;
+  /* Alto o bastante para caber cinco linhas, baixo o bastante para as ações do sheet continuarem
+     alcançáveis sem rolar o sheet inteiro. */
+  max-height: 44svh;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  overscroll-behavior: contain;
+}
+
+.catalog-choice {
+  display: grid;
+  min-height: 56px;
+  align-items: center;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.catalog-choice + .catalog-choice {
+  border-top: 1px solid var(--border);
+}
+
+.catalog-choice input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.catalog-choice:has(input:checked) {
+  background: var(--primary-soft);
+}
+
+.catalog-choice-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.catalog-choice-copy strong {
+  font-size: var(--fs-footnote);
+  overflow-wrap: anywhere;
+}
+
+.catalog-choice-copy small {
+  color: var(--text-soft);
+  font-size: var(--fs-caption);
 }
 
 .item-measure-grid,
@@ -4697,6 +4791,12 @@ h2 {
   align-items: flex-start;
 }
 
+.analytics-date-group {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
 .analytics-date-control {
   display: grid;
   gap: 6px;
@@ -4763,6 +4863,42 @@ h2 {
   font-size: 0.8rem !important;
   font-weight: 650 !important;
   letter-spacing: 0 !important;
+}
+
+/* Ausência que leva a quem a resolve. Herda a aparência de ausência de propósito — continua sendo
+   uma negação, não uma chamada para ação — e ganha só a cor de link e o chevron que dizem que dá
+   para tocar. */
+.analytics-missing-link,
+.goal-state-fix {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary) !important;
+  text-decoration: none;
+}
+
+.goal-state-fix {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* O único caminho visível para sair de um dia em branco. Fica logo abaixo do card de nutrição,
+   onde a leitura acabou de encontrar dez ausências seguidas. */
+.start-day-action {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+  font-size: var(--fs-footnote);
+  font-weight: 750;
+  text-decoration: none;
 }
 
 .daily-status-open {
@@ -5386,8 +5522,10 @@ h2 {
     display: grid;
   }
 
+  .analytics-date-group,
   .analytics-date-control {
     width: 100%;
+    justify-items: stretch;
   }
 
   .analytics-date-control input {

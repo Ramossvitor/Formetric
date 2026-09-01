@@ -162,10 +162,32 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return (await response.json()) as T
 }
 
+/**
+ * Frases para quando a resposta não traz um `detail` próprio.
+ *
+ * Os domínios do backend descrevem os próprios erros em português, e essas mensagens sempre têm
+ * precedência — são elas que explicam o que de fato aconteceu. O que falta cobrir é a resposta que
+ * o servidor de aplicação monta sozinho, antes de qualquer código do produto rodar: corpo malformado,
+ * método não suportado, falha não tratada. Nesses casos o título vem do framework, em inglês, e
+ * chegava assim à tela.
+ */
+const statusFallbacks: Array<[predicate: (status: number) => boolean, message: string]> = [
+  [(status) => status === 401, 'Sua sessão expirou. Entre novamente para continuar.'],
+  [(status) => status === 403, 'Você não tem permissão para esta ação.'],
+  [(status) => status === 404, 'Este registro não existe mais.'],
+  [(status) => status === 409, 'Alguém alterou este registro antes de você. Recarregue e tente de novo.'],
+  [(status) => status === 429, 'Muitas tentativas seguidas. Espere um instante e tente de novo.'],
+  [(status) => status >= 500, 'O servidor não conseguiu responder agora. Tente novamente em instantes.'],
+]
+
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.problem?.detail) return error.problem.detail
+    const fallback = statusFallbacks.find(([matches]) => matches(error.status))
+    if (fallback) return fallback[1]
     return error.message
   }
 
-  return 'Não foi possível conectar ao Formetric. Tente novamente.'
+  // `fetch` só rejeita quando a requisição não chegou a ter resposta: sem rede, DNS, CORS.
+  return 'Não foi possível conectar ao Formetric. Verifique sua conexão e tente novamente.'
 }

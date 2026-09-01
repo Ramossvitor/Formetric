@@ -91,7 +91,16 @@ describe('fronteira de identidade ao recuperar foco', () => {
     returnToTab()
 
     expect(await screen.findByText('Atualizando sua sessão…')).toBeInTheDocument()
-    expect(screen.queryByText(/Conta A/)).not.toBeInTheDocument()
+    // A barreira esconde a conta anterior em vez de desmontá-la. É uma diferença deliberada: com o
+    // desmonte, cada volta ao app destruía diálogo aberto, rascunho e rolagem, porque todo o estado
+    // de React abaixo da rota morria junto. O que precisa continuar valendo é que ninguém VEJA o
+    // que era da outra conta — e é isso que se assere aqui, junto com a inércia que impede foco e
+    // ponteiro de alcançarem o conteúdo escondido.
+    //
+    // O texto encontrado durante a revalidação mostra por que a barreira existe: o nome ainda é o
+    // da Conta A, mas o fuso já é o da Conta B.
+    expect(screen.getByText(/Conta A/)).not.toBeVisible()
+    expect(screen.getByText(/Conta A/).closest('.identity-shield')).toHaveAttribute('inert')
     releaseSession()
     expect(await screen.findByRole('heading', { name: 'Conta B|2026-08-13|America/New_York' })).toBeInTheDocument()
     expect(queryClient.getQueryData(['private', 'account-a'])).toBeUndefined()

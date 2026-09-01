@@ -158,7 +158,10 @@ export function DiaryPage() {
     const params = new URLSearchParams()
     if (nextDate !== today) params.set('date', nextDate)
     closeEditor()
-    setSearchParams(params)
+    // `replace` porque percorrer a semana com as setas empilhava uma entrada de histórico por dia:
+    // depois de sete toques, sair da tela exigia sete toques em voltar. Num aplicativo instalado,
+    // onde voltar é o gesto mais usado, isso transformava a navegação de data numa armadilha.
+    setSearchParams(params, { replace: true })
   }
 
   if (query.isPending) {

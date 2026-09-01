@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        {/* Último recurso: pega o que escapar das barreiras internas, inclusive o que acontece
+            acima do layout — o provedor de data e fuso, por exemplo. */}
+        <ErrorBoundary scope="no aplicativo"><App /></ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

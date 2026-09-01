@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Icon, type IconName } from '../components/Icon'
+import { useConnectionStatus } from './useConnectionStatus'
 import { useKeyboardInset } from './useKeyboardInset'
 
 const navigation: Array<{ label: string; icon: IconName; to: string }> = [
@@ -36,7 +38,16 @@ function initials(name: string) {
 
 export function AuthenticatedLayout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const location = useLocation()
+  const online = useConnectionStatus()
   useKeyboardInset()
+
+  // Trocar de tela sem voltar ao topo deixava o usuário no meio de uma página nova, na altura em
+  // que a anterior estava — o efeito é mais confuso quanto mais longa era a tela de origem, e o
+  // diário é a mais longa do app.
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [location.pathname])
   const { data: session } = useQuery(sessionQuery)
   const logout = useLogout()
   const user = session?.user
@@ -119,6 +130,13 @@ export function AuthenticatedLayout() {
       </aside>
 
       <div className="page">
+        {online ? null : (
+          <p className="offline-banner" role="status">
+            <Icon name="sparkle" size={16} />
+            Sem conexão. O que você registrar agora pode não ser salvo.
+          </p>
+        )}
+
         <header className="mobile-header">
           <Brand />
           <Link className="avatar avatar-link" to="/profile" aria-label="Abrir perfil">
@@ -126,7 +144,10 @@ export function AuthenticatedLayout() {
           </Link>
         </header>
 
-        <Outlet />
+        {/* A barreira fica DENTRO do layout: uma tela que quebra não pode levar junto a navegação
+            inferior e o cabeçalho, que são o caminho de saída. A chave de reinício é o caminho da
+            rota, então navegar limpa o erro. */}
+        <ErrorBoundary resetKey={location.pathname} scope="esta tela"><Outlet /></ErrorBoundary>
 
         <nav aria-label="Navegação principal" className="bottom-nav">
           {navigation.slice(0, 2).map((item) => (

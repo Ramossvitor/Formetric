@@ -56,8 +56,8 @@ export function CatalogCount({ gender, hasMore, loaded, noun, showTotal, total }
 }
 
 /** Aviso de lista parcial nos seletores que ainda buscam uma página só. */
-export function CatalogTruncationHint({ message }: { message: string }) {
-  return <span className="field-hint">{message}</span>
+export function CatalogTruncationHint({ id, message }: { id?: string; message: string }) {
+  return <span className="field-hint" id={id}>{message}</span>
 }
 
 export function CatalogLoadMore({ isLoading, onLoadMore }: { isLoading: boolean; onLoadMore: () => void }) {

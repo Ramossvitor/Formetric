@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { DataQuality, FoodSummary, FoodUnit, RecipeSummary } from '../catalog/api'
-import { qualityLabels, unitLabels } from '../catalog/format'
+import { formatNumber, qualityLabels, unitLabels } from '../catalog/format'
 import { foodsQuery, recipesQuery } from '../catalog/queries'
 import { useDebouncedValue } from '../catalog/useDebouncedValue'
 import { CatalogError, CatalogLoading, CatalogTruncationHint } from '../catalog/CatalogState'
@@ -52,6 +53,19 @@ function measures(choice: CatalogChoice | undefined): MeasureChoice[] {
   return options
 }
 
+/** O que o `<select>` não conseguia mostrar, e é justamente o que decide entre dois itens de nome parecido. */
+function choiceSummary(choice: CatalogChoice) {
+  if (choice.type === 'FOOD') {
+    const version = choice.food.currentVersion
+    return `${formatNumber(version.referenceQuantity)} ${unitLabels[version.referenceUnit]} · ${formatNumber(version.caloriesKcal)} kcal · ${formatNumber(version.proteinG)} g proteína`
+  }
+  if (choice.type === 'RECIPE') {
+    const version = choice.recipe.currentVersion
+    return `receita · ${formatNumber(version.yieldQuantity)} ${unitLabels[version.yieldUnit]}`
+  }
+  return 'versão preservada neste registro'
+}
+
 function inheritedQuality(choice?: CatalogChoice) {
   if (!choice) return null
   if (choice.type === 'FOOD') return choice.food.currentVersion.quality
@@ -99,13 +113,16 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
     if (!measureChoices.some((measure) => measure.key === measureKey)) setMeasureKey(measureChoices[0]?.key ?? 'base')
   }, [measureChoices, measureKey])
 
-  if (foods.isPending || recipes.isPending) return <CatalogLoading message="Carregando alimentos e receitas…" />
-  if (foods.isError || recipes.isError) return <CatalogError error={foods.error ?? recipes.error} onRetry={() => { void foods.refetch(); void recipes.refetch() }} />
+  // A carga NÃO interrompe o formulário. Antes este ponto devolvia cedo, o que desmontava o
+  // próprio campo de busca a cada termo digitado: no celular o teclado fechava e o foco se perdia
+  // a cada pausa de 250ms. Agora só a lista troca de estado; a busca continua no lugar.
+  const loadingCatalog = foods.isLoading || recipes.isLoading
+  const catalogError = foods.isError || recipes.isError
 
   // O seletor busca uma página só. Sem este aviso, um catálogo maior que a página perde itens
   // silenciosamente e o usuário conclui que o alimento não existe.
-  const truncated = foods.data.totalElements > foods.data.content.length
-    || recipes.data.totalElements > recipes.data.content.length
+  const truncated = (foods.data != null && foods.data.totalElements > foods.data.content.length)
+    || (recipes.data != null && recipes.data.totalElements > recipes.data.content.length)
 
   const measure = measureChoices.find((candidate) => candidate.key === measureKey)
   const numericQuantity = Number(quantity)
@@ -129,14 +146,48 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
         <label htmlFor="diary-catalog-search">Pesquisar catálogo</label>
         <input autoCapitalize="none" autoCorrect="off" enterKeyHint="search" spellCheck={false} autoComplete="off" id="diary-catalog-search" onChange={(event) => setSearch(event.target.value)} placeholder="banana, whey, macarrão…" type="search" value={search} />
       </div>
-      <div className="field-group">
-        <label htmlFor="diary-item">Alimento ou receita</label>
-        <select id="diary-item" onChange={(event) => { setSelectedId(event.target.value); setMeasureKey('base') }} value={selectedId}>
-          <option value="">Selecione…</option>
-          {choices.map((choice) => <option key={`${choice.type}-${choice.id}`} value={choice.id}>{choice.name}{choice.type === 'RECIPE' ? ' · receita' : ''}</option>)}
-        </select>
-        {truncated ? <CatalogTruncationHint message="A lista mostra apenas os primeiros resultados. Pesquise para encontrar o que falta." /> : null}
-      </div>
+      {/* Era um `<select>` com até duzentas opções. No iOS isso vira uma roda de rolagem sem campo
+          de digitação, e a busca ficava FORA dela: abrir, não achar, fechar, digitar, reabrir. Como
+          lista, o alimento é escolhido com um toque, com as calorias e a porção de referência à
+          vista — que é o que separa dois itens de nome parecido. */}
+      <fieldset aria-describedby={truncated ? 'diary-item-truncated' : undefined} className="catalog-choice-group">
+        <legend>Alimento ou receita</legend>
+        {catalogError ? (
+          <CatalogError error={foods.error ?? recipes.error} onRetry={() => { void foods.refetch(); void recipes.refetch() }} />
+        ) : loadingCatalog ? (
+          <CatalogLoading message="Carregando alimentos e receitas…" />
+        ) : choices.length === 0 ? (
+          <div className="inline-empty-state">
+            <p>{search ? 'Nenhum item corresponde à busca.' : 'Seu catálogo ainda está vazio.'}</p>
+            <span>
+              {search
+                ? 'Tente outro termo, ou cadastre este alimento para reaproveitá-lo depois.'
+                : 'Cadastre o primeiro alimento para poder registrá-lo no diário.'}
+            </span>
+            <Link className="secondary-button" to="/foods/new">Cadastrar alimento</Link>
+          </div>
+        ) : (
+          <div className="catalog-choice-list">
+            {choices.map((choice) => (
+              <label className="catalog-choice" key={`${choice.type}-${choice.id}`}>
+                <input
+                  aria-label={choice.name}
+                  checked={selectedId === choice.id}
+                  name="diary-item"
+                  onChange={() => { setSelectedId(choice.id); setMeasureKey('base') }}
+                  type="radio"
+                  value={choice.id}
+                />
+                <span className="catalog-choice-copy">
+                  <strong>{choice.name}</strong>
+                  <small>{choiceSummary(choice)}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+        {truncated ? <CatalogTruncationHint id="diary-item-truncated" message="A lista mostra apenas os primeiros resultados. Pesquise para encontrar o que falta." /> : null}
+      </fieldset>
       <div className="item-measure-grid">
         <div className="field-group">
           <label htmlFor="diary-item-quantity">Quantidade</label>
