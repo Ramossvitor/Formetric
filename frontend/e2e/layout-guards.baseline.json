@@ -3,16 +3,12 @@
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "chromium-mobile|/analytics/charts|campo-abaixo-de-16px": [
-    "section.analytics-chart-controls.surface-card select"
-  ],
+  "chromium-mobile|/analytics/charts|campo-abaixo-de-16px": [],
   "chromium-mobile|/analytics/monthly|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "chromium-mobile|/analytics/monthly|campo-abaixo-de-16px": [
-    "label.analytics-date-control input"
-  ],
+  "chromium-mobile|/analytics/monthly|campo-abaixo-de-16px": [],
   "chromium-mobile|/diary|alvo-abaixo-de-44px": [
     "div.date-navigation button.icon-button",
     "div.diary-section-heading.section-title-row button.compact-button",
@@ -27,22 +23,14 @@
     "section.diary-day-actions.surface-card button.secondary-button",
     "section.diary-day-actions.surface-card button.submit-button"
   ],
-  "chromium-mobile|/diary|campo-abaixo-de-16px": [
-    "div.date-navigation input"
-  ],
+  "chromium-mobile|/diary|campo-abaixo-de-16px": [],
   "chromium-mobile|/foods/new|alvo-abaixo-de-44px": [
     "div.fieldset-heading button.compact-button",
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "chromium-mobile|/foods/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field textarea",
-    "div.number-with-unit input"
-  ],
+  "chromium-mobile|/foods/new|campo-abaixo-de-16px": [],
   "chromium-mobile|/foods|alvo-abaixo-de-44px": [
     "article.catalog-list-card.surface-card button.favorite-button",
     "div.catalog-status-filter button.active.filter-chip",
@@ -51,28 +39,18 @@
     "header.mobile-header a.brand",
     "section.catalog-toolbar.surface-card button.filter-chip"
   ],
-  "chromium-mobile|/foods|campo-abaixo-de-16px": [
-    "label.search-field input"
-  ],
+  "chromium-mobile|/foods|campo-abaixo-de-16px": [],
   "chromium-mobile|/profile|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "chromium-mobile|/profile|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field select"
-  ],
+  "chromium-mobile|/profile|campo-abaixo-de-16px": [],
   "chromium-mobile|/progress/evaluations/new|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "chromium-mobile|/progress/evaluations/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select"
-  ],
+  "chromium-mobile|/progress/evaluations/new|campo-abaixo-de-16px": [],
   "chromium-mobile|/progress/weight|alvo-abaixo-de-44px": [
     "div.heading-actions a.secondary-button",
     "div.heading-actions button.submit-button",
@@ -82,9 +60,7 @@
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "chromium-mobile|/progress/weight|campo-abaixo-de-16px": [
-    "div.field-group input"
-  ],
+  "chromium-mobile|/progress/weight|campo-abaixo-de-16px": [],
   "chromium-mobile|/recipes/new|alvo-abaixo-de-44px": [
     "div.fieldset-heading button.compact-button",
     "div.ingredient-row button.remove-row-button",
@@ -92,27 +68,14 @@
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "chromium-mobile|/recipes/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field textarea",
-    "div.field-group.ingredient-food select"
-  ],
+  "chromium-mobile|/recipes/new|campo-abaixo-de-16px": [],
   "chromium-mobile|/settings/nutrition-goals|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "label.goal-attainment.goal-checkbox input",
     "label.goal-checkbox input"
   ],
-  "chromium-mobile|/settings/nutrition-goals|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.goal-band-label input",
-    "div.number-with-unit input",
-    "label.goal-attainment.goal-checkbox input",
-    "label.goal-checkbox input"
-  ],
+  "chromium-mobile|/settings/nutrition-goals|campo-abaixo-de-16px": [],
   "chromium-mobile|/workouts|alvo-abaixo-de-44px": [
     "div.heading-actions a.secondary-button",
     "div.heading-actions button.submit-button",
@@ -122,31 +85,23 @@
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "chromium-mobile|/workouts|campo-abaixo-de-16px": [
-    "div.field-group input"
-  ],
+  "chromium-mobile|/workouts|campo-abaixo-de-16px": [],
   "chromium-mobile|/|alvo-abaixo-de-44px": [
     "div.compact.section-heading a.text-button",
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "chromium-mobile|/|campo-abaixo-de-16px": [
-    "label.analytics-date-control input"
-  ],
+  "chromium-mobile|/|campo-abaixo-de-16px": [],
   "largura-320|/analytics/charts|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-320|/analytics/charts|campo-abaixo-de-16px": [
-    "section.analytics-chart-controls.surface-card select"
-  ],
+  "largura-320|/analytics/charts|campo-abaixo-de-16px": [],
   "largura-320|/analytics/monthly|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-320|/analytics/monthly|campo-abaixo-de-16px": [
-    "label.analytics-date-control input"
-  ],
+  "largura-320|/analytics/monthly|campo-abaixo-de-16px": [],
   "largura-320|/diary|alvo-abaixo-de-44px": [
     "div.date-navigation button.icon-button",
     "div.diary-section-heading.section-title-row button.compact-button",
@@ -161,22 +116,14 @@
     "section.diary-day-actions.surface-card button.secondary-button",
     "section.diary-day-actions.surface-card button.submit-button"
   ],
-  "largura-320|/diary|campo-abaixo-de-16px": [
-    "div.date-navigation input"
-  ],
+  "largura-320|/diary|campo-abaixo-de-16px": [],
   "largura-320|/foods/new|alvo-abaixo-de-44px": [
     "div.fieldset-heading button.compact-button",
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "largura-320|/foods/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field textarea",
-    "div.number-with-unit input"
-  ],
+  "largura-320|/foods/new|campo-abaixo-de-16px": [],
   "largura-320|/foods|alvo-abaixo-de-44px": [
     "article.catalog-list-card.surface-card button.favorite-button",
     "div.catalog-status-filter button.active.filter-chip",
@@ -185,28 +132,18 @@
     "header.mobile-header a.brand",
     "section.catalog-toolbar.surface-card button.filter-chip"
   ],
-  "largura-320|/foods|campo-abaixo-de-16px": [
-    "label.search-field input"
-  ],
+  "largura-320|/foods|campo-abaixo-de-16px": [],
   "largura-320|/profile|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-320|/profile|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field select"
-  ],
+  "largura-320|/profile|campo-abaixo-de-16px": [],
   "largura-320|/progress/evaluations/new|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "largura-320|/progress/evaluations/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select"
-  ],
+  "largura-320|/progress/evaluations/new|campo-abaixo-de-16px": [],
   "largura-320|/progress/weight|alvo-abaixo-de-44px": [
     "div.heading-actions a.secondary-button",
     "div.heading-actions button.submit-button",
@@ -216,9 +153,7 @@
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-320|/progress/weight|campo-abaixo-de-16px": [
-    "div.field-group input"
-  ],
+  "largura-320|/progress/weight|campo-abaixo-de-16px": [],
   "largura-320|/recipes/new|alvo-abaixo-de-44px": [
     "div.fieldset-heading button.compact-button",
     "div.ingredient-row button.remove-row-button",
@@ -226,27 +161,14 @@
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "largura-320|/recipes/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field textarea",
-    "div.field-group.ingredient-food select"
-  ],
+  "largura-320|/recipes/new|campo-abaixo-de-16px": [],
   "largura-320|/settings/nutrition-goals|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "label.goal-attainment.goal-checkbox input",
     "label.goal-checkbox input"
   ],
-  "largura-320|/settings/nutrition-goals|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.goal-band-label input",
-    "div.number-with-unit input",
-    "label.goal-attainment.goal-checkbox input",
-    "label.goal-checkbox input"
-  ],
+  "largura-320|/settings/nutrition-goals|campo-abaixo-de-16px": [],
   "largura-320|/workouts|alvo-abaixo-de-44px": [
     "div.heading-actions a.secondary-button",
     "div.heading-actions button.submit-button",
@@ -256,31 +178,23 @@
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-320|/workouts|campo-abaixo-de-16px": [
-    "div.field-group input"
-  ],
+  "largura-320|/workouts|campo-abaixo-de-16px": [],
   "largura-320|/|alvo-abaixo-de-44px": [
     "div.compact.section-heading a.text-button",
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-320|/|campo-abaixo-de-16px": [
-    "label.analytics-date-control input"
-  ],
+  "largura-320|/|campo-abaixo-de-16px": [],
   "largura-375|/analytics/charts|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-375|/analytics/charts|campo-abaixo-de-16px": [
-    "section.analytics-chart-controls.surface-card select"
-  ],
+  "largura-375|/analytics/charts|campo-abaixo-de-16px": [],
   "largura-375|/analytics/monthly|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-375|/analytics/monthly|campo-abaixo-de-16px": [
-    "label.analytics-date-control input"
-  ],
+  "largura-375|/analytics/monthly|campo-abaixo-de-16px": [],
   "largura-375|/diary|alvo-abaixo-de-44px": [
     "div.date-navigation button.icon-button",
     "div.diary-section-heading.section-title-row button.compact-button",
@@ -295,22 +209,14 @@
     "section.diary-day-actions.surface-card button.secondary-button",
     "section.diary-day-actions.surface-card button.submit-button"
   ],
-  "largura-375|/diary|campo-abaixo-de-16px": [
-    "div.date-navigation input"
-  ],
+  "largura-375|/diary|campo-abaixo-de-16px": [],
   "largura-375|/foods/new|alvo-abaixo-de-44px": [
     "div.fieldset-heading button.compact-button",
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "largura-375|/foods/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field textarea",
-    "div.number-with-unit input"
-  ],
+  "largura-375|/foods/new|campo-abaixo-de-16px": [],
   "largura-375|/foods|alvo-abaixo-de-44px": [
     "article.catalog-list-card.surface-card button.favorite-button",
     "div.catalog-status-filter button.active.filter-chip",
@@ -319,28 +225,18 @@
     "header.mobile-header a.brand",
     "section.catalog-toolbar.surface-card button.filter-chip"
   ],
-  "largura-375|/foods|campo-abaixo-de-16px": [
-    "label.search-field input"
-  ],
+  "largura-375|/foods|campo-abaixo-de-16px": [],
   "largura-375|/profile|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-375|/profile|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field select"
-  ],
+  "largura-375|/profile|campo-abaixo-de-16px": [],
   "largura-375|/progress/evaluations/new|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "largura-375|/progress/evaluations/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select"
-  ],
+  "largura-375|/progress/evaluations/new|campo-abaixo-de-16px": [],
   "largura-375|/progress/weight|alvo-abaixo-de-44px": [
     "div.heading-actions a.secondary-button",
     "div.heading-actions button.submit-button",
@@ -350,9 +246,7 @@
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-375|/progress/weight|campo-abaixo-de-16px": [
-    "div.field-group input"
-  ],
+  "largura-375|/progress/weight|campo-abaixo-de-16px": [],
   "largura-375|/recipes/new|alvo-abaixo-de-44px": [
     "div.fieldset-heading button.compact-button",
     "div.ingredient-row button.remove-row-button",
@@ -360,27 +254,14 @@
     "header.mobile-header a.brand",
     "p.eyebrow a"
   ],
-  "largura-375|/recipes/new|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.full-field input",
-    "div.field-group.full-field textarea",
-    "div.field-group.ingredient-food select"
-  ],
+  "largura-375|/recipes/new|campo-abaixo-de-16px": [],
   "largura-375|/settings/nutrition-goals|alvo-abaixo-de-44px": [
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand",
     "label.goal-attainment.goal-checkbox input",
     "label.goal-checkbox input"
   ],
-  "largura-375|/settings/nutrition-goals|campo-abaixo-de-16px": [
-    "div.field-group input",
-    "div.field-group select",
-    "div.field-group.goal-band-label input",
-    "div.number-with-unit input",
-    "label.goal-attainment.goal-checkbox input",
-    "label.goal-checkbox input"
-  ],
+  "largura-375|/settings/nutrition-goals|campo-abaixo-de-16px": [],
   "largura-375|/workouts|alvo-abaixo-de-44px": [
     "div.heading-actions a.secondary-button",
     "div.heading-actions button.submit-button",
@@ -390,15 +271,11 @@
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-375|/workouts|campo-abaixo-de-16px": [
-    "div.field-group input"
-  ],
+  "largura-375|/workouts|campo-abaixo-de-16px": [],
   "largura-375|/|alvo-abaixo-de-44px": [
     "div.compact.section-heading a.text-button",
     "header.mobile-header a.avatar.avatar-link",
     "header.mobile-header a.brand"
   ],
-  "largura-375|/|campo-abaixo-de-16px": [
-    "label.analytics-date-control input"
-  ]
+  "largura-375|/|campo-abaixo-de-16px": []
 }

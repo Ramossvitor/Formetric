@@ -13,8 +13,11 @@
   --surface-subtle: #f7f9f6;
   --surface-raised: #ffffff;
   --text: #17221d;
-  --text-muted: #68736d;
-  --text-soft: #8a948e;
+  /* Medidos, não estimados. Antes: --text-muted reprovava por pouco sobre --background (4,49) e
+     --text-soft reprovava em tudo (2,85 a 3,13) — e é justamente ele que carrega os rótulos de
+     11px lidos sob luz do dia. Agora 4,97 e 4,51 no pior fundo. */
+  --text-muted: #626c65;
+  --text-soft: #6a726d;
   --border: #e4e9e5;
   --border-strong: #d6ddd8;
   --primary: #244b3c;
@@ -31,8 +34,67 @@
   --success: #3b8955;
   --danger: #b33f4a;
   --danger-soft: #fcecef;
+
+  /* Versões de TEXTO dos acentos. Os pastéis continuam intactos onde são superfície, ícone ou
+     barra de progresso — é a aparência que o produto tem hoje e que foi aprovada. O que não dava
+     para manter era usá-los como cor de letra: sobre os próprios fundos soft, --orange media 2,42,
+     --blue 2,57 e --accent-strong 2,72, num app cujos rótulos vivem em 12px e são lidos de pé, na
+     academia, com a tela no sol. Estes passam AA (>=4,5) sobre o fundo soft, o branco e o fundo da
+     página. No tema escuro os acentos claros já passavam com folga, então lá as variantes apenas
+     apontam de volta para eles. */
+  --success-text: #2f6f45;
+  --orange-text: #9a5919;
+  --blue-text: #2d6f9e;
+  --purple-text: #6f4f95;
+  --accent-text: #3d7029;
+  --danger-text: var(--danger);
   --shadow: 0 12px 32px rgba(34, 59, 47, 0.06);
   --shadow-floating: 0 16px 40px rgba(21, 47, 36, 0.14);
+
+  /* Recortes do aparelho — notch, ilha dinâmica, indicador de home.
+     O fallback `, 0px` não é zelo: sem ele um navegador sem suporte descarta a declaração
+     INTEIRA, e o que se perde é justamente o afastamento que existia para proteger a borda. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Alturas de viewport, com a escolha explícita em cada caso.
+     `vh` é o viewport GRANDE: mede como se a barra de endereço estivesse recolhida, mesmo quando
+     ela está visível. Quem preenche a tela usa `svh` (o viewport pequeno) para nunca criar rolagem
+     fantasma; quem é ancorado ao fundo e rola por dentro usa `dvh`, que acompanha a barra. */
+  --fill-h: 100svh;
+  --sheet-h: 100dvh;
+
+  /* Cromo inferior, medido no aparelho e não deduzido do CSS: a barra tem 72px, e a ponta do FAB
+     rotacionado 45° sobe 18,3px acima dela — o quadrado de 52px vira uma caixa pintada de 73,5px.
+     É esse topo, não o da barra, que o conteúdo precisa evitar. Um único degrau para ajustar o
+     respiro do app inteiro. */
+  --nav-height: calc(72px + var(--safe-bottom));
+  --nav-overhang: 20px;
+  --content-gutter-bottom: 40px;
+  --nav-clearance: calc(var(--nav-height) + var(--nav-overhang) + var(--content-gutter-bottom));
+
+  /* Piso de qualquer controle de formulário. Abaixo de 16px o Safari do iOS amplia o viewport ao
+     focar o campo — e nunca desfaz o zoom. */
+  --field-font: 1rem;
+
+  /* Os dois degraus de baixo da escala tipográfica. 154 das 246 declarações de tamanho do app
+     estavam abaixo de 12px, espalhadas por dezenove valores entre 0,56rem e 0,74rem escolhidos um
+     a um — é essa densidade, e não o espaçamento, que produz a impressão de coisa achatada.
+     `--fs-footnote` é o piso de texto que se LÊ; `--fs-caption` fica para rótulo curto, sempre em
+     peso alto. Os degraus de cima entram junto com o redesenho. */
+  --fs-caption: 0.75rem;
+  --fs-footnote: 0.8125rem;
+
+  /* Camadas. Os valores são os que o arquivo já usava; o que muda é passarem a ter nome. */
+  --z-raised: 1;
+  --z-sticky-actions: 3;
+  --z-toolbar: 5;
+  --z-sidebar: 10;
+  --z-nav: 20;
+  --z-overlay: 60;
+  --z-skip: 100;
 
   color: var(--text);
   background: var(--background);
@@ -50,7 +112,7 @@ html {
 
 body {
   min-width: 320px;
-  min-height: 100vh;
+  min-height: var(--fill-h);
   margin: 0;
   background: var(--background);
 }
@@ -62,6 +124,21 @@ a {
 
 button {
   font: inherit;
+}
+
+/* Rede de segurança do zoom do iOS. Não substitui as regras de classe — elas vencem por
+   especificidade e cada uma foi corrigida no App.css — mas garante que um controle NOVO, escrito
+   sem regra própria, já nasça acima do piso. `max()` em vez de `16px` fixo para não encolher um
+   campo que alguém queira deliberadamente maior.
+
+   `maximum-scale` e `user-scalable=no` no viewport resolveriam o sintoma e foram recusados: tiram
+   do usuário a capacidade de ampliar a tela, que é o recurso de acessibilidade mais usado que
+   existe, e nem sempre funcionam. */
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: max(var(--field-font), 1em);
 }
 
 a {
@@ -110,6 +187,13 @@ select:focus-visible {
     --success: #79c28e;
     --danger: #f08a94;
     --danger-soft: #382126;
+    /* Os acentos do tema escuro são claros sobre fundo escuro e já medem entre 5,6 e 7,9 sobre os
+       próprios fundos soft: escurecê-los aqui pioraria. */
+    --success-text: var(--success);
+    --orange-text: var(--orange);
+    --blue-text: var(--blue);
+    --purple-text: var(--purple);
+    --accent-text: var(--accent-strong);
     --shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
     --shadow-floating: 0 18px 44px rgba(0, 0, 0, 0.4);
   }

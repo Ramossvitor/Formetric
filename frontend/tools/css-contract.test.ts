@@ -1,13 +1,16 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { scanStyleContract, type Violation } from './css-contract.ts'
+import { scanCss, scanStyleContract, type Violation } from './css-contract.ts'
 
-// Catraca, não portão. O CSS entra nesta reforma violando o contrato em 22 pontos, corrigidos ao
-// longo de várias ondas; falhar de imediato só faria o teste ser desligado. Então a linha de base é
-// versionada e o teste falha em dois casos: quando aparece uma violação nova, e quando a linha de
-// base guarda uma entrada que já não existe. O segundo caso é o que faz o número descer — sem ele,
-// a lista viraria um depósito e o contrato não valeria nada.
+// Catraca, não portão. O CSS entrou nesta reforma violando o contrato em 22 pontos, e a linha de
+// base existia para que eles pudessem ser corrigidos ao longo de várias ondas sem que o teste
+// falhasse desde o primeiro dia — um teste vermelho por semanas é um teste desligado.
+//
+// Hoje ela está VAZIA: as quatro classes foram zeradas. O mecanismo fica de pé porque a próxima
+// onda que precisar de tolerância temporária vai querê-lo, e porque é ele que faz o número descer:
+// o teste falha tanto quando aparece uma violação nova quanto quando a linha de base guarda uma
+// entrada que já não existe. Sem essa segunda metade a lista viraria um depósito.
 //
 // Para atualizar depois de corrigir um lote: `UPDATE_CSS_BASELINE=1 npm test -- css-contract`.
 
@@ -38,17 +41,36 @@ describe('contrato das folhas de estilo globais', () => {
     expect(baseline.filter((key) => !present.has(key))).toEqual([])
   })
 
-  it('enxerga as quatro classes de defeito que a reforma corrige', () => {
-    // Guarda o próprio scanner: se uma mudança de regex o cegar, ele passaria a aprovar tudo e os
-    // dois testes acima ficariam verdes para sempre. Quando uma classe for zerada de verdade, é
-    // esta lista que se encolhe — e o encolhimento é a prova de que a onda terminou.
-    expect(new Set(current.map(({ rule }) => rule))).toEqual(
-      new Set([
-        'controle-abaixo-de-16px',
-        'controle-sem-tamanho-proprio',
-        'altura-de-viewport-fixa',
-        'safe-area-sem-fallback',
-      ]),
-    )
+  it('enxerga as quatro classes de defeito', () => {
+    // Guarda o próprio scanner contra um regex quebrado: sem isto, um scanner cego aprovaria tudo e
+    // os dois testes acima ficariam verdes para sempre — um silêncio que se pareceria com sucesso.
+    // O exercício é contra um CSS de mentira, e não contra as folhas reais, justamente porque elas
+    // agora estão limpas: um teste que dependesse dos defeitos existirem morreria ao corrigi-los.
+    const defeituoso = `
+      .campo input { font-size: 0.9rem; }
+      .rotulo select { font: inherit; }
+      .tela { min-height: 100vh; }
+      .barra { padding-bottom: env(safe-area-inset-bottom); }
+    `
+    expect(scanCss(defeituoso, 'falso.css').map(({ rule }) => rule).sort()).toEqual([
+      'altura-de-viewport-fixa',
+      'controle-abaixo-de-16px',
+      'controle-sem-tamanho-proprio',
+      'safe-area-sem-fallback',
+    ])
+  })
+
+  it('não acusa o que é correto', () => {
+    // O outro lado da guarda: um scanner cego demais é inútil, mas um que acusa CSS válido é pior,
+    // porque ensina a ignorar a falha. `font: inherit` seguido de tamanho explícito é o padrão do
+    // arquivo; `env()` com fallback e `svh`/`dvh` são exatamente o que a reforma pede.
+    const correto = `
+      .campo input { font: inherit; font-size: var(--field-font); }
+      .estado input:focus { border-color: red; }
+      .tela { min-height: 100svh; }
+      .sheet { max-height: calc(100dvh - 32px); }
+      .barra { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    `
+    expect(scanCss(correto, 'falso.css')).toEqual([])
   })
 })
