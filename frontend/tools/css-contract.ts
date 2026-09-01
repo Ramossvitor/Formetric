@@ -129,10 +129,13 @@ function declarations(body: string) {
     .filter((entry): entry is { property: string; value: string } => entry !== null)
 }
 
-function scanStylesheet(path: string): Violation[] {
-  const absolute = join(SOURCE_ROOT, path)
-  const raw = stripComments(readFileSync(absolute, 'utf8'))
-  const file = relative(SOURCE_ROOT, absolute).replaceAll('\\', '/')
+/**
+ * Exportada para que o próprio scanner possa ser exercitado contra um CSS de mentira que viola as
+ * quatro regras de propósito. Sem isso, uma expressão regular quebrada deixaria o scanner cego e a
+ * catraca ficaria verde para sempre — um silêncio que se pareceria com sucesso.
+ */
+export function scanCss(source: string, file: string): Violation[] {
+  const raw = stripComments(source)
   const violations: Violation[] = []
   // A propriedade entra na chave porque uma mesma regra pode violar o contrato duas vezes — a
   // `.bottom-nav` usa `env()` sem fallback no `min-height` e no `padding`. Sem ela, corrigir uma
@@ -185,6 +188,11 @@ function scanStylesheet(path: string): Violation[] {
   }
 
   return violations
+}
+
+function scanStylesheet(path: string): Violation[] {
+  const absolute = join(SOURCE_ROOT, path)
+  return scanCss(readFileSync(absolute, 'utf8'), relative(SOURCE_ROOT, absolute).replaceAll('\\', '/'))
 }
 
 export function scanStyleContract(): Violation[] {
