@@ -173,7 +173,9 @@ describe('diário', () => {
     renderDiary()
 
     await user.click(await screen.findByRole('button', { name: '+ Adicionar alimento ou receita' }))
-    await user.selectOptions(await screen.findByLabelText('Alimento ou receita'), foodVersion.id)
+    // O catálogo deixou de ser um `<select>`: escolher agora é tocar numa linha da lista, com o
+    // resumo nutricional à vista.
+    await user.click(await screen.findByRole('radio', { name: foodVersion.name }))
     await user.selectOptions(screen.getByLabelText('Unidade ou porção'), 'serving:serving-1')
     const quantity = screen.getByLabelText('Quantidade')
     await user.clear(quantity)

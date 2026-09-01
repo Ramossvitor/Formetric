@@ -151,9 +151,10 @@ test('persists a proportional food entry, water and daily closure through the in
 
   const itemDialog = page.getByRole('dialog', { name: 'Adicionar ao diário' })
   await itemDialog.getByLabel('Pesquisar catálogo').fill(foodName)
-  const catalogSelect = itemDialog.getByLabel('Alimento ou receita')
-  await expect(catalogSelect.locator('option', { hasText: foodName })).toHaveCount(1)
-  await catalogSelect.selectOption({ label: foodName })
+  // O catálogo é uma lista de escolha, não mais um `<select>` de até duzentas opções.
+  const catalogChoice = itemDialog.getByRole('radio', { name: foodName })
+  await expect(catalogChoice).toHaveCount(1)
+  await catalogChoice.check()
   await itemDialog.getByLabel('Quantidade').fill('42')
   await itemDialog.getByRole('button', { name: 'Adicionar ao diário' }).click()
 

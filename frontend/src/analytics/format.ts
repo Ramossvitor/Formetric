@@ -74,6 +74,17 @@ export function formatDuration(totalMinutes: number) {
   return `${hours}h${String(minutes).padStart(2, '0')}`
 }
 
+/**
+ * Concorda o substantivo com a contagem.
+ *
+ * Existe porque a tela mais vista do app mostrava "5 sessãoões": o código concatenava o sufixo
+ * `ões` ao singular inteiro em vez de trocar a terminação. Plural em português não é sufixo, então
+ * as duas formas são escritas por extenso e nenhuma é derivada da outra.
+ */
+export function pluralize(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
 export function formatWorkoutModality(value: string) {
   return Object.prototype.hasOwnProperty.call(modalityLabels, value)
     ? modalityLabels[value as WorkoutModality]

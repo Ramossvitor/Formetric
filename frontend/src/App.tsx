@@ -12,6 +12,7 @@ import { InvitationsPage } from './pages/InvitationsPage'
 import { LoginPage } from './pages/LoginPage'
 import { NewFoodPage } from './pages/NewFoodPage'
 import { NewRecipePage } from './pages/NewRecipePage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { NutritionGoalsPage } from './pages/NutritionGoalsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RecipeDetailPage } from './pages/RecipeDetailPage'
@@ -70,10 +71,9 @@ function App() {
           <Route element={<OwnerRoute />}>
             <Route element={<InvitationsPage />} path="settings/invitations" />
           </Route>
+          <Route element={<NotFoundPage />} path="*" />
         </Route>
       </Route>
-
-      <Route element={<Navigate replace to="/" />} path="*" />
     </Routes></UnexpectedUnauthorizedBoundary>
   )
 }

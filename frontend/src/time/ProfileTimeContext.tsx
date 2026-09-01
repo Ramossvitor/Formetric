@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { getErrorMessage } from '../api/http'
 import type { ProfileTimeContext as ProfileTimeContextValue } from './api'
+import { usableLocale, usableTimeZone } from './identity'
 import { createMonotonicInstantClock, differenceInMilliseconds, type Instant } from './instant'
 import { profileTimeContextQuery, profileTimeContextQueryKey } from './queries'
 
@@ -20,7 +21,14 @@ export function ProfileTimeContextProvider({ children }: { children: ReactNode }
   const query = useQuery(profileTimeContextQuery)
   const value = useMemo<ActiveProfileTimeContext | null>(() => {
     if (!query.data) return null
-    return { ...query.data, currentInstant: createMonotonicInstantClock(query.data.serverNow) }
+    // O saneamento acontece aqui, na fronteira, e não em cada chamada de formatação: é o único
+    // ponto por onde os dois campos entram na aplicação.
+    return {
+      ...query.data,
+      locale: usableLocale(query.data.locale),
+      timeZone: usableTimeZone(query.data.timeZone),
+      currentInstant: createMonotonicInstantClock(query.data.serverNow),
+    }
   }, [query.data])
 
   useEffect(() => {
