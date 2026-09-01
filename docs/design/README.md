@@ -52,3 +52,22 @@ também é leitura, não medição.
 3. **Não havia estouro horizontal nenhum no celular.** Os cinco `minmax()` apontados como
    perigosos só entram a partir de 560px. O aperto que o dono sentiu era vertical e tipográfico;
    corrigir os `minmax()` continua valendo para tablet e janela estreita, mas não era isso.
+
+## Decisões que mudaram na execução
+
+O plano previa **toast com desfazer no dia a dia e confirmação nas ações graves**. A API inverteu
+a atribuição: alimento, receita e avaliação corporal têm endpoint de **restauração**, então ali o
+desfazer é real e acontece depois da ação; refeição, item e água do diário têm `DELETE` definitivo,
+sem restauração, então ali a confirmação vem antes. Oferecer "Desfazer" no diário significaria
+recriar o registro com outro identificador e, no caso da água, outro horário — e chamar isso de
+desfazer seria mentir sobre o que aconteceu com o dado.
+
+Duas coisas planejadas **não** foram feitas, e por decisão, não por esquecimento:
+
+- **Swipe horizontal entre dias no diário.** A faixa de sete dias já resolve a troca de data em um
+  toque, com contexto visual da semana. O gesto acrescentaria uma superfície de risco (conflito com
+  a rolagem da própria faixa, histórico, cancelamento) para reduzir de um toque para zero.
+- **`?editor=` na URL para representar diálogos.** O gesto de voltar fecha o sheet por uma entrada
+  anônima de histórico. Serializar o id na URL quebraria a chave de idempotência do registro de
+  treino e faria "Editar" abrir como "Adicionar" enquanto a lista mostrasse dados da consulta
+  anterior.
