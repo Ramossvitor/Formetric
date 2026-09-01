@@ -1,10 +1,11 @@
 import { useIsFetching, useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { useModalBehavior } from '../components/useModalBehavior'
 import { Icon, type IconName } from '../components/Icon'
 import { useConnectionStatus } from './useConnectionStatus'
 import { useKeyboardInset } from './useKeyboardInset'
@@ -36,6 +37,20 @@ function initials(name: string) {
     .join('')
 }
 
+function QuickAddSheet({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  const panelRef = useModalBehavior({ onClose })
+
+  return (
+    <div className="shell-dialog-backdrop" onMouseDown={(event) => {
+      if (event.currentTarget === event.target) onClose()
+    }}>
+      <section aria-labelledby="quick-add-title" aria-modal="true" className="quick-add-menu surface-card" ref={panelRef} role="dialog" tabIndex={-1}>
+        {children}
+      </section>
+    </div>
+  )
+}
+
 export function AuthenticatedLayout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const location = useLocation()
@@ -54,15 +69,6 @@ export function AuthenticatedLayout() {
   const { data: session } = useQuery(sessionQuery)
   const logout = useLogout()
   const user = session?.user
-
-  useEffect(() => {
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setQuickAddOpen(false)
-    }
-
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [])
 
   return (
     <div className="app-shell">
@@ -183,10 +189,7 @@ export function AuthenticatedLayout() {
         </nav>
 
         {quickAddOpen ? (
-          <div className="shell-dialog-backdrop" onMouseDown={(event) => {
-            if (event.currentTarget === event.target) setQuickAddOpen(false)
-          }}>
-            <section aria-labelledby="quick-add-title" aria-modal="true" className="quick-add-menu surface-card" role="dialog">
+          <QuickAddSheet onClose={() => setQuickAddOpen(false)}>
               <div className="dialog-heading">
                 <div><p className="eyebrow">Cadastro rápido</p><h2 id="quick-add-title">O que deseja registrar?</h2></div>
                 <button aria-label="Fechar" className="icon-button dialog-close" onClick={() => setQuickAddOpen(false)} type="button">×</button>
@@ -197,8 +200,7 @@ export function AuthenticatedLayout() {
                 <Link onClick={() => setQuickAddOpen(false)} to="/progress/weight?action=new"><Icon name="scale" /><span><strong>Peso</strong><small>Adicionar a pesagem do dia</small></span></Link>
                 <Link onClick={() => setQuickAddOpen(false)} to="/progress/evaluations/new"><Icon name="trend" /><span><strong>Avaliação corporal</strong><small>Criar um snapshot de medidas</small></span></Link>
               </div>
-            </section>
-          </div>
+          </QuickAddSheet>
         ) : null}
       </div>
     </div>

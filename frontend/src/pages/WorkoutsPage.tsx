@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActivityDialog } from '../activity/ActivityDialog'
+import { ConfirmDelete } from '../components/ConfirmDelete'
 import { createWorkout, deleteWorkout, updateWorkout, type Workout, type WorkoutInput } from '../activity/api'
 import { formatDate, formatDuration, formatNumber, modalityLabels } from '../activity/format'
 import { workoutsQuery, workoutsQueryKey } from '../activity/queries'
@@ -17,7 +18,7 @@ interface DateRange {
   to: string
 }
 
-type WorkoutEditor = { type: 'new'; requestId: string } | { type: 'edit'; workout: Workout } | null
+type WorkoutEditor = { type: 'new'; requestId: string } | { type: 'edit'; workout: Workout } | { type: 'confirm-delete'; workout: Workout } | null
 type WorkoutSaveCommand =
   | { type: 'create'; requestId: string; input: WorkoutInput }
   | { type: 'update'; workout: Workout; input: WorkoutInput }
@@ -86,9 +87,9 @@ export function WorkoutsPage() {
   }
 
   function requestDelete(workout: Workout) {
-    if (window.confirm(`Excluir o treino "${workout.title}"? Esta ação não pode ser desfeita.`)) {
-      remove.mutate(workout.id)
-    }
+    if (save.isPending || remove.isPending) return
+    remove.reset()
+    setEditor({ type: 'confirm-delete', workout })
   }
 
   const workouts = [...(query.data ?? [])].sort((first, second) => {
@@ -184,7 +185,15 @@ export function WorkoutsPage() {
         </>
       )}
 
-      {editor ? (
+      {editor?.type === 'confirm-delete' ? (
+        <ConfirmDelete
+          busy={remove.isPending}
+          description={`"${editor.workout.title}" sai do histórico e não pode ser recuperado.`}
+          onCancel={() => setEditor(null)}
+          onConfirm={() => remove.mutate(editor.workout.id, { onSuccess: () => setEditor(null) })}
+          title="Excluir o treino?"
+        />
+      ) : editor ? (
         <ActivityDialog dismissible={!save.isPending} onClose={() => setEditor(null)} title={editor.type === 'edit' ? 'Editar treino' : 'Registrar treino'}>
           <WorkoutForm
             defaultDate={today}

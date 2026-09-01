@@ -433,8 +433,12 @@ h2 {
   margin: 25px auto 22px;
   place-items: center;
   border-radius: 50%;
-  background: conic-gradient(var(--accent-strong) 0 74%, var(--border) 74% 100%);
+  /* O valor vem da propriedade que o componente escreve em linha. Havia aqui um `74%` chumbado,
+     sobrescrito por uma regra idêntica cinco mil linhas abaixo — o anel nunca desenhou 74%, mas
+     quem lesse este bloco acreditaria que sim. */
+  background: conic-gradient(var(--accent-strong) 0 var(--calorie-progress, 0%), var(--border) var(--calorie-progress, 0%) 100%);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface) 30%, transparent);
+  transition: --calorie-progress 700ms var(--ease-out);
 }
 
 .calorie-progress-inner {
@@ -1777,6 +1781,59 @@ h2 {
 /* Barra fina de atualização. Aparece enquanto alguma consulta está no ar e é puramente decorativa:
    com o conteúdo anterior preservado, ela é o que informa que algo está a caminho, e anunciá-la
    para leitor de tela seria ruído a cada troca de data. */
+/* O aviso passageiro fica ACIMA da barra inferior: colado no fundo, o dedo que acabou de tocar num
+   botão da navegação cobriria justamente o "Desfazer". */
+.toast-region {
+  position: fixed;
+  right: 0;
+  bottom: calc(var(--nav-height) + var(--space-3));
+  left: 0;
+  z-index: var(--z-nav);
+  display: grid;
+  justify-items: center;
+  padding-inline: var(--page-gutter);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  width: min(100%, 420px);
+  min-height: var(--tap-lg);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  color: var(--surface);
+  background: var(--text);
+  box-shadow: var(--shadow-floating);
+  font-size: var(--fs-body);
+  pointer-events: auto;
+}
+
+.toast.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.toast > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toast button {
+  min-height: var(--tap);
+  flex: 0 0 auto;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-chip);
+  color: inherit;
+  background: color-mix(in srgb, currentcolor 16%, transparent);
+  cursor: pointer;
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+
 .updating-bar {
   position: fixed;
   top: 0;
@@ -2849,6 +2906,14 @@ h2 {
   justify-self: end;
 }
 
+/* Botão principal em tom destrutivo: mesma forma do "salvar", cor oposta. É o único lugar em que
+   a ação de maior peso na tela é a que apaga algo, e ela precisa parecer isso. */
+.submit-button.danger-submit {
+  background: var(--danger);
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--danger) 22%, transparent);
+  color: #fff;
+}
+
 .danger-icon {
   color: var(--danger);
 }
@@ -3076,6 +3141,67 @@ h2 {
 .diary-day-actions .submit-button,
 .diary-day-actions .secondary-button {
   min-height: var(--tap-lg);
+}
+
+/* Movimento. A regra é uma só: só se move o que informa alguma coisa.
+
+   Um sheet que aparece por corte seco parece falha de renderização — a origem dele não fica clara,
+   e é justamente a origem que diz como fechá-lo. Subir do fundo em 280ms diz "vim de baixo, é para
+   lá que eu volto". A ENTRADA é animada; a saída não, porque animar a saída exige manter o nó
+   montado depois de fechado, e isso mudaria o significado de `queryByRole('dialog')` para toda a
+   suíte em troca de 200ms que ninguém está olhando — o dedo já saiu da tela.
+
+   A rota entra com um deslocamento curto no container, nunca cartão a cartão: encadear a entrada
+   de cada elemento é exatamente a poluição que se quer evitar. */
+@property --calorie-progress {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes backdrop-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.dialog-backdrop,
+.activity-dialog-backdrop,
+.shell-dialog-backdrop {
+  animation: backdrop-fade 200ms linear;
+}
+
+.diary-dialog,
+.activity-dialog,
+.quick-add-menu {
+  animation: sheet-rise var(--dur-sheet) var(--ease-sheet);
+}
+
+main {
+  animation: route-enter var(--dur) var(--ease-out);
+}
+
+/* A partir de 560px os diálogos deixam de ser sheets e passam a ser painéis centrados; subir do
+   fundo da tela deixaria de descrever de onde eles vêm. */
+@media (min-width: 560px) {
+  .diary-dialog,
+  .activity-dialog,
+  .quick-add-menu {
+    animation-name: backdrop-fade;
+  }
 }
 
 .dialog-backdrop {
@@ -5337,10 +5463,9 @@ h2 {
   border-left-color: var(--blue);
 }
 
-.calorie-progress {
-  background: conic-gradient(var(--accent-strong) 0 var(--calorie-progress, 0%), var(--border) var(--calorie-progress, 0%) 100%);
-}
-
+/* A regra duplicada que existia aqui foi para junto da definição do anel, cinco mil linhas acima.
+   Duas regras idênticas separadas por metade do arquivo eram o motivo de o `74%` chumbado lá em
+   cima passar despercebido. */
 .calorie-progress.without-target {
   background: var(--border);
 }

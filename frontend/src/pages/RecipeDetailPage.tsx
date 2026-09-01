@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { archiveRecipe, createRecipeVersion, duplicateRecipe, restoreRecipe, setRecipeFavorite, type NutritionValues, type RecipeVersionInput } from '../catalog/api'
+import { useToast } from '../components/Toast'
 import { CatalogError, CatalogLoading } from '../catalog/CatalogState'
 import { formatNutrition, unitLabels } from '../catalog/format'
 import { recipeQuery, recipesQueryKey } from '../catalog/queries'
@@ -27,6 +28,7 @@ export function RecipeDetailPage() {
   const [editing, setEditing] = useState(false)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const showToast = useToast()
   const recipe = useQuery(recipeQuery(id))
   const createVersion = useMutation({
     mutationFn: (version: RecipeVersionInput) => createRecipeVersion(id, version),
@@ -48,8 +50,12 @@ export function RecipeDetailPage() {
   })
   const archive = useMutation({
     mutationFn: (restore: boolean) => restore ? restoreRecipe(id) : archiveRecipe(id),
-    onSuccess: async () => {
+    onSuccess: async (_result, restored) => {
       await queryClient.invalidateQueries({ queryKey: recipesQueryKey })
+      showToast({
+        message: restored ? 'Receita restaurada.' : 'Receita arquivada.',
+        action: { label: 'Desfazer', onAct: () => archive.mutate(!restored) },
+      })
     },
   })
 

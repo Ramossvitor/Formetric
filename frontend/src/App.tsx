@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { OwnerRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { UnexpectedUnauthorizedBoundary } from './auth/UnexpectedUnauthorizedBoundary'
+import { ToastProvider } from './components/Toast'
 import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
 import { DiaryPage } from './pages/DiaryPage'
 import { FoodDetailPage } from './pages/FoodDetailPage'
@@ -35,7 +36,7 @@ function LazyRoute({ label, children }: { label: string; children: ReactNode }) 
 
 function App() {
   return (
-    <UnexpectedUnauthorizedBoundary><Routes>
+    <ToastProvider><UnexpectedUnauthorizedBoundary><Routes>
       <Route element={<LazyRoute label="acesso"><LoginPage /></LazyRoute>} path="/login" />
       <Route element={<InviteAcceptancePage />} path="/accept-invite" />
 
@@ -74,7 +75,7 @@ function App() {
           <Route element={<NotFoundPage />} path="*" />
         </Route>
       </Route>
-    </Routes></UnexpectedUnauthorizedBoundary>
+    </Routes></UnexpectedUnauthorizedBoundary></ToastProvider>
   )
 }
 

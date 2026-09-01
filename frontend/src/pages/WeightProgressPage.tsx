@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ActivityDialog } from '../activity/ActivityDialog'
+import { ConfirmDelete } from '../components/ConfirmDelete'
 import { deleteWeightLog, upsertWeightLog, type WeightLog, type WeightLogInput } from '../activity/api'
 import { formatDate, formatNumber, formatSignedWeight } from '../activity/format'
 import { weightLogsQueryKey, weightOverviewQuery } from '../activity/queries'
@@ -18,7 +19,7 @@ interface DateRange {
   to: string
 }
 
-type WeightEditor = { type: 'new' } | { type: 'edit'; entry: WeightLog } | null
+type WeightEditor = { type: 'new' } | { type: 'edit'; entry: WeightLog } | { type: 'confirm-delete'; entry: WeightLog } | null
 
 function WeightMetric({ label, value, note }: { label: string; value: ReactNode; note: string }) {
   return <article className="weight-metric surface-card"><span>{label}</span><strong>{value}</strong><small>{note}</small></article>
@@ -88,9 +89,9 @@ export function WeightProgressPage() {
   }
 
   function requestDelete(entry: WeightLog) {
-    if (window.confirm(`Excluir a pesagem de ${formatDate(entry.date, locale)}? Esta ação não pode ser desfeita.`)) {
-      remove.mutate(entry.date)
-    }
+    if (save.isPending || remove.isPending) return
+    remove.reset()
+    setEditor({ type: 'confirm-delete', entry })
   }
 
   const overview = query.data
@@ -172,7 +173,15 @@ export function WeightProgressPage() {
       ) : null}
 
       {editor ? (
-        <ActivityDialog dismissible={!save.isPending} onClose={() => setEditor(null)} title={editor.type === 'edit' ? 'Editar pesagem' : 'Registrar peso'}>
+        editor.type === 'confirm-delete' ? (
+          <ConfirmDelete
+            busy={remove.isPending}
+            description={`A pesagem de ${formatDate(editor.entry.date, locale)} sai do histórico e não pode ser recuperada.`}
+            onCancel={() => setEditor(null)}
+            onConfirm={() => remove.mutate(editor.entry.date, { onSuccess: () => setEditor(null) })}
+            title="Excluir a pesagem?"
+          />
+        ) : <ActivityDialog dismissible={!save.isPending} onClose={() => setEditor(null)} title={editor.type === 'edit' ? 'Editar pesagem' : 'Registrar peso'}>
           <WeightForm
             defaultDate={today}
             defaultMeasuredAt={defaultMeasuredAt}

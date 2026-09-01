@@ -135,8 +135,14 @@
   /* Movimento. `--dur-press` é curto de propósito: o retorno do toque precisa acontecer dentro do
      tempo em que o dedo ainda está na tela, senão vira animação em vez de resposta. */
   --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Desaceleração longa no fim, própria de painel que sobe: o movimento chega e assenta, em vez de
+     parar de repente como um elemento que apenas apareceu. */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   --dur-press: 90ms;
   --dur-fast: 160ms;
+  --dur: 220ms;
+  --dur-sheet: 280ms;
+  --dur-bar: 520ms;
 
   /* Camadas. Os valores são os que o arquivo já usava; o que muda é passarem a ter nome. */
   --z-raised: 1;
