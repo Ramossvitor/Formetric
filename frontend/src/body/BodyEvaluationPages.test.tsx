@@ -242,7 +242,9 @@ describe('detalhe e versionamento', () => {
     })
     const user = setupUser(); renderApp('/progress/evaluations/evaluation-1')
     await user.click(await screen.findByRole('button', { name: 'Arquivar' }))
-    expect(window.confirm).toHaveBeenCalledOnce()
+    // Arquivar deixou de perguntar antes: a operação é reversível e o desfazer aparece depois, no
+    // aviso. Cobrar confirmação E oferecer desfazer seria pedir dois toques pela mesma decisão.
+    expect(await screen.findByText('Avaliação arquivada.')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Restaurar' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Restaurar' }))
     await waitFor(() => expect(writes).toHaveLength(2))

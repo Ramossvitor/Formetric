@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { archiveFood, createFoodVersion, restoreFood, setFoodFavorite, type FoodVersionInput } from '../catalog/api'
+import { useToast } from '../components/Toast'
 import { CatalogError, CatalogLoading } from '../catalog/CatalogState'
 import { FoodForm } from '../catalog/FoodForm'
 import { formatNutrition, qualityLabels, unitLabels } from '../catalog/format'
@@ -23,6 +24,7 @@ export function FoodDetailPage() {
   const { id = '' } = useParams()
   const [editing, setEditing] = useState(false)
   const queryClient = useQueryClient()
+  const showToast = useToast()
   const food = useQuery(foodQuery(id))
   const favorite = useMutation({
     mutationFn: (nextFavorite: boolean) => setFoodFavorite(id, nextFavorite),
@@ -37,8 +39,15 @@ export function FoodDetailPage() {
   })
   const archive = useMutation({
     mutationFn: (restore: boolean) => restore ? restoreFood(id) : archiveFood(id),
-    onSuccess: async () => {
+    onSuccess: async (_result, restored) => {
       await queryClient.invalidateQueries({ queryKey: foodsQueryKey })
+      // O desfazer é a mesma operação com o argumento invertido, e o backend expõe as duas pontas.
+      // É por isso que este caminho ganha desfazer DEPOIS, e o do diário — que só tem exclusão
+      // definitiva — ganha confirmação ANTES.
+      showToast({
+        message: restored ? 'Alimento restaurado.' : 'Alimento arquivado.',
+        action: { label: 'Desfazer', onAct: () => archive.mutate(!restored) },
+      })
     },
   })
 
@@ -71,7 +80,9 @@ export function FoodDetailPage() {
               className={detail.archived ? 'secondary-button' : 'text-button danger-action'}
               disabled={archive.isPending}
               onClick={() => {
-                if (!detail.archived && !window.confirm(`Arquivar “${version.name}”? Você poderá restaurá-lo pela lista de arquivados.`)) return
+                // Sem confirmação prévia: arquivar é reversível e o desfazer aparece logo depois.
+                // Perguntar antes E oferecer desfazer depois seria cobrar dois toques pela mesma
+                // decisão.
                 archive.mutate(detail.archived)
               }}
               type="button"

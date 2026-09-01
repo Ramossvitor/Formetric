@@ -257,8 +257,11 @@ describe('treinos', () => {
 
     const updateCall = fetchMock.mock.calls.find(([path, init]) => path === '/api/v1/workouts/workout-1' && init?.method === 'PUT')
     expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual(expect.objectContaining({ title: 'Peito intenso', version: 2 }))
+    // O `window.confirm` do sistema deu lugar a um sheet do próprio app: no celular aquele alerta
+    // aparecia em posição imprevisível, ignorava o tema, e deixava a distinção entre apagar e
+    // manter por conta do sistema operacional.
     await user.click(screen.getByRole('button', { name: 'Excluir Peito intenso' }))
-    expect(window.confirm).toHaveBeenCalledOnce()
+    await user.click(await screen.findByRole('button', { name: 'Excluir' }))
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Nenhum treino neste período' })).toBeInTheDocument())
   })
 })
@@ -394,7 +397,7 @@ describe('histórico de peso', () => {
 
     expect((await screen.findAllByText('Dados insuficientes')).length).toBeGreaterThanOrEqual(4)
     await user.click(screen.getByRole('button', { name: /Excluir pesagem/ }))
-    expect(window.confirm).toHaveBeenCalledOnce()
+    await user.click(await screen.findByRole('button', { name: 'Excluir' }))
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Nenhuma pesagem neste período' })).toBeInTheDocument())
     expect(fetchMock.mock.calls.some(([path, init]) => path === '/api/v1/weight-logs/2026-08-12' && init?.method === 'DELETE')).toBe(true)
   })
