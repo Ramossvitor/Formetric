@@ -45,6 +45,19 @@ interface Measurement {
 }
 
 const updating = Boolean(process.env.UPDATE_LAYOUT_BASELINE)
+
+/**
+ * Pasta para capturas de tela, quando `CAPTURE_SCREENSHOTS` aponta uma. Serve para comparar antes e
+ * depois de uma onda: `CAPTURE_SCREENSHOTS=screenshots/antes npm run test:e2e -- layout-guards`,
+ * aplicar a onda, capturar em `screenshots/depois`, e olhar as duas pastas lado a lado.
+ * `screenshots/` é ignorada pelo git.
+ *
+ * Deliberadamente NÃO é `toHaveScreenshot()` com imagens versionadas: a renderização de fonte muda
+ * entre o Windows de quem desenvolve e o Linux do CI, e a comparação pixel a pixel falharia por
+ * antialiasing em vez de por layout — o tipo de teste que se aprende a ignorar. A conferência aqui
+ * é humana; o que é automático são as três medições acima.
+ */
+const screenshotDir = process.env.CAPTURE_SCREENSHOTS
 const baseline: Record<string, string[]> = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'))
 const collected: Record<string, string[]> = {}
 
@@ -242,6 +255,11 @@ for (const route of ROUTES) {
     await signIn(page)
     await page.goto(route)
     await settle(page)
+
+    if (screenshotDir) {
+      const name = route === '/' ? 'home' : route.replaceAll('/', '-').replace(/^-/, '')
+      await page.screenshot({ fullPage: true, path: join(screenshotDir, testInfo.project.name, `${name}.png`) })
+    }
 
     const { overflowing, controlsUnderFontFloor, targetsUnderTapFloor } = await measure(page, {
       font: MIN_CONTROL_FONT_PX,
