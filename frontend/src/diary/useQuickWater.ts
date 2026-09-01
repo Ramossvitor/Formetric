@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { invalidateAnalytics } from '../analytics/queries'
+import type { DailyAnalytics } from '../analytics/api'
+import { dailyAnalyticsQuery, invalidateAnalytics } from '../analytics/queries'
 import { addWater, type DailyLog } from './api'
 import { dailyLogQuery } from './queries'
 
@@ -25,22 +26,41 @@ import { dailyLogQuery } from './queries'
 export function useQuickWater(date: string) {
   const queryClient = useQueryClient()
   const queryKey = dailyLogQuery(date).queryKey
+  // A tela Hoje não lê o diário: ela lê o consolidado do dia. Para o mesmo toque responder nas duas
+  // telas, o total provisório precisa entrar nos dois caches — do contrário o atalho da Home só se
+  // mexeria depois da ida e volta, que é justamente o que se quer evitar ali.
+  const analyticsKey = dailyAnalyticsQuery(date).queryKey
 
   return useMutation({
     mutationFn: (volumeMl: number) => addWater(date, volumeMl),
     onMutate: async (volumeMl) => {
-      await queryClient.cancelQueries({ queryKey })
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey }),
+        queryClient.cancelQueries({ queryKey: analyticsKey }),
+      ])
       const previous = queryClient.getQueryData<DailyLog | null>(queryKey)
-      if (!previous) return { previous }
+      const previousAnalytics = queryClient.getQueryData<DailyAnalytics>(analyticsKey)
 
-      queryClient.setQueryData<DailyLog>(queryKey, {
-        ...previous,
-        waterTotalMl: previous.waterTotalMl + volumeMl,
-      })
-      return { previous }
+      if (previous) {
+        queryClient.setQueryData<DailyLog>(queryKey, {
+          ...previous,
+          waterTotalMl: previous.waterTotalMl + volumeMl,
+        })
+      }
+      if (previousAnalytics) {
+        queryClient.setQueryData<DailyAnalytics>(analyticsKey, {
+          ...previousAnalytics,
+          nutrition: {
+            ...previousAnalytics.nutrition,
+            waterMl: (previousAnalytics.nutrition.waterMl ?? 0) + volumeMl,
+          },
+        })
+      }
+      return { previous, previousAnalytics }
     },
     onError: (_error, _volume, context) => {
       if (context?.previous !== undefined) queryClient.setQueryData(queryKey, context.previous)
+      if (context?.previousAnalytics !== undefined) queryClient.setQueryData(analyticsKey, context.previousAnalytics)
     },
     onSuccess: (log) => {
       queryClient.setQueryData(queryKey, log)

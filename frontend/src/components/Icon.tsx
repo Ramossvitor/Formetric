@@ -9,6 +9,7 @@ export type IconName =
   | 'food'
   | 'home'
   | 'logout'
+  | 'more'
   | 'plus'
   | 'recipe'
   | 'scale'
@@ -27,6 +28,15 @@ const iconPaths: Record<IconName, ReactNode> = {
   ),
   chevron: <path d="m9 18 6-6-6-6" />,
   droplet: <path d="M12 3s6 6.1 6 11a6 6 0 0 1-12 0c0-4.9 6-11 6-11Z" />,
+  /* Três pontos verticais. Traços curtos em vez de círculos porque o `stroke` do conjunto já dá a
+     espessura, e um `circle` preenchido destoaria de todos os outros ícones, que são contornos. */
+  more: (
+    <>
+      <path d="M12 5.5v.01" />
+      <path d="M12 12v.01" />
+      <path d="M12 18.5v.01" />
+    </>
+  ),
   food: (
     <>
       <path d="M5 11h14a7 7 0 0 1-14 0Zm7-5v5m-3-3v3m6-3v3" />
