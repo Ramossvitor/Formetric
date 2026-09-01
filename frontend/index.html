@@ -8,8 +8,19 @@
       name="description"
       content="Formetric — acompanhamento integrado de nutrição, treino e evolução corporal."
     />
-    <meta name="theme-color" content="#f4f6f2" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0e1210" media="(prefers-color-scheme: dark)" />
+    <!-- Iguais aos tokens de --background em src/index.css. Estavam ligeiramente diferentes
+         (#f4f6f2 e #0e1210), o que pintava a barra do sistema numa cor que não era a da página. -->
+    <meta name="theme-color" content="#f3f5f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d1210" media="(prefers-color-scheme: dark)" />
+
+    <!-- O iOS ignora o manifesto para instalação: ícone, nome e barra de status vêm daqui.
+         `black-translucent` estende a página sob a barra de status, que é o que faz o app
+         instalado parecer nativo — e só funciona porque o layout já respeita safe-area-inset-top. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Formetric" />
     <title>Formetric</title>
   </head>
   <body>

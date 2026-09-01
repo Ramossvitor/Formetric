@@ -36,7 +36,13 @@ class ProductionConfigurationTests {
         assertThat(properties.getProperty("server.shutdown")).isEqualTo("graceful");
         assertThat(properties.getProperty("spring.lifecycle.timeout-per-shutdown-phase")).isEqualTo("8s");
         assertThat(properties.getProperty("server.servlet.session.cookie.secure")).isEqualTo(true);
-        assertThat(properties.getProperty("spring.session.timeout")).isEqualTo("12h");
+        // 30 dias, e não mais 12 horas. É um afrouxamento consciente, feito para o aplicativo
+        // instalado: uma tela de login a cada abertura é a diferença entre um app e um site, e um
+        // diário alimentar que pede senha diariamente é um diário alimentar abandonado. O que
+        // sustenta o prazo é o cookie HttpOnly + Secure + SameSite=Lax, o hash Argon2 e a
+        // revalidação de sessão a cada requisição autenticada.
+        assertThat(properties.getProperty("spring.session.timeout")).isEqualTo("30d");
+        assertThat(properties.getProperty("server.servlet.session.timeout")).isEqualTo("30d");
         assertThat(properties.getProperty("springdoc.api-docs.enabled")).isEqualTo(false);
         assertThat(properties.getProperty("springdoc.swagger-ui.enabled")).isEqualTo(false);
         assertThat(properties.getProperty("management.endpoints.web.exposure.include")).isEqualTo("health");

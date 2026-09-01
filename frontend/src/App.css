@@ -227,6 +227,89 @@
   min-height: var(--fill-h);
 }
 
+/* Avisos do shell — atualização disponível e convite de instalação. Ficam no topo, sob o cabeçalho,
+   porque são sobre o aplicativo e não sobre a tela; a faixa de conteúdo abaixo continua intacta. */
+.update-prompt,
+.install-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) calc(var(--page-gutter) + var(--safe-right)) var(--space-3) calc(var(--page-gutter) + var(--safe-left));
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: var(--fs-footnote);
+}
+
+.update-prompt-actions {
+  display: flex;
+  margin-left: auto;
+  gap: var(--space-2);
+}
+
+.update-prompt button,
+.install-prompt button {
+  min-height: var(--tap);
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-chip);
+  color: var(--surface);
+  background: var(--primary-strong);
+  cursor: pointer;
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.update-prompt button.muted {
+  color: var(--primary-strong);
+  background: transparent;
+}
+
+.install-prompt-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-chip);
+  color: var(--surface);
+  background: var(--primary-strong);
+}
+
+.install-prompt-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.install-prompt-copy strong {
+  font-size: var(--fs-body);
+}
+
+.install-prompt-copy small {
+  color: var(--text-muted);
+  font-size: var(--fs-caption);
+}
+
+.install-prompt-dismiss {
+  width: var(--tap);
+  flex: 0 0 auto;
+  padding: 0;
+  color: var(--primary-strong) !important;
+  background: transparent !important;
+  font-size: var(--fs-title);
+}
+
+@media (prefers-color-scheme: dark) {
+  .update-prompt button,
+  .install-prompt-mark {
+    color: #102017;
+    background: var(--accent);
+  }
+}
+
 .offline-banner {
   display: flex;
   align-items: center;
@@ -937,6 +1020,22 @@ h2 {
 
 [data-keyboard] .bottom-nav {
   display: none;
+}
+
+/* Ajustes de aplicativo instalado. Sem a barra do navegador, a página começa colada na barra de
+   status do sistema — `apple-mobile-web-app-status-bar-style: black-translucent` estende o conteúdo
+   por baixo dela de propósito, e é o inset superior que devolve o espaço. O cabeçalho já usa
+   `max(12px, var(--safe-top))`, então aqui só o que MUDA com a instalação. */
+@media (display-mode: standalone) {
+  /* Instalado não há como recarregar puxando a barra de endereço, então o convite de instalação
+     obviamente não faz sentido — e a barra do sistema fica mais próxima do conteúdo. */
+  .install-prompt {
+    display: none;
+  }
+
+  .mobile-header {
+    padding-top: max(var(--space-3), var(--safe-top));
+  }
 }
 
 .bottom-nav {
@@ -1737,9 +1836,9 @@ h2 {
 }
 
 .page-action {
-  min-height: 44px;
+  min-height: var(--tap-lg);
   flex: 0 0 auto;
-  padding-inline: 15px;
+  padding-inline: var(--space-4);
 }
 
 .catalog-toolbar {

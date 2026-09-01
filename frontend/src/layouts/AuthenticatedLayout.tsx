@@ -7,6 +7,8 @@ import { Brand } from '../components/Brand'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { useModalBehavior } from '../components/useModalBehavior'
 import { Icon, type IconName } from '../components/Icon'
+import { InstallPrompt } from '../pwa/InstallPrompt'
+import { UpdatePrompt } from '../pwa/UpdatePrompt'
 import { useConnectionStatus } from './useConnectionStatus'
 import { useKeyboardInset } from './useKeyboardInset'
 
@@ -151,6 +153,14 @@ export function AuthenticatedLayout() {
 
       <div className="page">
         {updating ? <span aria-hidden="true" className="updating-bar" /> : null}
+
+        {/* Os avisos de PWA são acessórios e vivem no shell, fora da barreira que protege as
+            telas. Isolá-los garante que uma falha neles — uma API do navegador ausente, por
+            exemplo — não apague o aplicativo inteiro por causa de um convite de instalação. */}
+        <ErrorBoundary scope="nos avisos do aplicativo">
+          <UpdatePrompt />
+          <InstallPrompt />
+        </ErrorBoundary>
 
         {online ? null : (
           <p className="offline-banner" role="status">
