@@ -1,6 +1,37 @@
+import { useState, type ReactNode } from 'react'
 import { formatGoalAmount, formatGoalComparison, formatGoalRange, number } from './format'
 import type { DailyGoalProgress, DailyLog } from './api'
+import { Icon } from '../components/Icon'
 import type { Nutrient } from '../planning/api'
+
+/**
+ * A classificação por nutriente, recolhida por padrão.
+ *
+ * São até seis blocos de três linhas cada, num cartão que já traz o total calórico, o saldo e seis
+ * células de macro — no celular isso empurrava as refeições, que é o que se vem ver no diário, para
+ * muito abaixo da dobra. Quem quer a classificação a abre; quem veio registrar comida não paga por
+ * ela.
+ *
+ * O conteúdo PERMANECE no DOM, escondido por `grid-template-rows: 0fr`. Não é preciosismo: é o que
+ * permite a transição de altura sem medir nada em JavaScript, e é o que mantém a classificação
+ * verificável — trocar isto por renderização condicional ou `display: none` derrubaria os casos
+ * que a asseram, e o motivo não estaria óbvio no diff.
+ */
+function GoalStateDisclosure({ children, count }: { children: ReactNode; count: number }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="goal-disclosure">
+      <button aria-expanded={open} className="goal-disclosure-toggle" onClick={() => setOpen((current) => !current)} type="button">
+        <span>Ver classificação das metas{count > 0 ? ` (${count})` : ''}</span>
+        <span className={open ? 'goal-disclosure-chevron open' : 'goal-disclosure-chevron'}><Icon name="chevron" size={18} /></span>
+      </button>
+      <div className={open ? 'goal-disclosure-panel open' : 'goal-disclosure-panel'}>
+        <div className="goal-state-list" aria-label="Classificação das metas">{children}</div>
+      </div>
+    </div>
+  )
+}
 
 const nutrientLabels: Record<Nutrient, string> = {
   CALORIES: 'Calorias',
@@ -109,7 +140,7 @@ export function DiarySummary({ log }: { log: DailyLog }) {
         <div><dt>Água</dt><dd>{number(log.waterTotalMl / 1000, 2)} L</dd></div>
       </dl>
       {progress.length > 0 || (log.nutritionGoals && !hasCalorieClassification) ? (
-        <div className="goal-state-list" aria-label="Classificação das metas">
+        <GoalStateDisclosure count={progress.length}>
           {log.nutritionGoals && !hasCalorieClassification ? (
             <div
               aria-label="Calorias: classificação não configurada neste período"
@@ -122,7 +153,7 @@ export function DiarySummary({ log }: { log: DailyLog }) {
             </div>
           ) : null}
           {progress.map((item) => <GoalState final={final} key={item.nutrient} progress={item} />)}
-        </div>
+        </GoalStateDisclosure>
       ) : <p className="summary-footnote">Configure metas com faixas para classificar cada nutriente conforme seu próprio plano.</p>}
       <p className="summary-footnote" role="note">
         {final

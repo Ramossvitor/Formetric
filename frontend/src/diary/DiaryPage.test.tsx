@@ -214,6 +214,35 @@ describe('diário', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Excluir água de 500 ml' })).not.toBeInTheDocument())
   })
 
+  it('exige confirmação no sheet antes de excluir uma refeição', async () => {
+    // As ações saíram da linha para um sheet, e é aqui que a exclusão deixa de ser um toque só num
+    // alvo de 34px colado no de editar. O caminho todo é exercitado porque não há como desfazer:
+    // se a confirmação sumir numa refatoração, nada mais avisa.
+    const withMeal = dailyLog({ meals: [meal()] })
+    const emptied = dailyLog()
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(session)
+      if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'meal-csrf', headerName: 'X-XSRF-TOKEN' })
+      if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(withMeal)
+      if (path.endsWith('/meals/meal-1') && init?.method === 'DELETE') return jsonResponse(emptied)
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+    const user = setupUser()
+    renderDiary()
+
+    await user.click(await screen.findByRole('button', { name: 'Ações de Almoço' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Almoço' })
+
+    // Um toque em "Excluir" não exclui: ele revela a confirmação.
+    await user.click(within(sheet).getByRole('button', { name: 'Excluir' }))
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+
+    await user.click(within(sheet).getByRole('button', { name: 'Confirmar exclusão de Almoço' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Almoço' })).not.toBeInTheDocument())
+    expect(fetchMock.mock.calls.some(([path, init]) => String(path).endsWith('/meals/meal-1') && init?.method === 'DELETE')).toBe(true)
+  })
+
   it('fecha jejum vazio, bloqueia mutações e reabre explicitamente', async () => {
     const initial = dailyLog()
     const closed = dailyLog({ status: 'CLOSED', closedAt: '2026-08-12T23:00:00Z', stateEvents: [{ type: 'CLOSED', fastingConfirmed: true, actorUserId: 'user-1', occurredAt: '2026-08-12T23:00:00Z' }] })

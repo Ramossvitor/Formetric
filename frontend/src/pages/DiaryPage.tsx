@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
+import { Icon } from '../components/Icon'
 import { invalidateAnalytics } from '../analytics/queries'
 import { qualityLabels, unitLabels } from '../catalog/format'
 import {
@@ -31,7 +32,7 @@ import { dailyLogQuery } from '../diary/queries'
 import { useQuickWater } from '../diary/useQuickWater'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
 import { formatInstantDateTime, formatInstantTime } from '../time/instant'
-import { addPlainDateDays, isPlainDate } from '../time/plainDate'
+import { addPlainDateDays, comparePlainDates, formatPlainDate, isPlainDate } from '../time/plainDate'
 
 type Editor =
   | { type: 'quick' }
@@ -39,12 +40,31 @@ type Editor =
   | { type: 'item'; mealId: string; item?: MealItem }
   | { type: 'copy' }
   | { type: 'close' }
+  // As ações de uma refeição e de um item saíram da linha para um sheet. Na linha, eram três e dois
+  // alvos de 34px com 3 a 4px entre eles, com o excluir colado no editar e sem confirmação nem
+  // desfazer atrás — e as três da refeição ocupavam uma SEGUNDA LINHA INTEIRA do cabeçalho, o que
+  // num dia de quatro refeições é cerca de 200px gastos só em cromo.
+  | { type: 'meal-actions'; meal: Meal }
+  | { type: 'item-actions'; mealId: string; item: MealItem }
   | null
 
 type DialogMutation = { isError: boolean; error: Error | null; reset: () => void }
 
-function shiftedDate(date: string, days: number) {
-  return addPlainDateDays(date, days)
+/**
+ * A janela de sete dias que a faixa mostra.
+ *
+ * Termina em amanhã para o dia seguinte ficar alcançável — quem registra o jantar depois da
+ * meia-noite precisa dele — mas nunca passa de amanhã, porque registrar num futuro distante é erro
+ * de toque, não intenção. Quando a data escolhida é hoje, a janela vira a semana que passou, que é
+ * o que se quer olhar na maior parte das vezes.
+ */
+function weekWindow(date: string, today: string) {
+  const tomorrow = addPlainDateDays(today, 1)
+  const start = comparePlainDates(date, today) >= 0
+    ? addPlainDateDays(date, -6)
+    : addPlainDateDays(date, -3)
+  return Array.from({ length: 7 }, (_, index) => addPlainDateDays(start, index))
+    .filter((candidate) => comparePlainDates(candidate, tomorrow) <= 0)
 }
 
 function formatTime(value: string | null) {
@@ -53,6 +73,35 @@ function formatTime(value: string | null) {
 
 function statusLabel(status: DailyLog['status']) {
   return status === 'OPEN' ? 'Dia aberto' : 'Dia fechado'
+}
+
+function RowActionSheet({ busy, danger, onCancel, onConfirmDelete, onDuplicate, onEdit }: {
+  busy: boolean
+  danger: string
+  onCancel: () => void
+  onConfirmDelete: () => void
+  onDuplicate?: () => void
+  onEdit: () => void
+}) {
+  const [confirming, setConfirming] = useState(false)
+
+  return (
+    <div className="row-action-list">
+      <button className="row-action" disabled={busy} onClick={onEdit} type="button">Editar</button>
+      {onDuplicate ? <button className="row-action" disabled={busy} onClick={onDuplicate} type="button">Duplicar</button> : null}
+      {confirming ? (
+        <>
+          <button className="row-action destructive-confirm" disabled={busy} onClick={onConfirmDelete} type="button">
+            {busy ? 'Excluindo…' : danger}
+          </button>
+          <button className="row-action" disabled={busy} onClick={() => setConfirming(false)} type="button">Cancelar</button>
+        </>
+      ) : (
+        <button className="row-action destructive" disabled={busy} onClick={() => setConfirming(true)} type="button">Excluir</button>
+      )}
+      {confirming ? null : <button className="row-action muted" onClick={onCancel} type="button">Fechar</button>}
+    </div>
+  )
 }
 
 export function DiaryPage() {
@@ -118,6 +167,8 @@ export function DiaryPage() {
     copy: [copyDayMutation, copyMealMutation],
     close: [close],
     quick: [water],
+    'meal-actions': [removeMeal, copyMealMutation],
+    'item-actions': [removeItem],
   }
   // O diálogo rápido só é renderizado com o dia aberto; sem esta condição o erro dele seria
   // filtrado do aviso da página sem aparecer em lugar nenhum.
@@ -184,12 +235,36 @@ export function DiaryPage() {
           <p className="heading-copy date-copy">{displayDate(date, locale)}</p>
         </div>
         <div className="date-navigation">
-          <button aria-label="Dia anterior" className="icon-button" onClick={() => selectDate(shiftedDate(date, -1))} type="button">‹</button>
-          <label htmlFor="diary-date"><span className="visually-hidden">Selecionar data</span><input id="diary-date" onChange={(event) => selectDate(event.target.value)} type="date" value={date} /></label>
-          <button aria-label="Próximo dia" className="icon-button" onClick={() => selectDate(shiftedDate(date, 1))} type="button">›</button>
+          {/* O seletor de data nativo vive sob o botão de calendário: invisível, mas ainda um
+              `<input type="date">` completo, com o rótulo que o leitor de tela lê. Assim o alvo tem
+              44px e o teclado continua chegando ao campo. */}
+          <label className="date-picker-button" htmlFor="diary-date">
+            <span className="visually-hidden">Selecionar data</span>
+            <Icon name="calendar" size={18} />
+            <input id="diary-date" onChange={(event) => selectDate(event.target.value)} type="date" value={date} />
+          </label>
           {date !== today ? <button className="text-button" onClick={() => selectDate(today)} type="button">Ir para hoje</button> : null}
         </div>
       </header>
+
+      {/* Trocar de dia era um toque num alvo de 34px sem contexto nenhum: não dava para saber que
+          dia se estava deixando nem para onde se ia. A faixa mostra a semana e resolve em um toque,
+          com o dia atual marcado. */}
+      <nav aria-label="Selecionar dia" className="day-strip">
+        {weekWindow(date, today).map((candidate) => (
+          <button
+            aria-label={formatPlainDate(candidate, locale, { dateStyle: 'full' })}
+            aria-pressed={candidate === date}
+            className={`day-strip-item${candidate === date ? ' selected' : ''}${candidate === today ? ' today' : ''}`}
+            key={candidate}
+            onClick={() => selectDate(candidate)}
+            type="button"
+          >
+            <span>{formatPlainDate(candidate, locale, { weekday: 'short' }).replace('.', '')}</span>
+            <strong>{formatPlainDate(candidate, locale, { day: 'numeric' })}</strong>
+          </button>
+        ))}
+      </nav>
 
       <div className="diary-status-row">
         <span className={open ? 'diary-status open' : 'diary-status closed'}>{log ? statusLabel(log.status) : 'Sem registro'}</span>
@@ -229,7 +304,7 @@ export function DiaryPage() {
                     <header className="meal-heading">
                       <div><span>{formatTime(meal.mealTime) ?? `Refeição ${meal.position + 1}`}</span><h3>{meal.name}</h3></div>
                       <div className="meal-total"><strong>{number(meal.totals.kcal, 0)} kcal</strong><small>{number(meal.totals.proteinG)} g proteína</small></div>
-                      {open ? <div className="meal-actions"><button aria-label={`Editar ${meal.name}`} className="icon-button" onClick={() => openEditor({ type: 'meal', meal })} type="button">✎</button><button aria-label={`Duplicar ${meal.name}`} className="icon-button" disabled={copyMealMutation.isPending} onClick={() => copyMealMutation.mutate({ sourceDate: date, sourceMealId: meal.id })} type="button">⧉</button><button aria-label={`Excluir ${meal.name}`} className="icon-button danger-icon" disabled={removeMeal.isPending} onClick={() => removeMeal.mutate(meal.id)} type="button">×</button></div> : null}
+                      {open ? <button aria-label={`Ações de ${meal.name}`} className="icon-button row-actions-button" onClick={() => openEditor({ type: 'meal-actions', meal })} type="button"><Icon name="more" size={20} /></button> : null}
                     </header>
                     {meal.items.length === 0 ? <p className="meal-empty">Nenhum item nesta refeição.</p> : (
                       <ul className="meal-item-list">
@@ -237,8 +312,17 @@ export function DiaryPage() {
                           <li key={item.id}>
                             <div className="item-primary"><strong>{item.name}</strong><span>{number(item.quantity)} {unitLabels[item.unit]} · {item.itemType === 'RECIPE' ? 'receita' : 'alimento'} · v. preservada</span></div>
                             <div className="item-nutrition"><strong>{number(item.kcal, 0)} kcal</strong><span>P {number(item.proteinG)} · C {number(item.carbohydrateG)} · G {number(item.fatG)}</span></div>
-                            <div className="item-quality"><span className={`quality-chip ${item.dataQuality.toLowerCase()}`}>{qualityLabels[item.dataQuality]}</span>{item.uncertaintyKcal != null ? <small>± {number(item.uncertaintyKcal, 0)} kcal</small> : null}</div>
-                            {open ? <div className="item-actions"><button aria-label={`Editar ${item.name}`} className="icon-button" onClick={() => openEditor({ type: 'item', mealId: meal.id, item })} type="button">✎</button><button aria-label={`Excluir ${item.name}`} className="icon-button danger-icon" disabled={removeItem.isPending} onClick={() => removeItem.mutate({ mealId: meal.id, itemId: item.id })} type="button">×</button></div> : null}
+                            {/* O chip só aparece quando o dado NÃO é exato: com "Exato" impresso em
+                                toda linha, a marca deixava de marcar coisa alguma. A ausência do
+                                chip passa a significar exato, e as duas estimativas continuam
+                                nomeadas por extenso, não por cor. */}
+                            {item.dataQuality === 'EXACT' && item.uncertaintyKcal == null ? null : (
+                              <div className="item-quality">
+                                {item.dataQuality === 'EXACT' ? null : <span className={`quality-chip ${item.dataQuality.toLowerCase()}`}>{qualityLabels[item.dataQuality]}</span>}
+                                {item.uncertaintyKcal != null ? <small>± {number(item.uncertaintyKcal, 0)} kcal</small> : null}
+                              </div>
+                            )}
+                            {open ? <button aria-label={`Ações de ${item.name}`} className="icon-button row-actions-button" onClick={() => openEditor({ type: 'item-actions', mealId: meal.id, item })} type="button"><Icon name="more" size={20} /></button> : null}
                           </li>
                         ))}
                       </ul>
@@ -261,7 +345,7 @@ export function DiaryPage() {
       <section className="diary-day-actions surface-card" aria-label="Ações do diário">
         <div><strong>{open ? 'Quando terminar o dia' : 'Diário confirmado'}</strong><span>{open ? 'Feche para incluir este dia em análises históricas confirmadas.' : 'Reabra somente se precisar corrigir algum registro.'}</span></div>
         <div>
-          {open ? <><button className="secondary-button" onClick={() => openEditor({ type: 'copy' })} type="button">Copiar registros</button><button className="submit-button" onClick={() => openEditor({ type: 'close' })} type="button">Fechar dia</button></> : <button className="secondary-button" disabled={reopen.isPending} onClick={() => reopen.mutate()} type="button">{reopen.isPending ? 'Reabrindo…' : 'Reabrir dia'}</button>}
+          {open ? <><button className="submit-button" onClick={() => openEditor({ type: 'close' })} type="button">Fechar dia</button><button className="secondary-button" onClick={() => openEditor({ type: 'copy' })} type="button">Copiar registros</button></> : <button className="secondary-button" disabled={reopen.isPending} onClick={() => reopen.mutate()} type="button">{reopen.isPending ? 'Reabrindo…' : 'Reabrir dia'}</button>}
         </div>
       </section>
 
@@ -269,6 +353,29 @@ export function DiaryPage() {
       {editor?.type === 'item' ? <DiaryDialog error={dialogError} onClose={closeEditor} title={editor.item ? 'Editar item' : 'Adicionar ao diário'}><ItemEditor item={editor.item} onCancel={closeEditor} onSubmit={(input) => editor.item ? editItem.mutate({ mealId: editor.mealId, itemId: editor.item.id, input }) : addItem.mutate({ mealId: editor.mealId, input })} pending={addItem.isPending || editItem.isPending} /></DiaryDialog> : null}
       {editor?.type === 'copy' ? <DiaryDialog error={dialogError} onClose={closeEditor} title="Copiar registros"><CopyPanel canCopyDay={!log || (log.meals.length === 0 && log.waterLogs.length === 0)} date={date} today={today} onCancel={closeEditor} onCopyDay={(sourceDate) => copyDayMutation.mutate(sourceDate)} onCopyMeal={(sourceDate, sourceMealId) => copyMealMutation.mutate({ sourceDate, sourceMealId })} pending={copyDayMutation.isPending || copyMealMutation.isPending} /></DiaryDialog> : null}
       {editor?.type === 'close' ? <DiaryDialog error={dialogError} onClose={closeEditor} title="Fechar diário"><div className="dialog-form"><p className="close-copy">Depois de fechado, o dia fica somente para leitura e poderá participar dos consolidados. É possível reabrir para corrigir.</p>{requiresFastingConfirmation(log) ? <label className="fasting-confirmation"><input checked={fastingConfirmed} onChange={(event) => setFastingConfirmed(event.target.checked)} type="checkbox" /><span><strong>Confirmo que este foi um dia de jejum</strong><small>Um dia sem itens alimentares nem água só pode ser fechado com confirmação explícita. Uma refeição vazia não conta como acompanhamento.</small></span></label> : null}<div className="dialog-actions"><button className="secondary-button" onClick={closeEditor} type="button">Cancelar</button><button className="submit-button" disabled={close.isPending || (requiresFastingConfirmation(log) && !fastingConfirmed)} onClick={() => close.mutate()} type="button">{close.isPending ? 'Fechando…' : 'Confirmar fechamento'}</button></div></div></DiaryDialog> : null}
+      {editor?.type === 'meal-actions' ? (
+        <DiaryDialog error={dialogError} onClose={closeEditor} title={editor.meal.name}>
+          <RowActionSheet
+            busy={removeMeal.isPending || copyMealMutation.isPending}
+            danger={`Confirmar exclusão de ${editor.meal.name}`}
+            onCancel={closeEditor}
+            onConfirmDelete={() => removeMeal.mutate(editor.meal.id, { onSuccess: closeEditor })}
+            onDuplicate={() => copyMealMutation.mutate({ sourceDate: date, sourceMealId: editor.meal.id })}
+            onEdit={() => openEditor({ type: 'meal', meal: editor.meal })}
+          />
+        </DiaryDialog>
+      ) : null}
+      {editor?.type === 'item-actions' ? (
+        <DiaryDialog error={dialogError} onClose={closeEditor} title={editor.item.name}>
+          <RowActionSheet
+            busy={removeItem.isPending}
+            danger="Confirmar exclusão do item"
+            onCancel={closeEditor}
+            onConfirmDelete={() => removeItem.mutate({ mealId: editor.mealId, itemId: editor.item.id }, { onSuccess: closeEditor })}
+            onEdit={() => openEditor({ type: 'item', mealId: editor.mealId, item: editor.item })}
+          />
+        </DiaryDialog>
+      ) : null}
       {editor?.type === 'quick' && open ? <DiaryDialog error={dialogError} onClose={closeEditor} title="Cadastro rápido"><div className="quick-action-grid"><button onClick={() => openEditor({ type: 'meal' })} type="button"><strong>Refeição</strong><span>Criar novo agrupamento</span></button>{log?.meals.map((meal) => <button key={meal.id} onClick={() => openEditor({ type: 'item', mealId: meal.id })} type="button"><strong>Item em {meal.name}</strong><span>Alimento ou receita</span></button>)}<button onClick={() => water.mutate(250, { onSuccess: () => setEditor(null) })} type="button"><strong>+250 ml</strong><span>Registrar água agora</span></button><button onClick={() => openEditor({ type: 'copy' })} type="button"><strong>Copiar</strong><span>Refeição ou dia anterior</span></button></div></DiaryDialog> : null}
     </main>
   )

@@ -9,9 +9,11 @@ import type {
   MacroNutrientType,
 } from '../analytics/api'
 import { diaryStatusLabels, formatDuration, formatLongDate, formatNumber, formatSigned, formatWorkoutModality, nutrientLabels, pluralize } from '../analytics/format'
+import { goalBandGeometry } from '../analytics/goalBand'
 import { dailyAnalyticsQuery } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 import { formatGoalComparison, formatGoalRange } from '../diary/format'
+import { useQuickWater } from '../diary/useQuickWater'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
 import { isPlainDate } from '../time/plainDate'
 
@@ -66,6 +68,34 @@ function MissingWithFix({ children, to }: { children: ReactNode; to: string }) {
   return <Link className="analytics-missing analytics-missing-link" to={to}>{children}<Icon name="chevron" size={14} /></Link>
 }
 
+/**
+ * A meta desenhada como faixa, que é como o backend a modela.
+ *
+ * `minValue`, `maxValue`, `remainingToRange` e `excessOverRange` chegam prontos do servidor e
+ * terminavam espremidos numa frase de 11px sob o anel. O anel continua respondendo "quanto já
+ * comi"; esta barra responde "quanto ainda cabe", que é a pergunta que decide o próximo prato.
+ */
+function GoalBand({ goal, tone, value }: { goal: GoalProgress; tone: string; value: number | null }) {
+  const geometry = goal.reference ? goalBandGeometry(goal.reference, value) : null
+  if (!geometry) return null
+
+  return (
+    <div className={`goal-band ${tone}`}>
+      <span aria-hidden="true" className="goal-band-track">
+        <span className="goal-band-fill" style={{ width: `${geometry.valuePercent}%` }} />
+        {geometry.excessStartPercent != null ? (
+          <span
+            className="goal-band-excess"
+            style={{ left: `${geometry.excessStartPercent}%`, right: `${100 - geometry.valuePercent}%` }}
+          />
+        ) : null}
+        {geometry.minPercent != null ? <span className="goal-band-tick" style={{ left: `${geometry.minPercent}%` }} /> : null}
+        {geometry.maxPercent != null ? <span className="goal-band-tick" style={{ left: `${geometry.maxPercent}%` }} /> : null}
+      </span>
+    </div>
+  )
+}
+
 function MacroRow({ data, goal, nutrient, nutritionKey }: {
   data: DailyAnalytics
   goal: GoalProgress | undefined
@@ -92,16 +122,106 @@ function MacroRow({ data, goal, nutrient, nutritionKey }: {
         role="group"
       >
         <span aria-hidden="true" className={`goal-state-dot ${goalToneClass(goal)}`} />
-        {goal
-          ? <span>{state}{comparison ? ` · ${comparison}` : ''}</span>
-          : <Link className="goal-state-fix" to="/settings/nutrition-goals">{state}</Link>}
+        <span>{state}{comparison ? ` · ${comparison}` : ''}</span>
         {goal?.attained != null ? <strong>{goal.attained ? 'atingida' : 'fora da meta'}</strong> : null}
       </div>
     </div>
   )
 }
 
-function DailyDashboard({ data }: { data: DailyAnalytics }) {
+/**
+ * Água, treino, peso e análises numa lista agrupada.
+ *
+ * Eram quatro cartões independentes de 134px empilhados: 572px de rolagem para quatro fatos, com
+ * três quartos daquilo sendo margem e moldura. Como linhas de uma lista só, ocupam 256px, ficam
+ * comparáveis entre si e cada uma continua com o próprio alvo de toque.
+ */
+function DayOverview({ data, onQuickWater, quickWaterPending }: {
+  data: DailyAnalytics
+  onQuickWater: () => void
+  quickWaterPending: boolean
+}) {
+  const waterLiters = data.nutrition.waterMl == null ? null : data.nutrition.waterMl / 1000
+  const waterGoal = data.goalProgress.find((goal) => goal.nutrient === 'WATER')
+  const waterState = !waterGoal
+    ? 'Meta não configurada'
+    : data.nutrition.waterMl == null
+      ? 'Ainda não registrada'
+      : waterGoal.bandLabel ?? 'Fora das faixas configuradas'
+  const waterNote = [
+    waterState,
+    waterGoal?.reference ? `meta ${formatGoalRange(waterGoal.reference, 'WATER')}` : null,
+    data.nutrition.waterMl == null ? null : formatGoalComparison(waterGoal?.reference ?? null, 'WATER'),
+  ].filter((item): item is string => item != null).join(' · ')
+  const workoutNote = data.workouts.sessionCount === 0
+    ? 'Nenhuma sessão registrada'
+    : `${formatDuration(data.workouts.totalDurationMinutes)} · ${pluralize(data.workouts.sessionCount, 'sessão', 'sessões')}`
+  const workoutValue = data.workouts.sessionCount === 0
+    ? 'Nenhum treino'
+    : data.workouts.modalities.length > 0
+      ? data.workouts.modalities.map(formatWorkoutModality).join(' · ')
+      : pluralize(data.workouts.sessionCount, 'sessão', 'sessões')
+
+  return (
+    <div className="day-overview surface-card">
+      <div className="day-overview-row">
+        <span className="metric-icon blue"><Icon name="droplet" /></span>
+        <span className="metric-copy">
+          <span className="metric-label">Água</span>
+          <span className="metric-note">{waterNote}</span>
+        </span>
+        {waterLiters == null
+          ? <MissingValue>Não registrada</MissingValue>
+          : <strong>{formatNumber(waterLiters, 2)} <small>L</small></strong>}
+        {/* Registrar água a partir daqui evita o caminho que existia: abrir o diário, abrir o
+            cadastro rápido, tocar em +250. O rótulo diz o volume porque um "+" sozinho obriga a
+            abrir algo para descobrir quanto se está registrando. */}
+        <button
+          aria-label="Registrar 250 ml de água"
+          className="day-overview-water"
+          disabled={quickWaterPending}
+          onClick={onQuickWater}
+          type="button"
+        >
+          +250
+        </button>
+      </div>
+
+      <Link className="day-overview-row" to="/workouts">
+        <span className="metric-icon orange"><Icon name="activity" /></span>
+        <span className="metric-copy">
+          <span className="metric-label">Treino</span>
+          <span className="metric-note">{workoutNote}</span>
+        </span>
+        <strong className="metric-title">{workoutValue}</strong>
+        <span aria-hidden="true" className="day-overview-chevron"><Icon name="chevron" size={16} /></span>
+      </Link>
+
+      <Link className="day-overview-row" to="/progress/weight">
+        <span className="metric-icon purple"><Icon name="scale" /></span>
+        <span className="metric-copy">
+          <span className="metric-label">Peso</span>
+          <span className="metric-note">Pesagem oficial nesta data</span>
+        </span>
+        {data.weightKg == null
+          ? <MissingValue>Não registrado</MissingValue>
+          : <strong>{formatNumber(data.weightKg, 2)} <small>kg</small></strong>}
+        <span aria-hidden="true" className="day-overview-chevron"><Icon name="chevron" size={16} /></span>
+      </Link>
+
+      <div className="day-overview-footer">
+        <Link to="/analytics/monthly">Ver mês</Link>
+        <Link to="/analytics/charts">Gráficos</Link>
+      </div>
+    </div>
+  )
+}
+
+function DailyDashboard({ data, onQuickWater, quickWaterPending }: {
+  data: DailyAnalytics
+  onQuickWater: () => void
+  quickWaterPending: boolean
+}) {
   const calories = data.nutrition.caloriesKcal
   const caloriePercent = calories != null && data.calorieTargetKcal != null && data.calorieTargetKcal > 0
     ? Math.min(100, Math.max(0, (calories / data.calorieTargetKcal) * 100))
@@ -129,28 +249,8 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
   const hasCalorieProgress = calories != null
     && data.calorieTargetKcal != null
     && data.calorieTargetKcal > 0
-  const waterGoal = data.goalProgress.find((goal) => goal.nutrient === 'WATER')
-  const waterLiters = data.nutrition.waterMl == null ? null : data.nutrition.waterMl / 1000
-  const waterComparison = data.nutrition.waterMl == null
-    ? null
-    : formatGoalComparison(waterGoal?.reference ?? null, 'WATER')
-  const waterState = !waterGoal
-    ? 'Meta não configurada'
-    : data.nutrition.waterMl == null
-      ? 'Ainda não registrada'
-      : waterGoal.bandLabel ?? 'Fora das faixas configuradas'
-  const waterPlan = [
-    waterState,
-    waterGoal?.reference ? `meta ${formatGoalRange(waterGoal.reference, 'WATER')}` : null,
-    waterComparison,
-  ].filter((item): item is string => item != null).join(' · ')
   const balance = data.energyBalanceKcal ?? data.projectedEnergyBalanceKcal
   const projected = data.projectedEnergyBalanceKcal != null
-  const workoutLabel = data.workouts.sessionCount === 0
-    ? 'Nenhum treino'
-    : data.workouts.modalities.length > 0
-      ? data.workouts.modalities.map(formatWorkoutModality).join(' · ')
-      : pluralize(data.workouts.sessionCount, 'sessão', 'sessões')
 
   return (
     <>
@@ -185,13 +285,13 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
             role="group"
           >
             <span aria-hidden="true" className={`goal-state-dot ${goalToneClass(calorieGoal)}`} />
-            {calorieGoal
-              ? <span>{calorieClassificationStage}: {calorieClassification}</span>
-              : <Link className="goal-state-fix" to="/settings/nutrition-goals">{calorieClassificationStage}: {calorieClassification}</Link>}
+            <span>{calorieClassificationStage}: {calorieClassification}</span>
             {calorieGoal?.attained != null ? (
               <strong>{calorieGoal.attained ? 'atingida' : 'fora da meta'}</strong>
             ) : null}
           </div>
+
+          {calorieGoal ? <GoalBand goal={calorieGoal} tone={goalToneClass(calorieGoal)} value={calories} /> : null}
 
           <div className="energy-balance">
             <span className="balance-icon"><Icon name="trend" size={18} /></span>
@@ -224,6 +324,12 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
               />
             ))}
           </div>
+          {data.goalProgress.length === 0 ? (
+            <Link className="goal-setup-link" to="/settings/nutrition-goals">
+              Definir metas para classificar o dia
+              <Icon name="chevron" size={16} />
+            </Link>
+          ) : null}
         </div>
       </section>
 
@@ -237,49 +343,8 @@ function DailyDashboard({ data }: { data: DailyAnalytics }) {
       <section aria-labelledby="panorama" className="overview-section">
         <div className="section-title-row">
           <div><p className="eyebrow">Panorama</p><h2 id="panorama">Demais registros do dia</h2></div>
-          <Link className="text-button desktop-only" to="/analytics/monthly">Ver mês</Link>
         </div>
-        <div className="overview-grid">
-          <article className="metric-card water-card">
-            <div className="metric-icon blue"><Icon name="droplet" /></div>
-            <div className="metric-copy">
-              <span className="metric-label">Água</span>
-              {waterLiters == null ? <MissingValue>Não registrada</MissingValue> : <strong>{formatNumber(waterLiters, 2)} <small>L</small></strong>}
-              <span className="metric-note">{waterPlan}</span>
-            </div>
-            <Link aria-label="Registrar água no diário" className="card-action" to={`/diary?date=${data.date}&action=quick`}><Icon name="plus" size={18} /></Link>
-          </article>
-
-          <article className="metric-card">
-            <div className="metric-icon orange"><Icon name="activity" /></div>
-            <div className="metric-copy">
-              <span className="metric-label">Treino</span>
-              <strong className="metric-title">{workoutLabel}</strong>
-              <span className="metric-note">{data.workouts.sessionCount === 0 ? 'Nenhuma sessão registrada' : `${formatDuration(data.workouts.totalDurationMinutes)} · ${pluralize(data.workouts.sessionCount, 'sessão', 'sessões')}`}</span>
-            </div>
-            <Link aria-label="Abrir treinos" className="card-action ghost" to="/workouts"><Icon name="chevron" size={18} /></Link>
-          </article>
-
-          <article className="metric-card">
-            <div className="metric-icon purple"><Icon name="scale" /></div>
-            <div className="metric-copy">
-              <span className="metric-label">Peso</span>
-              {data.weightKg == null ? <MissingValue>Não registrado</MissingValue> : <strong>{formatNumber(data.weightKg, 2)} <small>kg</small></strong>}
-              <span className="metric-note">Pesagem oficial nesta data</span>
-            </div>
-            <Link aria-label="Ver evolução do peso" className="card-action ghost" to="/progress/weight"><Icon name="chevron" size={18} /></Link>
-          </article>
-
-          <article className="metric-card analytics-links-card">
-            <div className="metric-icon green"><Icon name="trend" /></div>
-            <div className="metric-copy">
-              <span className="metric-label">Análises</span>
-              <strong className="metric-title">Entenda a evolução</strong>
-              <span className="metric-note">Consolidados e séries históricas</span>
-            </div>
-            <div className="analytics-card-links"><Link to="/analytics/monthly">Mês</Link><Link to="/analytics/charts">Gráficos</Link></div>
-          </article>
-        </div>
+        <DayOverview data={data} onQuickWater={onQuickWater} quickWaterPending={quickWaterPending} />
       </section>
     </>
   )
@@ -295,6 +360,7 @@ export function HomePage() {
   const requestedDate = searchParams.get('date')
   const date = requestedDate && isPlainDate(requestedDate) ? requestedDate : today
   const daily = useQuery(dailyAnalyticsQuery(date))
+  const quickWater = useQuickWater(date)
   const pending = daily.isPending
   const error = daily.error
 
@@ -328,7 +394,16 @@ export function HomePage() {
         <div className="catalog-state" role="status"><span className="route-spinner" /><p>Calculando o resumo diário…</p></div>
       ) : error ? (
         <div className="catalog-state" role="alert"><p>{getErrorMessage(error)}</p><button className="secondary-button" onClick={() => void daily.refetch()} type="button">Tentar novamente</button></div>
-      ) : daily.data ? <DailyDashboard data={daily.data} /> : null}
+      ) : daily.data ? (
+        <>
+          {quickWater.isError ? <p className="form-error catalog-feedback" role="alert">{getErrorMessage(quickWater.error)}</p> : null}
+          <DailyDashboard
+            data={daily.data}
+            onQuickWater={() => quickWater.mutate(250)}
+            quickWaterPending={quickWater.isPending}
+          />
+        </>
+      ) : null}
     </main>
   )
 }
