@@ -31,3 +31,24 @@ Onde os documentos divergirem, vale nesta ordem:
 Divergências conhecidas, já resolvidas em `plano.md`: a bottom-nav **mantém** o vidro (as specs
 propunham torná-la opaca); o piso tipográfico entra na Onda 1, não na última; a unificação dos
 sheets precisa preservar o breakpoint de 560px, que as specs afirmavam não existir.
+
+## Achados refutados na execução
+
+Os documentos foram escritos lendo o código, não rodando o app. Três afirmações não sobreviveram à
+medição. Ficam registradas aqui para não serem redescobertas — e como lembrete de que o resto
+também é leitura, não medição.
+
+1. **A vírgula do teclado pt-BR NÃO é descartada.** As prescrições davam como certo que 27 campos
+   `type="number"` transformavam `72,5` em vazio, e pediam a troca para `type="text"` com parser
+   próprio. Digitando nos dois motores com locale pt-BR — Chromium e WebKit, que é o do iOS — o
+   campo devolve `"72.5"` e `valueAsNumber` 72,5: os dois localizam o controle e normalizam
+   sozinhos. A troca teria quebrado dez asserções e jogado fora a normalização do navegador.
+   O que restou do item é real: `inputMode` para o iOS oferecer o teclado decimal compacto.
+
+2. **A folga inferior era de 21,7px, não de 14px.** O plano deduziu o número do CSS. Medido no
+   aparelho, a barra tem 72px e a ponta do FAB rotacionado chega a 90,3px — contra os 112px de
+   `padding-bottom`. O defeito era real; o tamanho dele, não.
+
+3. **Não havia estouro horizontal nenhum no celular.** Os cinco `minmax()` apontados como
+   perigosos só entram a partir de 560px. O aperto que o dono sentiu era vertical e tipográfico;
+   corrigir os `minmax()` continua valendo para tablet e janela estreita, mas não era isso.
