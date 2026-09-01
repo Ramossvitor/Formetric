@@ -3,7 +3,7 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "es2023",
     "lib": ["ES2023"],
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -19,5 +19,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+  // `tools/` roda em Node e lê o disco, então fica fora do projeto do app: assim `process` e `fs`
+  // continuam indisponíveis para o código que vai para o navegador.
+  "include": ["vite.config.ts", "tools"]
 }
