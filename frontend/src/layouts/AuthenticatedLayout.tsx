@@ -5,6 +5,7 @@ import { getErrorMessage } from '../api/http'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
 import { Icon, type IconName } from '../components/Icon'
+import { useKeyboardInset } from './useKeyboardInset'
 
 const navigation: Array<{ label: string; icon: IconName; to: string }> = [
   { label: 'Hoje', icon: 'home', to: '/' },
@@ -35,6 +36,7 @@ function initials(name: string) {
 
 export function AuthenticatedLayout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  useKeyboardInset()
   const { data: session } = useQuery(sessionQuery)
   const logout = useLogout()
   const user = session?.user

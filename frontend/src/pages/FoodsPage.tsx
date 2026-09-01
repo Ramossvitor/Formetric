@@ -39,8 +39,12 @@ export function FoodsPage() {
           <span aria-hidden="true">⌕</span>
           <span className="visually-hidden">Pesquisar alimentos</span>
           <input
+            autoCapitalize="none"
             autoComplete="off"
+            autoCorrect="off"
+            enterKeyHint="search"
             id="food-search"
+            spellCheck={false}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar banana, whey, marca…"
             type="search"

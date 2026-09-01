@@ -127,7 +127,7 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
     }}>
       <div className="field-group">
         <label htmlFor="diary-catalog-search">Pesquisar catálogo</label>
-        <input id="diary-catalog-search" onChange={(event) => setSearch(event.target.value)} placeholder="banana, whey, macarrão…" type="search" value={search} />
+        <input autoCapitalize="none" autoCorrect="off" enterKeyHint="search" spellCheck={false} autoComplete="off" id="diary-catalog-search" onChange={(event) => setSearch(event.target.value)} placeholder="banana, whey, macarrão…" type="search" value={search} />
       </div>
       <div className="field-group">
         <label htmlFor="diary-item">Alimento ou receita</label>
@@ -140,7 +140,7 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
       <div className="item-measure-grid">
         <div className="field-group">
           <label htmlFor="diary-item-quantity">Quantidade</label>
-          <input id="diary-item-quantity" min="0" onChange={(event) => setQuantity(event.target.value)} step="0.01" type="number" value={quantity} />
+          <input id="diary-item-quantity" min="0" onChange={(event) => setQuantity(event.target.value)} step="0.01" inputMode="decimal" type="number" value={quantity} />
         </div>
         <div className="field-group">
           <label htmlFor="diary-item-unit">Unidade ou porção</label>
@@ -159,7 +159,7 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
         </div>
         <div className="field-group">
           <label htmlFor="diary-item-uncertainty">Incerteza <span className="optional-label">opcional</span></label>
-          <div className="number-with-unit"><input id="diary-item-uncertainty" min="0" onChange={(event) => setUncertainty(event.target.value)} step="1" type="number" value={uncertainty} /><span>± kcal</span></div>
+          <div className="number-with-unit"><input id="diary-item-uncertainty" min="0" onChange={(event) => setUncertainty(event.target.value)} step="1" inputMode="numeric" type="number" value={uncertainty} /><span>± kcal</span></div>
         </div>
       </div>
       <p className="snapshot-note">Ao salvar, nutrientes, nome, versão, qualidade e conversão são copiados para o diário. Alterações futuras no catálogo não mudam este registro.</p>

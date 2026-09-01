@@ -100,7 +100,7 @@ export function WorkoutForm({ workout, defaultDate, error, pending, onCancel, on
         </div>
         <div className="field-group activity-full-field">
           <label htmlFor="workout-muscles">Grupos musculares</label>
-          <input aria-describedby={muscleGroupsError ? 'workout-muscles-error' : 'workout-muscles-hint'} aria-invalid={Boolean(muscleGroupsError)} id="workout-muscles" maxLength={1019} onChange={(event) => { setMuscleGroups(event.target.value); setMuscleGroupsError(null) }} placeholder="Peito, bíceps, core" value={muscleGroups} />
+          <input autoCapitalize="words" autoCorrect="off" spellCheck={false} aria-describedby={muscleGroupsError ? 'workout-muscles-error' : 'workout-muscles-hint'} aria-invalid={Boolean(muscleGroupsError)} id="workout-muscles" maxLength={1019} onChange={(event) => { setMuscleGroups(event.target.value); setMuscleGroupsError(null) }} placeholder="Peito, bíceps, core" value={muscleGroups} />
           <span className="field-hint" id="workout-muscles-hint">Separe por vírgulas. Obrigatório para musculação; até 20 grupos.</span>
           {muscleGroupsError ? <span className="field-error" id="workout-muscles-error">{muscleGroupsError}</span> : null}
         </div>
@@ -112,14 +112,14 @@ export function WorkoutForm({ workout, defaultDate, error, pending, onCancel, on
         <div className="field-group">
           <label htmlFor="workout-duration">Duração</label>
           <div className="number-with-unit">
-            <input id="workout-duration" min="1" onChange={(event) => setDurationMinutes(event.target.value)} required step="1" type="number" value={durationMinutes} />
+            <input id="workout-duration" min="1" onChange={(event) => setDurationMinutes(event.target.value)} required step="1" inputMode="numeric" type="number" value={durationMinutes} />
             <span>min</span>
           </div>
         </div>
         <div className="field-group activity-full-field">
           <label htmlFor="workout-kcal">Gasto calórico estimado</label>
           <div className="number-with-unit">
-            <input id="workout-kcal" min="0" onChange={(event) => setEstimatedKcal(event.target.value)} placeholder="Não informado" step="1" type="number" value={estimatedKcal} />
+            <input id="workout-kcal" min="0" onChange={(event) => setEstimatedKcal(event.target.value)} placeholder="Não informado" step="1" inputMode="numeric" type="number" value={estimatedKcal} />
             <span>kcal</span>
           </div>
           <span className="field-hint">Opcional e apenas informativo. Não será somado nem descontado automaticamente do balanço energético.</span>

@@ -127,7 +127,7 @@ export function WeightForm({ entry, entries, defaultDate, defaultMeasuredAt, err
         <div className="field-group activity-full-field">
           <label htmlFor="weight-value">Peso</label>
           <div className="number-with-unit">
-            <input autoFocus disabled={detailsDisabled} id="weight-value" min="1" onChange={(event) => setForm((current) => ({ ...current, weightKg: event.target.value }))} required step="0.01" type="number" value={form.weightKg} />
+            <input autoFocus disabled={detailsDisabled} id="weight-value" min="1" onChange={(event) => setForm((current) => ({ ...current, weightKg: event.target.value }))} required step="0.01" inputMode="decimal" type="number" value={form.weightKg} />
             <span>kg</span>
           </div>
         </div>

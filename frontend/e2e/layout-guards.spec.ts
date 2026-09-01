@@ -203,8 +203,15 @@ function measure(page: Page, floors: { font: number; tap: number }): Promise<Mea
     const targetsUnderTapFloor = distinct(
       Array.from(document.querySelectorAll<HTMLElement>(interactive))
         .filter(visible)
+        // Link dentro de texto corrido é isento: a WCAG abre exceção justamente porque engordar uma
+        // palavra no meio de um parágrafo estragaria o parágrafo. O teste é o `display` calculado,
+        // não a tag — um `<a>` que virou bloco ou flex é botão e continua sendo cobrado.
+        .filter((element) => getComputedStyle(element).display !== 'inline')
         .filter((element) => {
-          const box = element.getBoundingClientRect()
+          // Numa caixa de seleção, o alvo é o RÓTULO — quem toca acerta a palavra, não o quadrado
+          // de 15px. Medir o input puniria o desenho correto e forçaria uma caixa deformada.
+          const target = element instanceof HTMLInputElement ? element.closest('label') ?? element : element
+          const box = target.getBoundingClientRect()
           // Caixa zerada é elemento ainda não pintado ou fora de tela, não alvo pequeno.
           return box.width > 0 && box.height > 0 && (box.width < tap || box.height < tap)
         })

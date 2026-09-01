@@ -97,7 +97,7 @@ export function RecipeForm({ initialVersion, pending, submitLabel, onCancel, onS
           </div>
           <div className="field-group">
             <label htmlFor="recipe-yield">Rendimento total</label>
-            <input {...register('yieldQuantity', { valueAsNumber: true })} id="recipe-yield" min="0" step="0.01" type="number" />
+            <input {...register('yieldQuantity', { valueAsNumber: true })} id="recipe-yield" min="0" step="0.01" inputMode="decimal" type="number" />
             {errors.yieldQuantity ? <span className="field-error">{errors.yieldQuantity.message}</span> : null}
           </div>
           <div className="field-group">
@@ -110,7 +110,7 @@ export function RecipeForm({ initialVersion, pending, submitLabel, onCancel, onS
           </div>
           <div className="field-group full-field">
             <label htmlFor="recipe-serving">Tamanho de uma porção <span className="optional-label">opcional</span></label>
-            <input {...register('servingQuantity', { setValueAs: nullableNumber })} id="recipe-serving" min="0" step="0.01" type="number" />
+            <input {...register('servingQuantity', { setValueAs: nullableNumber })} id="recipe-serving" min="0" step="0.01" inputMode="decimal" type="number" />
             <span className="field-hint">Use a mesma unidade do rendimento total.</span>
           </div>
         </div>
@@ -156,7 +156,7 @@ export function RecipeForm({ initialVersion, pending, submitLabel, onCancel, onS
               </div>
               <div className="field-group">
                 <label htmlFor={`ingredient-${index}-quantity`}>Quantidade</label>
-                <input {...register(`ingredients.${index}.quantity`, { valueAsNumber: true })} id={`ingredient-${index}-quantity`} min="0" step="0.01" type="number" />
+                <input {...register(`ingredients.${index}.quantity`, { valueAsNumber: true })} id={`ingredient-${index}-quantity`} min="0" step="0.01" inputMode="decimal" type="number" />
               </div>
               <div className="field-group">
                 <label htmlFor={`ingredient-${index}-unit`}>Unidade</label>
@@ -166,7 +166,7 @@ export function RecipeForm({ initialVersion, pending, submitLabel, onCancel, onS
               </div>
               <div className="field-group">
                 <label htmlFor={`ingredient-${index}-equivalent`}>Equivale na referência</label>
-                <input {...register(`ingredients.${index}.referenceQuantityEquivalent`, { setValueAs: nullableNumber })} id={`ingredient-${index}-equivalent`} min="0" step="0.01" type="number" />
+                <input {...register(`ingredients.${index}.referenceQuantityEquivalent`, { setValueAs: nullableNumber })} id={`ingredient-${index}-equivalent`} min="0" step="0.01" inputMode="decimal" type="number" />
                 <span className="field-hint">Pode ficar vazio quando as unidades forem iguais.</span>
               </div>
               <button aria-label={`Remover ingrediente ${index + 1}`} className="remove-row-button" disabled={ingredients.fields.length === 1} onClick={() => ingredients.remove(index)} type="button">×</button>

@@ -217,7 +217,7 @@ export function NutrientBandEditor({
                       min="0"
                       placeholder="Sem mínimo"
                       step="0.001"
-                      type="number"
+                      inputMode="decimal" type="number"
                     />
                     <span>{unit}</span>
                   </div>
@@ -250,7 +250,7 @@ export function NutrientBandEditor({
                       min="0"
                       placeholder="Sem máximo"
                       step="0.001"
-                      type="number"
+                      inputMode="decimal" type="number"
                     />
                     <span>{unit}</span>
                   </div>
