@@ -2,6 +2,7 @@ package dev.formetric.identity;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Clock;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
@@ -56,8 +57,18 @@ class SecurityConfiguration {
                                 "/analytics/**",
                                 "/progress",
                                 "/progress/**",
+                                "/more",
                                 "/assets/**",
                                 "/favicon.svg",
+                                // Um navegador busca o manifesto e o service worker ANTES de haver
+                                // sessão, e o registro do service worker é feito sem credenciais.
+                                // Exigir autenticação aqui não protege nada — os dois arquivos são
+                                // estáticos e iguais para todos — e impede a instalação do app.
+                                "/manifest.webmanifest",
+                                "/sw.js",
+                                "/registerSW.js",
+                                "/workbox-*.js",
+                                "/icons/**",
                                 "/error",
                                 "/actuator/health/**")
                         .permitAll()
@@ -134,13 +145,18 @@ class SecurityConfiguration {
 
     @Bean
     CookieSerializer sessionCookieSerializer(
-            @Value("${server.servlet.session.cookie.secure:false}") boolean secure) {
+            @Value("${server.servlet.session.cookie.secure:false}") boolean secure,
+            @Value("${server.servlet.session.timeout}") Duration sessionTimeout) {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName("FORMETRIC_SESSION");
         serializer.setCookiePath("/");
         serializer.setUseHttpOnlyCookie(true);
         serializer.setUseSecureCookie(secure);
         serializer.setSameSite("Lax");
+        // Sem max-age o cookie é de sessão do navegador: ele desaparece ao fechar a aba, e o prazo
+        // configurado no servidor nunca chega a valer. Num aplicativo instalado, que o sistema
+        // descarta da memória a qualquer momento, isso significava pedir senha quase toda abertura.
+        serializer.setCookieMaxAge((int) sessionTimeout.toSeconds());
         return serializer;
     }
 

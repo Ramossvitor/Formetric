@@ -36,6 +36,15 @@ const ROUTES = [
 
 const MIN_CONTROL_FONT_PX = 16
 const MIN_TAP_PX = 44
+/**
+ * Meio pixel de folga na medição do alvo.
+ *
+ * `getBoundingClientRect` devolve frações, e um elemento declarado com `min-height: 44px` pode
+ * medir 43,99px conforme a largura da tela e o arredondamento do layout. Sem a folga, todo alvo
+ * exatamente no piso vira cara ou coroa — a guarda falharia em rotas diferentes a cada execução,
+ * sem nada de errado no CSS, que é o comportamento mais rápido de ensinar alguém a ignorar. Meio
+ * pixel não é diferença de acessibilidade nenhuma. */
+const TAP_TOLERANCE_PX = 0.5
 
 interface Measurement {
   /** Descritores dos elementos que ultrapassam a largura da tela. Vazio é a única resposta aceita. */
@@ -67,6 +76,13 @@ const collected: Record<string, string[]> = {}
 test.describe.configure({ mode: 'default' })
 
 async function signIn(page: Page) {
+  // O convite de instalação aparece quando o navegador dispara `beforeinstallprompt`, e o momento
+  // disso não é determinístico: agora que o app é um PWA válido, o Chromium o dispara em algum
+  // ponto da navegação e a faixa entrava ou não na medição, produzindo falhas em rotas diferentes a
+  // cada execução. Marcá-lo como dispensado antes de carregar a página mede o app, e não o convite.
+  await page.addInitScript(() => {
+    window.localStorage.setItem('formetric:install-prompt-dismissed', 'true')
+  })
   await page.goto('/login')
   await page.getByLabel('E-mail').fill(ownerEmail)
   await page.getByLabel('Senha').fill(ownerPassword)
@@ -153,10 +169,19 @@ async function seedEveryListedRoute(page: Page, today: string) {
   })
 }
 
-/** Espera o conteúdo, não a rede: a rota só é medida depois que os spinners saíram do caminho. */
+/**
+ * Espera o conteúdo, não a rede.
+ *
+ * Cobre as duas formas de espera do app: o spinner e o esqueleto. Esperar só pelo spinner tornou-se
+ * insuficiente quando os carregamentos passaram a mostrar esqueletos — a espera virava vazia, e a
+ * página podia ser medida no meio do carregamento, o que produzia uma falha a cada tantas execuções
+ * sem nada de errado no layout.
+ */
 async function settle(page: Page) {
   await expect(page.getByRole('main')).toBeVisible()
-  await expect.poll(() => page.locator('.route-spinner').count(), { timeout: 15_000 }).toBe(0)
+  await expect
+    .poll(() => page.locator('.route-spinner, [aria-busy="true"]').count(), { timeout: 15_000 })
+    .toBe(0)
 }
 
 function measure(page: Page, floors: { font: number; tap: number }): Promise<Measurement> {
@@ -270,7 +295,7 @@ for (const route of ROUTES) {
 
     const { overflowing, controlsUnderFontFloor, targetsUnderTapFloor } = await measure(page, {
       font: MIN_CONTROL_FONT_PX,
-      tap: MIN_TAP_PX,
+      tap: MIN_TAP_PX - TAP_TOLERANCE_PX,
     })
 
     // Rolagem horizontal é a única verificação sem linha de base: uma tela que rola de lado no
