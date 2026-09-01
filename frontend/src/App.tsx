@@ -9,7 +9,6 @@ import { FoodsPage } from './pages/FoodsPage'
 import { HomePage } from './pages/HomePage'
 import { InviteAcceptancePage } from './pages/InviteAcceptancePage'
 import { InvitationsPage } from './pages/InvitationsPage'
-import { LoginPage } from './pages/LoginPage'
 import { NewFoodPage } from './pages/NewFoodPage'
 import { NewRecipePage } from './pages/NewRecipePage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -20,6 +19,7 @@ import { RecipesPage } from './pages/RecipesPage'
 import { TdeeSettingsPage } from './pages/TdeeSettingsPage'
 import './App.css'
 
+const LoginPage = lazy(() => import('./pages/LoginPage').then((module) => ({ default: module.LoginPage })))
 const WeightProgressPage = lazy(() => import('./pages/WeightProgressPage').then((module) => ({ default: module.WeightProgressPage })))
 const WorkoutsPage = lazy(() => import('./pages/WorkoutsPage').then((module) => ({ default: module.WorkoutsPage })))
 const BodyEvaluationsPage = lazy(() => import('./pages/BodyEvaluationsPage').then((module) => ({ default: module.BodyEvaluationsPage })))
@@ -36,7 +36,7 @@ function LazyRoute({ label, children }: { label: string; children: ReactNode }) 
 function App() {
   return (
     <UnexpectedUnauthorizedBoundary><Routes>
-      <Route element={<LoginPage />} path="/login" />
+      <Route element={<LazyRoute label="acesso"><LoginPage /></LazyRoute>} path="/login" />
       <Route element={<InviteAcceptancePage />} path="/accept-invite" />
 
       <Route element={<ProtectedRoute />}>

@@ -1554,6 +1554,60 @@ h2 {
   background: var(--orange-soft);
 }
 
+/* Esqueleto: pulso de opacidade, não brilho deslizante. O brilho exige um gradiente animando
+   posição de fundo em cada linha, o que num aparelho modesto compete com a própria renderização
+   que se está esperando — e chama mais atenção do que o conteúdo que vai substituí-lo. */
+.skeleton {
+  display: block;
+  background: var(--border);
+  animation: skeleton-pulse 1400ms ease-in-out infinite;
+}
+
+.skeleton-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.catalog-skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Barra fina de atualização. Aparece enquanto alguma consulta está no ar e é puramente decorativa:
+   com o conteúdo anterior preservado, ela é o que informa que algo está a caminho, e anunciá-la
+   para leitor de tela seria ruído a cada troca de data. */
+.updating-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-nav);
+  height: 2px;
+  background: linear-gradient(to right, transparent, var(--accent-strong), transparent);
+  animation: updating-sweep 1100ms ease-in-out infinite;
+}
+
+@keyframes updating-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .catalog-state {
   display: flex;
   min-height: 260px;

@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
@@ -6,6 +6,7 @@ import { setRecipeFavorite } from '../catalog/api'
 import { CatalogCount, CatalogError, CatalogLoading, CatalogLoadMore } from '../catalog/CatalogState'
 import { formatNumber } from '../catalog/format'
 import { recipesInfiniteQuery, recipesQueryKey } from '../catalog/queries'
+import { useFavoriteToggle } from '../catalog/useFavoriteToggle'
 import { useDebouncedValue } from '../catalog/useDebouncedValue'
 
 export function RecipesPage() {
@@ -13,15 +14,11 @@ export function RecipesPage() {
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [catalogView, setCatalogView] = useState<'active' | 'archived'>('active')
   const debouncedSearch = useDebouncedValue(search)
-  const queryClient = useQueryClient()
   const recipes = useInfiniteQuery(recipesInfiniteQuery(debouncedSearch, favoritesOnly, catalogView === 'archived'))
   const loadedRecipes = recipes.data?.pages.flatMap((page) => page.content) ?? []
   const visibleRecipes = loadedRecipes.filter((recipe) => recipe.archived === (catalogView === 'archived'))
   const totalRecipes = recipes.data?.pages[0]?.totalElements ?? 0
-  const favorite = useMutation({
-    mutationFn: ({ id, value }: { id: string; value: boolean }) => setRecipeFavorite(id, value),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: recipesQueryKey }),
-  })
+  const favorite = useFavoriteToggle({ queryKey: recipesQueryKey, setFavorite: setRecipeFavorite })
 
   return (
     <main id="conteudo">
@@ -82,7 +79,7 @@ export function RecipesPage() {
                   </span>
                   <span className="recipe-energy"><b>{formatNumber(version.totalNutrition.caloriesKcal)}</b><small>kcal total</small></span>
                 </Link>
-                <button aria-label={recipe.favorite ? `Remover ${version.name} dos favoritos` : `Favoritar ${version.name}`} aria-pressed={recipe.favorite} className={recipe.favorite ? 'favorite-button active' : 'favorite-button'} disabled={favorite.isPending} onClick={() => favorite.mutate({ id: recipe.id, value: !recipe.favorite })} type="button">{recipe.favorite ? '★' : '☆'}</button>
+                <button aria-label={recipe.favorite ? `Remover ${version.name} dos favoritos` : `Favoritar ${version.name}`} aria-pressed={recipe.favorite} className={recipe.favorite ? 'favorite-button active' : 'favorite-button'} onClick={() => favorite.mutate({ id: recipe.id, favorite: !recipe.favorite })} type="button">{recipe.favorite ? '★' : '☆'}</button>
               </article>
             )
           })}

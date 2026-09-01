@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions } from '@tanstack/react-query'
 import { getDailyLog } from './api'
 
 export const diaryQueryKey = ['diary'] as const
@@ -7,5 +7,6 @@ export function dailyLogQuery(date: string) {
   return queryOptions({
     queryKey: [...diaryQueryKey, date],
     queryFn: () => getDailyLog(date),
+    placeholderData: keepPreviousData,
   })
 }

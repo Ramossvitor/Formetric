@@ -192,7 +192,10 @@ describe('treinos', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Registrar treino' })
     expect(dialog).toBeInTheDocument()
-    expect(screen.getByText('450 kcal estimadas')).toBeInTheDocument()
+    // O diálogo do deep link e a lista deixaram de assentar no mesmo render, então a lista é
+    // esperada em vez de lida de imediato. O formulário abrir antes da lista carregar é a ordem
+    // desejável: quem chegou por "?action=new" veio registrar, não conferir o histórico.
+    expect(await screen.findByText('450 kcal estimadas')).toBeInTheDocument()
     expect(screen.getByText('informativo; não altera o saldo')).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Modalidade'), 'OTHER')

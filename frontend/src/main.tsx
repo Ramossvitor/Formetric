@@ -10,6 +10,15 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
+      // Sem tempo de frescor, toda remontagem de componente refazia a requisição — e no celular
+      // trocar de aba da navegação inferior remonta a tela inteira. Trinta segundos cobrem o
+      // vaivém entre telas sem nunca esconder uma alteração que o próprio usuário acabou de fazer,
+      // porque as mutações escrevem no cache ou o invalidam explicitamente.
+      staleTime: 30_000,
+      gcTime: 10 * 60 * 1000,
+      // O padrão são três tentativas com espera crescente: uma falha real levava cerca de sete
+      // segundos para virar mensagem na tela, tempo em que o app parece travado.
+      retry: 1,
     },
   },
 })
