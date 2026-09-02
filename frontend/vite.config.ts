@@ -26,7 +26,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
-        orientation: 'portrait',
+        // Sem `orientation`: a partir de 840px o app tem uma barra lateral de verdade, e travar em
+        // retrato mataria o uso em tablet — e o valor fica congelado até a reinstalação.
         categories: ['health', 'fitness', 'lifestyle'],
         // Iguais aos tokens de --background em src/index.css. Estavam divergentes no index.html
         // (#f4f6f2 e #0e1210), o que dava uma faixa de cor ligeiramente errada no topo da tela.

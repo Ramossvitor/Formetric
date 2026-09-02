@@ -210,8 +210,15 @@ describe('diário', () => {
     expect(await screen.findByText('0,5 L')).toBeInTheDocument()
     const addCall = fetchMock.mock.calls.find(([path, init]) => String(path).endsWith('/water') && init?.method === 'POST')
     expect(JSON.parse(String(addCall?.[1]?.body))).toEqual(expect.objectContaining({ volumeMl: 500, requestId: '11111111-1111-4111-8111-111111111111' }))
+    // A água tem o mesmo DELETE definitivo da refeição: o "×" abre o sheet, e só a confirmação apaga.
     await user.click(screen.getByRole('button', { name: 'Excluir água de 500 ml' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Água de 500 ml' })
+    await user.click(within(sheet).getByRole('button', { name: 'Excluir' }))
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+
+    await user.click(within(sheet).getByRole('button', { name: 'Confirmar exclusão do registro' }))
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Excluir água de 500 ml' })).not.toBeInTheDocument())
+    expect(fetchMock.mock.calls.some(([path, init]) => String(path).endsWith('/water/water-1') && init?.method === 'DELETE')).toBe(true)
   })
 
   it('exige confirmação no sheet antes de excluir uma refeição', async () => {

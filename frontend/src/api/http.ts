@@ -172,6 +172,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
  * chegava assim à tela.
  */
 const statusFallbacks: Array<[predicate: (status: number) => boolean, message: string]> = [
+  [(status) => status === 400, 'O servidor não entendeu a solicitação. Atualize o aplicativo e tente de novo.'],
   [(status) => status === 401, 'Sua sessão expirou. Entre novamente para continuar.'],
   [(status) => status === 403, 'Você não tem permissão para esta ação.'],
   [(status) => status === 404, 'Este registro não existe mais.'],
@@ -182,7 +183,11 @@ const statusFallbacks: Array<[predicate: (status: number) => boolean, message: s
 
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.problem?.detail) return error.problem.detail
+    // `about:blank` é o tipo que o framework usa quando monta a resposta sozinho — e aí o `detail`
+    // vem em inglês. Os domínios do produto declaram o próprio tipo (ou nenhum) e descrevem o erro
+    // em português; só esses passam direto.
+    const frameworkProblem = error.problem?.type === 'about:blank'
+    if (error.problem?.detail && !frameworkProblem) return error.problem.detail
     const fallback = statusFallbacks.find(([matches]) => matches(error.status))
     if (fallback) return fallback[1]
     return error.message

@@ -15,7 +15,7 @@ export function MealEditor({ meal, pending, onCancel, onSubmit }: {
     <form className="dialog-form" onSubmit={(event) => { event.preventDefault(); if (valid) onSubmit({ name: name.trim(), mealTime: mealTime ? `${mealTime}:00` : null }) }}>
       <div className="field-group">
         <label htmlFor="meal-name">Nome da refeição</label>
-        <input autoFocus id="meal-name" maxLength={80} onChange={(event) => setName(event.target.value)} placeholder="Almoço" value={name} />
+        <input id="meal-name" maxLength={80} onChange={(event) => setName(event.target.value)} placeholder="Almoço" value={name} />
       </div>
       <div className="field-group">
         <label htmlFor="meal-time">Horário <span className="optional-label">opcional</span></label>

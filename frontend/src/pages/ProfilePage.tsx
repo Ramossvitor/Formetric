@@ -5,13 +5,53 @@ import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { ApiError, getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
-import { getProfile, updateProfile } from '../auth/api'
+import { getProfile, updateProfile, type UserProfile } from '../auth/api'
 import { FullPageStatus } from '../auth/ProtectedRoute'
 import { sessionQuery, useLogout } from '../auth/queries'
-import { profileSchema, selectableUnitSystem, type ProfileFormValues } from '../auth/schemas'
+import {
+  profileSchema,
+  selectableLocales,
+  selectableTimeZones,
+  selectableUnitSystem,
+  type ProfileFormValues,
+} from '../auth/schemas'
 import { profileTimeContextQueryKey } from '../time/queries'
 
 const profileQueryKey = ['profile'] as const
+
+const localeLabels: Record<(typeof selectableLocales)[number], string> = {
+  'pt-BR': 'Português (Brasil)',
+}
+
+const timeZoneLabels: Record<(typeof selectableTimeZones)[number], string> = {
+  'America/Sao_Paulo': 'Brasília (UTC−3)',
+  'America/Bahia': 'Bahia (UTC−3)',
+  'America/Belem': 'Belém (UTC−3)',
+  'America/Fortaleza': 'Fortaleza (UTC−3)',
+  'America/Recife': 'Recife (UTC−3)',
+  'America/Noronha': 'Fernando de Noronha (UTC−2)',
+  'America/Cuiaba': 'Cuiabá (UTC−4)',
+  'America/Manaus': 'Manaus (UTC−4)',
+  'America/Rio_Branco': 'Rio Branco (UTC−5)',
+}
+
+function isListed(list: readonly string[], value: string) {
+  return list.includes(value)
+}
+
+// Perfis anteriores aceitavam idioma e fuso como texto livre, então o valor gravado pode não estar
+// na lista. Ele entra no formulário como está — exibido como opção desabilitada — e só sai quando o
+// usuário escolhe um da lista, o mesmo tratamento que o sistema imperial já recebe.
+function storedFormValues(profile: UserProfile): ProfileFormValues {
+  return {
+    displayName: profile.displayName,
+    locale: profile.locale as ProfileFormValues['locale'],
+    timeZone: profile.timeZone as ProfileFormValues['timeZone'],
+    unitSystem: profile.unitSystem,
+    birthDate: profile.birthDate ?? '',
+    formulaSex: profile.formulaSex ?? '',
+  }
+}
 
 export function ProfilePage() {
   const queryClient = useQueryClient()
@@ -38,14 +78,7 @@ export function ProfilePage() {
   useEffect(() => {
     if (!profile.data) return
 
-    reset({
-      displayName: profile.data.displayName,
-      locale: profile.data.locale,
-      timeZone: profile.data.timeZone,
-      unitSystem: profile.data.unitSystem,
-      birthDate: profile.data.birthDate ?? '',
-      formulaSex: profile.data.formulaSex ?? '',
-    })
+    reset(storedFormValues(profile.data))
   }, [profile.data, reset])
 
   const updateMutation = useMutation({
@@ -64,14 +97,7 @@ export function ProfilePage() {
           ? { ...currentSession, user: { ...currentSession.user, displayName: updatedProfile.displayName } }
           : currentSession,
       )
-      reset({
-        displayName: updatedProfile.displayName,
-        locale: updatedProfile.locale,
-        timeZone: updatedProfile.timeZone,
-        unitSystem: updatedProfile.unitSystem,
-        birthDate: updatedProfile.birthDate ?? '',
-        formulaSex: updatedProfile.formulaSex ?? '',
-      })
+      reset(storedFormValues(updatedProfile))
       if (temporalPreferencesChanged) {
         await queryClient.invalidateQueries({ queryKey: profileTimeContextQueryKey, refetchType: 'active' })
       }
@@ -148,31 +174,23 @@ export function ProfilePage() {
 
           <div className="field-group">
             <label htmlFor="profile-locale">Idioma</label>
-            <input
-              {...register('locale')}
-              aria-invalid={Boolean(errors.locale)}
-              autoCapitalize="none"
-              autoComplete="off"
-              autoCorrect="off"
-              id="profile-locale"
-              spellCheck={false}
-              type="text"
-            />
+            <select {...register('locale')} aria-invalid={Boolean(errors.locale)} id="profile-locale">
+              {isListed(selectableLocales, profile.data.locale) ? null : (
+                <option disabled value={profile.data.locale}>{profile.data.locale} (valor atual; escolha um da lista)</option>
+              )}
+              {selectableLocales.map((locale) => <option key={locale} value={locale}>{localeLabels[locale]}</option>)}
+            </select>
             {errors.locale ? <span className="field-error">{errors.locale.message}</span> : null}
           </div>
 
           <div className="field-group">
             <label htmlFor="profile-time-zone">Fuso horário</label>
-            <input
-              {...register('timeZone')}
-              aria-invalid={Boolean(errors.timeZone)}
-              autoCapitalize="none"
-              autoComplete="off"
-              autoCorrect="off"
-              id="profile-time-zone"
-              spellCheck={false}
-              type="text"
-            />
+            <select {...register('timeZone')} aria-invalid={Boolean(errors.timeZone)} id="profile-time-zone">
+              {isListed(selectableTimeZones, profile.data.timeZone) ? null : (
+                <option disabled value={profile.data.timeZone}>{profile.data.timeZone} (valor atual; escolha um da lista)</option>
+              )}
+              {selectableTimeZones.map((timeZone) => <option key={timeZone} value={timeZone}>{timeZoneLabels[timeZone]}</option>)}
+            </select>
             {errors.timeZone ? <span className="field-error">{errors.timeZone.message}</span> : null}
           </div>
 

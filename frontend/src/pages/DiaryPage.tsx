@@ -21,6 +21,7 @@ import {
   type Meal,
   type MealItem,
   type MealItemInput,
+  type WaterLog,
 } from '../diary/api'
 import { CopyPanel } from '../diary/CopyPanel'
 import { DiaryDialog } from '../diary/DiaryDialog'
@@ -46,6 +47,9 @@ type Editor =
   // num dia de quatro refeições é cerca de 200px gastos só em cromo.
   | { type: 'meal-actions'; meal: Meal }
   | { type: 'item-actions'; mealId: string; item: MealItem }
+  // A água tem o mesmo DELETE definitivo da refeição e do item, e por isso a mesma confirmação
+  // antes: um "×" de 44px numa lista não pode apagar um registro num toque só.
+  | { type: 'water-actions'; entry: WaterLog }
   | null
 
 type DialogMutation = { isError: boolean; error: Error | null; reset: () => void }
@@ -81,13 +85,13 @@ function RowActionSheet({ busy, danger, onCancel, onConfirmDelete, onDuplicate, 
   onCancel: () => void
   onConfirmDelete: () => void
   onDuplicate?: () => void
-  onEdit: () => void
+  onEdit?: () => void
 }) {
   const [confirming, setConfirming] = useState(false)
 
   return (
     <div className="row-action-list">
-      <button className="row-action" disabled={busy} onClick={onEdit} type="button">Editar</button>
+      {onEdit ? <button className="row-action" disabled={busy} onClick={onEdit} type="button">Editar</button> : null}
       {onDuplicate ? <button className="row-action" disabled={busy} onClick={onDuplicate} type="button">Duplicar</button> : null}
       {confirming ? (
         <>
@@ -169,6 +173,7 @@ export function DiaryPage() {
     quick: [water],
     'meal-actions': [removeMeal, copyMealMutation],
     'item-actions': [removeItem],
+    'water-actions': [removeWater],
   }
   // O diálogo rápido só é renderizado com o dia aberto; sem esta condição o erro dele seria
   // filtrado do aviso da página sem aparecer em lugar nenhum.
@@ -337,7 +342,7 @@ export function DiaryPage() {
           <section aria-labelledby="water-title" className="diary-section water-section surface-card">
             <div className="section-title-row diary-section-heading"><div><p className="eyebrow">Hidratação</p><h2 id="water-title">Água · {number(log.waterTotalMl / 1000, 2)} L</h2></div></div>
             {open ? <div className="water-buttons">{[250, 500, 750, 1000].map((volume) => <button key={volume} onClick={() => water.mutate(volume)} type="button">+{volume === 1000 ? '1 L' : `${volume} ml`}</button>)}</div> : null}
-            {log.waterLogs.length > 0 ? <ol className="water-history">{log.waterLogs.map((entry) => <li key={entry.id}><time dateTime={entry.loggedAt}>{formatInstantTime(entry.loggedAt, locale, timeZone)}</time><strong>{number(entry.volumeMl, 0)} ml</strong>{open ? <button aria-label={`Excluir água de ${number(entry.volumeMl, 0)} ml`} className="icon-button danger-icon" disabled={removeWater.isPending} onClick={() => removeWater.mutate(entry.id)} type="button">×</button> : null}</li>)}</ol> : <p className="inline-hint">Nenhum registro de água.</p>}
+            {log.waterLogs.length > 0 ? <ol className="water-history">{log.waterLogs.map((entry) => <li key={entry.id}><time dateTime={entry.loggedAt}>{formatInstantTime(entry.loggedAt, locale, timeZone)}</time><strong>{number(entry.volumeMl, 0)} ml</strong>{open ? <button aria-label={`Excluir água de ${number(entry.volumeMl, 0)} ml`} className="icon-button danger-icon" onClick={() => openEditor({ type: 'water-actions', entry })} type="button">×</button> : null}</li>)}</ol> : <p className="inline-hint">Nenhum registro de água.</p>}
           </section>
         </>
       )}
@@ -373,6 +378,16 @@ export function DiaryPage() {
             onCancel={closeEditor}
             onConfirmDelete={() => removeItem.mutate({ mealId: editor.mealId, itemId: editor.item.id }, { onSuccess: closeEditor })}
             onEdit={() => openEditor({ type: 'item', mealId: editor.mealId, item: editor.item })}
+          />
+        </DiaryDialog>
+      ) : null}
+      {editor?.type === 'water-actions' ? (
+        <DiaryDialog error={dialogError} onClose={closeEditor} title={`Água de ${number(editor.entry.volumeMl, 0)} ml`}>
+          <RowActionSheet
+            busy={removeWater.isPending}
+            danger="Confirmar exclusão do registro"
+            onCancel={closeEditor}
+            onConfirmDelete={() => removeWater.mutate(editor.entry.id, { onSuccess: closeEditor })}
           />
         </DiaryDialog>
       ) : null}
