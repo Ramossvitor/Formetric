@@ -20,6 +20,18 @@ envelhecem — confirme antes de agir sobre uma delas.
 | [impacto-e-riscos.md](impacto-e-riscos.md) | Por que os tokens precisam ser globais, e os riscos assumidos no redesign | Ao decidir escopo. |
 | [principios-e-descartados.md](principios-e-descartados.md) | Princípios que guiam as ondas e o registro do que foi rejeitado, com o motivo | Quando alguém propuser de novo algo que já foi descartado. |
 
+## Segunda passada — setembro de 2026
+
+Os três documentos abaixo são de uma auditoria posterior, feita **rodando o app publicado** e não
+lendo o código. Eles não substituem os de cima: tratam do que a reforma de agosto não cobriu —
+ritmo vertical, alinhamento horizontal, densidade e arquitetura de informação.
+
+| Arquivo | O que é | Quando consultar |
+|---|---|---|
+| [plano-refino-2026-09.md](plano-refino-2026-09.md) | O plano de correção único, em nove fases, com as onze invariantes novas do sistema | Ponto de entrada da segunda passada. |
+| [medidas-2026-09-02.md](medidas-2026-09-02.md) | Números colhidos ao vivo: bordas esquerdas por tela, paddings e raios por classe, altura de rolagem, repetições de vazio | Quando precisar do número em vez do argumento. Traz o método para repetir a medição. |
+| [achados-2026-09-02.md](achados-2026-09-02.md) | Os 199 achados confirmados, com evidência, causa e correção, mais as 80 lacunas apontadas | Referência, não roteiro. |
+
 ## Precedência
 
 Onde os documentos divergirem, vale nesta ordem:
@@ -27,6 +39,13 @@ Onde os documentos divergirem, vale nesta ordem:
 1. `plano.md` — incorpora as decisões do dono do produto e as correções da crítica.
 2. `critica-adversarial.md` — corrige erros concretos dos outros dois.
 3. `prescricoes-por-onda.md`, `spec-tela-*.md`, `sistema-visual.md`.
+4. `plano-refino-2026-09.md` e os dois documentos que o acompanham.
+
+O refino fica por último de propósito: ele é posterior e mediu mais, mas onde contradisser uma
+decisão já tomada acima, a decisão antiga vence — salvo se a seção 6 dele der o argumento novo
+explicitamente, que é o caso de dois itens (a recomposição da navegação, cuja premissa de "depois
+do piloto" venceu quando os hubs entraram; e o `.mobile-header` não ser sticky, que nenhuma onda
+chegou a implementar).
 
 Divergências conhecidas, já resolvidas em `plano.md`: a bottom-nav **mantém** o vidro (as specs
 propunham torná-la opaca); o piso tipográfico entra na Onda 1, não na última; a unificação dos
