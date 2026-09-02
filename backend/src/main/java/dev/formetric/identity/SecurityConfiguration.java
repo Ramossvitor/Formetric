@@ -66,7 +66,6 @@ class SecurityConfiguration {
                                 // estáticos e iguais para todos — e impede a instalação do app.
                                 "/manifest.webmanifest",
                                 "/sw.js",
-                                "/registerSW.js",
                                 "/workbox-*.js",
                                 "/icons/**",
                                 "/error",

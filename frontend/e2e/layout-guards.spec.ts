@@ -70,10 +70,9 @@ const screenshotDir = process.env.CAPTURE_SCREENSHOTS
 const baseline: Record<string, string[]> = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'))
 const collected: Record<string, string[]> = {}
 
-// Cada rota se mede sozinha e nenhuma depende do resultado da anterior, então uma falha não pode
-// impedir as outras de rodarem: numa reforma de layout, o valor está em ver o mapa inteiro do
-// estrago de uma vez, não a primeira tela que quebrou.
-test.describe.configure({ mode: 'default' })
+// Cada rota se mede sozinha e nenhuma depende do resultado da anterior: numa reforma de layout, o
+// valor está em ver o mapa inteiro do estrago de uma vez, não a primeira tela que quebrou. Por isso
+// os testes abaixo são independentes — não os coloque em modo `serial`.
 
 async function signIn(page: Page) {
   // O convite de instalação aparece quando o navegador dispara `beforeinstallprompt`, e o momento

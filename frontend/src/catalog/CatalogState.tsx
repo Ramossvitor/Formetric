@@ -1,11 +1,11 @@
 import { getErrorMessage } from '../api/http'
 import { SkeletonRows } from '../components/Skeleton'
 
-export function CatalogLoading({ message = 'Carregando catálogo…', rows = 4 }: { message?: string; rows?: number }) {
+export function CatalogLoading({ message = 'Carregando catálogo…' }: { message?: string }) {
   return (
     <div aria-busy="true" aria-live="polite" className="catalog-skeleton" role="status">
       <span className="visually-hidden">{message}</span>
-      <SkeletonRows rows={rows} />
+      <SkeletonRows />
     </div>
   )
 }
