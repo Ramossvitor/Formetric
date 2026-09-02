@@ -104,3 +104,44 @@ describe('preferência de unidades do perfil', () => {
     }))
   })
 })
+
+describe('idioma e fuso horário do perfil', () => {
+  it('mostra um valor gravado fora da lista como opção desabilitada até a troca por um da lista', async () => {
+    // Os campos eram texto livre: quem gravou "portugues" precisa ver o que tem e trocar por um
+    // valor que o navegador entende, sem que o formulário grave o inválido de volta.
+    const legacyProfile: UserProfile = { ...baseProfile, locale: 'portugues', timeZone: 'GMT+3' }
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const path = String(input)
+      if (path === '/api/v1/profile' && !init?.method) return jsonResponse(legacyProfile)
+      if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'profile-csrf-token', headerName: 'X-XSRF-TOKEN' })
+      if (path === '/api/v1/profile' && init?.method === 'PATCH') {
+        return jsonResponse({ ...legacyProfile, locale: 'pt-BR', timeZone: 'America/Sao_Paulo' })
+      }
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+    const user = setupUser()
+
+    renderProfile()
+
+    const locale = await screen.findByLabelText('Idioma')
+    const timeZone = screen.getByLabelText('Fuso horário')
+    expect(locale).toHaveValue('portugues')
+    expect(within(locale).getByRole('option', { name: /portugues/ })).toBeDisabled()
+    expect(timeZone).toHaveValue('GMT+3')
+    expect(within(timeZone).getByRole('option', { name: /GMT\+3/ })).toBeDisabled()
+
+    await user.selectOptions(locale, 'pt-BR')
+    await user.selectOptions(timeZone, 'America/Sao_Paulo')
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Perfil atualizado.')
+    const updateCall = fetchMock.mock.calls.find(
+      ([path, init]) => String(path) === '/api/v1/profile' && init?.method === 'PATCH',
+    )
+    expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual(expect.objectContaining({
+      locale: 'pt-BR',
+      timeZone: 'America/Sao_Paulo',
+    }))
+    expect(within(screen.getByLabelText('Idioma')).queryByRole('option', { name: /portugues/ })).not.toBeInTheDocument()
+  })
+})

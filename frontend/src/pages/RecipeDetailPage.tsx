@@ -80,10 +80,10 @@ export function RecipeDetailPage() {
           <button
             className={detail.archived ? 'secondary-button' : 'text-button danger-action'}
             disabled={archive.isPending}
-            onClick={() => {
-              if (!detail.archived && !window.confirm(`Arquivar “${version.name}”? Você poderá restaurá-la pela lista de arquivadas.`)) return
-              archive.mutate(detail.archived)
-            }}
+            // Sem confirmação prévia, como em alimentos: arquivar é reversível e o desfazer aparece
+            // logo depois. Perguntar antes E oferecer desfazer seria cobrar dois toques pela mesma
+            // decisão.
+            onClick={() => archive.mutate(detail.archived)}
             type="button"
           >
             {archive.isPending ? (detail.archived ? 'Restaurando…' : 'Arquivando…') : (detail.archived ? 'Restaurar' : 'Arquivar')}
