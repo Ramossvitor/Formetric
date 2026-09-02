@@ -262,7 +262,11 @@ function measure(page: Page, floors: { font: number; tap: number }): Promise<Mea
         .map(describe),
     )
 
-    const interactive = 'button, a[href], [role="button"], input[type="checkbox"], input[type="radio"]'
+    // Campo de texto é alvo de toque como qualquer outro: quem erra o campo de data do filtro perde
+    // o mesmo tempo de quem erra um botão. A lista antiga cobria só caixa de seleção e rádio, e por
+    // isso `.activity-filter .field-group input { min-height: 42px }` sobreviveu a duas ondas em
+    // duas rotas que já estavam medidas — a regra estava visível no arquivo e invisível para a rede.
+    const interactive = 'button, a[href], [role="button"], input:not([type="hidden"]), select, textarea'
     const targetsUnderTapFloor = distinct(
       Array.from(document.querySelectorAll<HTMLElement>(interactive))
         .filter(visible)

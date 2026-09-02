@@ -5002,9 +5002,11 @@ main {
   font-size: var(--fs-caption);
 }
 
-.activity-filter .field-group input {
-  min-height: 42px;
-}
+/* O `min-height: 42px` que estava aqui encolhia os dois campos de data do filtro para baixo do piso
+   de 44px, em `/workouts` e `/progress/weight` — duas rotas que a guarda já media, e que passavam
+   porque a lista de alvos dela não incluía `input`. Sem a regra, os campos herdam os 48px de
+   `.field-group input`, que é a altura de campo do app inteiro; não havia motivo para estes dois
+   serem mais baixos que todos os outros. */
 
 .activity-filter .secondary-button {
   min-height: 44px;
