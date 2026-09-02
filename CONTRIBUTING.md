@@ -58,12 +58,23 @@ catracas cobrem essa lacuna, e ambas falham com a lista do que corrigir.
 
 `frontend/tools/css-contract.ts` lê as folhas de estilo como texto e recusa controle de
 formulário abaixo de 16px (é o que faz o Safari do iOS ampliar o viewport ao focar o campo e
-nunca desfazer o zoom), `font: inherit` em controle, `vh`, e `env(safe-area-inset-*)` sem
-fallback. Roda dentro do `npm test`.
+nunca desfazer o zoom), `font: inherit` em controle, `vh`, `env(safe-area-inset-*)` sem
+fallback, e medida fora da escala declarada em `index.css` — `padding`, `margin`, `gap`,
+`border-radius` e `font-size` em px ou rem cru que não caia num degrau. Roda dentro do `npm test`.
 
-`frontend/e2e/layout-guards.spec.ts` mede a página renderizada em 320, 375 e 412px: nenhuma rota
-pode rolar de lado, nenhum controle pode ficar abaixo de 16px depois da cascata, nenhum alvo de
-toque pode ter caixa menor que 44px. Roda dentro do `npm run test:e2e`.
+A quinta regra é a única que nasce com linha de base cheia, e de propósito: são 505 medidas
+fora da régua espalhadas pelo arquivo, que encolhem tela a tela. Ela é a razão de a escala parar
+de ser sugestão — uma escala declarada e não cobrada não reduz variação, só acrescenta mais um
+valor aos que já existiam. As exceções nomeadas estão no topo do scanner: o fio de 1px, a pílula
+de 999px, e as reservas de coluna de 58/60/76/94px, que são largura de controle sobreposto e não
+respiro.
+
+`frontend/e2e/layout-guards.spec.ts` mede a página renderizada em 320, 375, 412 e 900px: nenhuma
+rota pode rolar de lado, nenhum controle pode ficar abaixo de 16px depois da cascata, nenhum alvo
+de toque — botão, link, campo, seleção — pode ter caixa menor que 44px. Roda dentro do
+`npm run test:e2e`. A largura de 900px existe porque é a faixa em que o sidebar já ocupa 264px e
+o conteúdo cabe em ~552px: quatro grades escritas contra um número de viewport estouravam ali, e
+nenhuma das outras três larguras as alcançava.
 
 As duas partem de uma linha de base versionada, porque as violações são corrigidas ao longo de
 várias ondas. Depois de corrigir um lote, aperte a catraca:
