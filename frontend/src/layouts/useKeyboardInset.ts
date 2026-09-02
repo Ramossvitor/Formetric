@@ -23,6 +23,7 @@ export function useKeyboardInset() {
     const root = document.documentElement
 
     function update() {
+      // A guarda acima não alcança uma declaração de função içada; o compilador exige esta.
       if (!viewport) return
       const covered = Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop))
       // Um teclado ocupa dezenas de pixels; abaixo disso é arredondamento de zoom ou barra de

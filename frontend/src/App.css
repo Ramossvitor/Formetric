@@ -451,8 +451,7 @@ h2 {
   background: var(--surface);
 }
 
-.surface-card,
-.metric-card {
+.surface-card {
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -843,23 +842,6 @@ h2 {
   border-left: 1px solid var(--border);
 }
 
-.overview-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.metric-card {
-  position: relative;
-  display: grid;
-  min-height: 134px;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
-  gap: 13px;
-  overflow: hidden;
-  padding: 18px;
-  border-radius: 17px;
-}
-
 .metric-icon {
   display: grid;
   width: 39px;
@@ -929,25 +911,6 @@ h2 {
 .metric-note.positive {
   color: var(--success-text);
   font-weight: 600;
-}
-
-.card-action {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  min-width: 44px;
-  min-height: 44px;
-  place-items: center;
-  border: 0;
-  border-radius: 10px;
-  color: var(--primary-strong);
-  background: var(--primary-soft);
-  cursor: pointer;
-}
-
-.card-action.ghost {
-  color: var(--text-soft);
-  background: var(--surface-subtle);
 }
 
 .complete-mark {
@@ -1102,10 +1065,6 @@ h2 {
   color: var(--primary-strong);
   font-size: var(--fs-caption);
   font-weight: 700;
-}
-
-.desktop-only {
-  display: none;
 }
 
 /* A aplicação continua montada por baixo da barreira de identidade: o que se perde é a visão
@@ -1381,7 +1340,7 @@ h2 {
   margin: var(--space-6) 0 var(--space-2);
   color: var(--text-soft);
   font-size: var(--fs-caption);
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1425,7 +1384,7 @@ h2 {
 
 .hub-copy strong {
   font-size: var(--fs-headline);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .hub-copy small {
@@ -3076,13 +3035,6 @@ h2 {
   opacity: 0.5;
 }
 
-.meal-actions {
-  display: flex;
-  grid-column: 1 / -1;
-  gap: 10px;
-  justify-self: end;
-}
-
 /* Botão principal em tom destrutivo: mesma forma do "salvar", cor oposta. É o único lugar em que
    a ação de maior peso na tela é a que apaga algo, e ela precisa parecer isso. */
 .submit-button.danger-submit {
@@ -3205,12 +3157,6 @@ h2 {
 .quality-chip.highly_estimated {
   color: var(--danger);
   background: var(--danger-soft);
-}
-
-.item-actions {
-  display: flex;
-  gap: 10px;
-  justify-self: end;
 }
 
 .add-item-button {
@@ -3746,10 +3692,6 @@ main {
     grid-template-columns: 1fr auto auto;
   }
 
-  .meal-actions {
-    grid-column: auto;
-  }
-
   .meal-item-list li {
     grid-template-columns: minmax(180px, 1fr) minmax(145px, auto) auto auto;
     align-items: center;
@@ -3790,10 +3732,6 @@ main {
 @media (min-width: 560px) {
   main {
     padding-inline: 28px;
-  }
-
-  .overview-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .date-button {
@@ -3848,19 +3786,6 @@ main {
   .macro-summary {
     border-top: 0;
     border-left: 1px solid var(--border);
-  }
-
-  .overview-grid {
-    gap: 15px;
-  }
-
-  .metric-card {
-    min-height: 145px;
-    padding: 21px;
-  }
-
-  .desktop-only {
-    display: block;
   }
 
   .planning-grid {
@@ -4992,12 +4917,6 @@ main {
   }
 }
 
-@media (min-width: 1180px) {
-  .overview-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 @media (prefers-color-scheme: dark) {
   .primary-action,
   .quick-add > span {
@@ -5422,7 +5341,6 @@ main {
 }
 
 .shell-dialog-backdrop {
-  z-index: var(--z-overlay);
   padding: 20px calc(16px + var(--safe-right)) calc(var(--nav-height) + 18px) calc(16px + var(--safe-left));
 }
 
@@ -5781,30 +5699,6 @@ main {
 .metric-icon.green {
   color: var(--success);
   background: var(--primary-soft);
-}
-
-.analytics-links-card {
-  grid-template-columns: auto 1fr;
-}
-
-.analytics-card-links {
-  display: flex;
-  grid-column: 1 / -1;
-  gap: 8px;
-}
-
-.analytics-card-links a {
-  min-width: 44px;
-  min-height: 44px;
-  flex: 1;
-  padding: 8px 12px;
-  border-radius: 10px;
-  color: var(--primary-strong);
-  background: var(--primary-soft);
-  font-size: var(--fs-footnote);
-  font-weight: 700;
-  text-align: center;
-  text-decoration: none;
 }
 
 .analytics-tabs {

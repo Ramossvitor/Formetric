@@ -51,7 +51,6 @@
   --orange-text: #9a5919;
   --blue-text: #2d6f9e;
   --purple-text: #6f4f95;
-  --accent-text: #3d7029;
   --danger-text: var(--danger);
   --shadow: 0 12px 32px rgba(34, 59, 47, 0.06);
   --shadow-floating: 0 16px 40px rgba(21, 47, 36, 0.14);
@@ -102,8 +101,6 @@
   --fs-headline: 1.0625rem; /* 17px — nome de refeição, nome de item, valor de macro */
   --fs-title: 1.25rem;      /* 20px — título de seção, título de sheet */
   --fs-title-lg: 1.75rem;   /* 28px — h1 no celular */
-  --fs-display: 2.5rem;     /* 40px — total calórico do diário */
-  --fs-numeral: 2.75rem;    /* 44px — número dentro do anel */
 
   /* Espaçamento em base 4. O arquivo tinha 3, 7, 9, 11, 13, 15, 21, 25, 27, 29 e 31px espalhados,
      todos decididos um a um; a régua existe para que a próxima decisão não seja mais uma dessas. */
@@ -114,13 +111,11 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-7: 32px;
-  --space-8: 40px;
 
   /* Raios, consolidando 9/10/11/12/13/14/17/18/20/22 em quatro degraus com significado. */
   --radius-chip: 12px;
   --radius-control: 16px;
   --radius-card: 20px;
-  --radius-hero: 24px;
   --radius-pill: 999px;
 
   /* Alvos de toque. 44px é o mínimo; 52px é a altura de um botão de largura plena, que é o que
@@ -142,7 +137,6 @@
   --dur-fast: 160ms;
   --dur: 220ms;
   --dur-sheet: 280ms;
-  --dur-bar: 520ms;
 
   /* Camadas. Os valores são os que o arquivo já usava; o que muda é passarem a ter nome. */
   --z-raised: 1;
@@ -288,7 +282,6 @@ textarea:focus-visible {
     --orange-text: var(--orange);
     --blue-text: var(--blue);
     --purple-text: var(--purple);
-    --accent-text: var(--accent-strong);
     --shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
     --shadow-floating: 0 18px 44px rgba(0, 0, 0, 0.4);
   }
