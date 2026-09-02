@@ -31,9 +31,10 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM eclipse-temurin:21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699 AS runtime
 
 # O digest congela os pacotes, não as CVEs descobertas depois; os pins abaixo corrigem base
-# vulnerável sem esperar imagem nova (openssl 3.5.8-r0 cobre a CVE-2026-14456).
+# vulnerável sem esperar imagem nova (openssl 3.5.8-r0 cobre a CVE-2026-14456; libexpat 2.8.4-r0
+# cobre a CVE-2026-66046 e a CVE-2026-76641).
 RUN apk add --no-cache --upgrade \
-        libexpat=2.8.3-r0 \
+        libexpat=2.8.4-r0 \
         p11-kit=0.26.2-r0 \
         p11-kit-trust=0.26.2-r0 \
         libcrypto3=3.5.8-r0 \
