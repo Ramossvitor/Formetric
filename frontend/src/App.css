@@ -3660,8 +3660,13 @@ main {
     grid-template-columns: minmax(130px, 1fr) repeat(3, minmax(100px, 0.65fr));
   }
 
+  /* Mínimo de trilha zero, proporção preservada. Um `minmax(180px, …)` não é um pedido de largura:
+     é um piso que a grade não pode desrespeitar, então quando a soma dos pisos não cabe, o grid
+     estoura para fora do container em vez de encolher. Com `minmax(0, …)` as mesmas frações
+     distribuem o espaço de forma idêntica em toda largura onde antes cabia — o layout do desktop
+     largo não muda um pixel — e abaixo disso as colunas cedem em vez de empurrar a página. */
   .ingredient-row {
-    grid-template-columns: minmax(180px, 1.3fr) repeat(3, minmax(110px, 0.65fr));
+    grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 0.65fr));
   }
 
   .sticky-form-actions .submit-button {
@@ -3792,8 +3797,17 @@ main {
     grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
   }
 
+  /* Duas colunas SÓ quando cabem duas colunas.
+     Este era o maior estouro do app: 76px a 900px de viewport, porque a partir de 840px o sidebar
+     já consome 264px e sobram ~552px de conteúdo para uma grade cujos pisos somavam 664px. Zerar os
+     pisos, que é a correção certa nas grades vizinhas, aqui piora: a coluna esquerda cai para 211px
+     e os campos de data internos passam a se sobrepor dentro do card — a página para de rolar de
+     lado e fica ilegível, que é a troca errada. `auto-fit` resolve pelo espaço REAL do container em
+     vez de adivinhar pela largura da janela: com menos de 300px por coluna vira uma coluna só, sem
+     breakpoint novo e sem chance de estouro em nenhuma largura futura. O preço é a proporção
+     0.8/1.2 virar 1/1, que em dois cards de planejamento não representa nada. */
   .tdee-grid {
-    grid-template-columns: minmax(300px, 0.8fr) minmax(340px, 1.2fr);
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
 
   .sticky-form-actions {
@@ -4825,8 +4839,12 @@ main {
 }
 
 @media (min-width: 560px) {
+  /* Barra de filtro que QUEBRA em vez de espremer. Ver a nota de `.tdee-grid`: os pisos somavam
+     605px e a barra estourava 19px a 900px; zerá-los sobrepunha os dois campos de data ao botão.
+     `auto-fit` põe na linha quantos controles couberem com pelo menos 170px cada e manda o resto
+     para a linha seguinte, que é o comportamento que uma barra de filtro já deveria ter. */
   .body-filter {
-    grid-template-columns: minmax(140px, 0.7fr) minmax(140px, 0.7fr) auto auto;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     align-items: end;
   }
 
@@ -5453,8 +5471,11 @@ main {
     grid-column: auto;
   }
 
+  /* Ver a nota de `.ingredient-row`. É o mesmo defeito que a crítica adversarial já tinha apontado
+     nesta classe por outro caminho (as ações fora de fluxo), e que só aparece medindo acima de
+     560px — a faixa que nenhuma largura da suíte cobria até agora. */
   .weight-entry {
-    grid-template-columns: minmax(180px, 0.8fr) minmax(150px, 0.5fr) minmax(160px, 1fr) auto;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.5fr) minmax(0, 1fr) auto;
     align-items: center;
     padding-right: 16px;
   }

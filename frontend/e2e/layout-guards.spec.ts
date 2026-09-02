@@ -18,20 +18,33 @@ const ownerPassword = process.env.E2E_ADMIN_PASSWORD ?? 'Formetric-E2E-password-
 
 const BASELINE_PATH = join(dirname(fileURLToPath(import.meta.url)), 'layout-guards.baseline.json')
 
-/** Uma rota por padrão de layout, não uma por arquivo: telas gêmeas não pagam o próprio custo. */
+/**
+ * Uma rota por padrão de layout, não uma por arquivo: telas gêmeas não pagam o próprio custo.
+ *
+ * As cinco últimas entraram depois. `/more` e `/progress` são as telas-porta criadas na Onda 7 e
+ * nasceram fora da rede — são hoje o caminho obrigatório para metade dos destinos do app, e a
+ * catraca nunca as tinha medido. `/recipes` e `/progress/evaluations` são os dois padrões de LISTA
+ * que faltavam (`/foods` cobria só um deles, e nenhuma lista com seleção). `/settings/tdee` entrou
+ * por ser onde o único estouro horizontal medido nesta auditoria aparece, a ~900px.
+ */
 const ROUTES = [
   '/',
   '/diary',
   '/foods',
   '/foods/new',
+  '/recipes',
   '/recipes/new',
   '/workouts',
+  '/progress',
   '/progress/weight',
+  '/progress/evaluations',
   '/progress/evaluations/new',
   '/analytics/monthly',
   '/analytics/charts',
   '/settings/nutrition-goals',
+  '/settings/tdee',
   '/profile',
+  '/more',
 ]
 
 const MIN_CONTROL_FONT_PX = 16
@@ -165,6 +178,32 @@ async function seedEveryListedRoute(page: Page, today: string) {
     estimatedKcal: 320,
     notes: null,
     requestId: crypto.randomUUID(),
+  })
+
+  // Sem uma avaliação, `/progress/evaluations` renderiza o estado vazio e a rota mede um cartão de
+  // texto — nunca o `.comparison-select`, que é a caixa de seleção sobreposta ao cartão e a única
+  // razão de a rota estar na lista. As circunferências entram porque é delas que saem os resultados
+  // calculados: sem elas o cartão não tem linha de resultado e o padrão de layout medido é outro.
+  await postWithCsrf(page, '/api/v1/body-evaluations', {
+    assessmentDate: today,
+    title: 'Avaliação de guarda',
+    source: 'SELF',
+    assessorName: null,
+    notes: null,
+    weightKg: 80.4,
+    heightCm: 178,
+    ageYears: 32,
+    formulaSex: 'MALE',
+    protocol: 'NONE',
+    reportedMethodType: 'BIOIMPEDANCE',
+    reportedMethodLabel: 'Balança de bioimpedância',
+    circumferences: [
+      { site: 'WAIST', valueCm: 84 },
+      { site: 'HIP', valueCm: 98 },
+      { site: 'CHEST', valueCm: 102 },
+    ],
+    skinfolds: [],
+    reportedResults: [{ metric: 'BODY_FAT_PERCENT', value: 18.4, reportedLabel: 'Gordura corporal' }],
   })
 }
 
