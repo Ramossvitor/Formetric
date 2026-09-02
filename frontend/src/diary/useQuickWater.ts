@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRef } from 'react'
 import type { DailyAnalytics } from '../analytics/api'
 import { dailyAnalyticsQuery, invalidateAnalytics } from '../analytics/queries'
 import { addWater, type DailyLog } from './api'
@@ -30,10 +31,15 @@ export function useQuickWater(date: string) {
   // telas, o total provisório precisa entrar nos dois caches — do contrário o atalho da Home só se
   // mexeria depois da ida e volta, que é justamente o que se quer evitar ali.
   const analyticsKey = dailyAnalyticsQuery(date).queryKey
+  const mutationKey = [...queryKey, 'water']
+  // Quantos toques a rajada atual já teve. Volta a zero quando o último deles termina.
+  const burst = useRef(0)
 
   return useMutation({
+    mutationKey,
     mutationFn: (volumeMl: number) => addWater(date, volumeMl),
     onMutate: async (volumeMl) => {
+      burst.current += 1
       await Promise.all([
         queryClient.cancelQueries({ queryKey }),
         queryClient.cancelQueries({ queryKey: analyticsKey }),
@@ -62,8 +68,17 @@ export function useQuickWater(date: string) {
       if (context?.previous !== undefined) queryClient.setQueryData(queryKey, context.previous)
       if (context?.previousAnalytics !== undefined) queryClient.setQueryData(analyticsKey, context.previousAnalytics)
     },
-    onSuccess: (log) => {
-      queryClient.setQueryData(queryKey, log)
+    onSettled: (log) => {
+      // Toques em sequência têm respostas em voo ao mesmo tempo, e cada uma traz o total que o
+      // servidor tinha ao processá-la — não necessariamente o último. Escrever cada resposta no
+      // cache devolvia o total otimista ao valor de antes dos toques seguintes, e uma resposta
+      // chegando fora de ordem deixava o total errado até a próxima recarga. Por isso só o fim da
+      // rajada mexe no cache: um toque sozinho confia na própria resposta; uma rajada recarrega.
+      if (queryClient.isMutating({ mutationKey }) > 1) return
+      const single = burst.current === 1
+      burst.current = 0
+      if (log && single) queryClient.setQueryData(queryKey, log)
+      else void queryClient.invalidateQueries({ queryKey })
       void invalidateAnalytics(queryClient)
     },
   })

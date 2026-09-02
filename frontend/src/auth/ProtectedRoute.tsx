@@ -75,6 +75,11 @@ export function ProtectedRoute() {
       <div
         className="identity-shield"
         inert={shielded}
+        // A chave é a identidade confiada: quando ela muda, a árvore inteira é remontada — o cache
+        // limpo não alcança o estado de React das telas (um sheet aberto com o item da outra conta,
+        // um rascunho de formulário), e é isso que a remontagem descarta. Numa revalidação da mesma
+        // conta a chave não muda, e o trabalho do usuário sobrevive.
+        key={trustedUserId.current ?? 'anonymous'}
         // O ocultamento fica aqui, e não numa classe de CSS, porque é uma garantia de segurança:
         // ligada à condição que a produz, não pode ser desfeita por alguém editando uma folha de
         // estilo sem perceber o que ela sustentava — e continua verificável em teste.
