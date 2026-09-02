@@ -129,7 +129,7 @@ export function ItemEditor({ item, pending, onCancel, onSubmit }: {
   const valid = selected && measure && Number.isFinite(numericQuantity) && numericQuantity > 0
 
   return (
-    <form className="dialog-form item-dialog-form" onSubmit={(event) => {
+    <form className="dialog-form" onSubmit={(event) => {
       event.preventDefault()
       if (!valid) return
       onSubmit({

@@ -480,10 +480,14 @@ h2 {
 }
 
 .section-heading,
+/* Uma declaração só. O `align-items` desta classe estava escrito duas vezes, `flex-start` aqui e
+   `flex-end` 240 linhas adiante, e quem vencia era o segundo — em TODO cabeçalho de seção do app,
+   não só na tela que motivou a segunda regra. O valor abaixo é o que sempre valeu. */
 .section-title-row {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
+  margin-bottom: 14px;
   gap: 16px;
 }
 
@@ -690,42 +694,13 @@ h2 {
   font-size: 0.86rem;
 }
 
-.linear-progress {
-  overflow: hidden;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--border);
-}
-
-.progress-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-}
-
-.progress-fill.green {
-  background: var(--accent-strong);
-}
-
-.progress-fill.blue {
-  background: var(--blue);
-}
-
-.progress-fill.orange {
-  background: var(--orange);
-}
-
-.progress-fill.purple {
-  background: var(--purple);
-}
+/* `.linear-progress` e as cinco variantes de `.progress-fill` saíram: seis regras sem um único
+   consumidor em `.tsx`. As barras que o app desenha hoje são `.macro-bar` e `.goal-band`, que têm
+   marcas de faixa e traço tracejado para o estado sem meta — coisas que uma barra genérica de
+   preenchimento não sabe fazer. Ficaram para trás quando essas duas nasceram. */
 
 .overview-section {
   margin-top: 31px;
-}
-
-.section-title-row {
-  align-items: flex-end;
-  margin-bottom: 14px;
 }
 
 /* Lista agrupada do panorama. Substitui quatro cartões de 134px empilhados — 572px de rolagem para
@@ -869,8 +844,7 @@ h2 {
   min-width: 0;
 }
 
-.metric-copy > span,
-.metric-copy > strong {
+.metric-copy > span {
   display: block;
 }
 
@@ -881,36 +855,20 @@ h2 {
   font-weight: 600;
 }
 
-.metric-copy > strong {
-  font-size: 1.42rem;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
-}
-
-.metric-copy > strong small {
-  color: var(--text-muted);
-  font-size: 0.76rem;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.metric-copy > strong.metric-title {
-  overflow: hidden;
-  font-size: 1rem;
-  letter-spacing: -0.02em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* Aqui moravam quatro regras que não casavam com nada, restos do `.metric-card` que a Onda 5
+   apagou: `.metric-copy > strong`, `.metric-copy > strong small`, `.metric-copy > strong.metric-title`
+   e `.metric-note.positive`. No `.day-overview-row` de hoje o `<strong>` do valor é IRMÃO de
+   `.metric-copy`, não filho dele, então o combinador `>` nunca alcançou nenhum deles.
+   A consequência visível é que `.metric-title` — que o JSX aplica no valor do treino — não recebe
+   estilo nenhum e herda o corpo da linha, o que faz "Musculação" aparecer maior e mais pesado que
+   "0,75 L" e "82,4 kg" na mesma lista. O conserto é dar hierarquia à coluna do valor e vem com o
+   redesenho da tela Hoje; apagar as regras mortas antes só garante que ninguém as leia como se
+   estivessem valendo. */
 
 .metric-note {
   margin-top: 9px;
   color: var(--text-soft);
   font-size: var(--fs-caption);
-}
-
-.metric-note.positive {
-  color: var(--success-text);
-  font-weight: 600;
 }
 
 .complete-mark {
@@ -1844,18 +1802,31 @@ h2 {
   font-size: var(--field-font);
 }
 
+/* Chip e botão compacto compartilham a caixa e divergem em raio e cor — e é só isso que os separa.
+   Estavam declarados juntos aqui, com raio de pílula e cor apagada, e o `.compact-button` era
+   desfeito 400 linhas adiante para virar retângulo na cor da marca. Quem lia este bloco lia uma
+   descrição que não valia para metade dos seus seletores. */
+
 .filter-chip,
 .compact-button {
   min-height: 44px;
   padding: 0 13px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  color: var(--text-muted);
   background: var(--surface);
   cursor: pointer;
   font-size: var(--fs-footnote);
   font-weight: 700;
   white-space: nowrap;
+}
+
+.filter-chip {
+  border-radius: 999px;
+  color: var(--text-muted);
+}
+
+.compact-button {
+  border-radius: 10px;
+  color: var(--primary);
 }
 
 .filter-chip.active,
@@ -2240,12 +2211,6 @@ h2 {
 
 .fieldset-heading .form-section-hint {
   margin-bottom: 0;
-}
-
-.compact-button {
-  min-height: 44px;
-  border-radius: 10px;
-  color: var(--primary);
 }
 
 .compact-button:disabled {
@@ -2645,16 +2610,12 @@ h2 {
   color: color-mix(in srgb, #fff 78%, transparent);
 }
 
-.date-navigation > label input {
-  min-height: 40px;
-  padding: 0 9px;
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  color: var(--text);
-  background: var(--surface);
-  font: inherit;
-  font-size: var(--field-font);
-}
+/* Dez declarações pintavam aqui o `input[type=date]` que `.date-picker-button input` deixa em
+   `opacity: 0` e `inset: 0` — altura, recuo, borda, raio, cor e fundo num elemento que ninguém vê.
+   Não eram regra morta: por especificidade venciam as do bloco acima, inclusive devolvendo uma
+   borda de 1px ao elemento que tinha acabado de perdê-la. O que faziam de fato era convencer quem
+   lesse o arquivo de que o campo era desenhado ali, quando o que se desenha é o botão de
+   calendário em volta. O piso de 16px continua garantido pela regra de elemento em index.css. */
 
 .diary-status-row {
   display: flex;
@@ -5042,6 +5003,7 @@ main {
 .weight-metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 4px;
   gap: 9px;
 }
 
@@ -5282,10 +5244,6 @@ main {
   flex: 0 0 auto;
   padding-inline: 11px;
   font-size: var(--fs-caption);
-}
-
-.weight-metric-grid {
-  margin-top: 4px;
 }
 
 .weight-metric:last-child {
