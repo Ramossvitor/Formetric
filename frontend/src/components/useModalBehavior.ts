@@ -25,8 +25,7 @@ export function useModalBehavior({ dismissible = true, onClose }: {
   onClose: () => void
 }) {
   const panelRef = useRef<HTMLElement>(null)
-  // O diálogo só existe enquanto está montado, então a partir daqui "aberto" é sempre verdadeiro.
-  useSheetHistory(true, dismissible ? onClose : () => {})
+  useSheetHistory(dismissible ? onClose : () => {})
   const onCloseRef = useRef(onClose)
   const dismissibleRef = useRef(dismissible)
   onCloseRef.current = onClose

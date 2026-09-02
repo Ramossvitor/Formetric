@@ -65,9 +65,12 @@ export function AuthenticatedLayout() {
   // do navegador, e sair de /foods/:id dependia do gesto do sistema, que no iOS praticamente não
   // existe em modo standalone.
   const deep = !navigation.some((item) => item.to === location.pathname)
-  // `location.key` é 'default' na primeira entrada do histórico: aí voltar sairia do app, e o
-  // caminho certo é subir para a tela inicial.
-  const canGoBack = location.key !== 'default'
+  // O react-router guarda a posição de cada entrada em `history.state.idx`, e 0 é a primeira do
+  // app: aí voltar sairia dele, e o caminho certo é subir para a tela inicial. `location.key` não
+  // serve para isso porque um `replace` — os atalhos do ícone instalado e a troca de data fazem um —
+  // troca a chave da primeira entrada sem criar uma segunda, e o botão voltava para o nada.
+  const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0
+  const canGoBack = historyIndex > 0
   // Com o conteúdo anterior preservado durante a troca de data ou de busca, é esta barra que diz
   // que algo está a caminho. Um lugar só, para nenhuma tela precisar montar o próprio indicador.
   const updating = useIsFetching() > 0

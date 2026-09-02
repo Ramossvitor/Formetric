@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { setupUser } from '../test/user'
 import type { AuthSession } from './api'
 import { ProtectedRoute } from './ProtectedRoute'
 import { sessionQuery } from './queries'
@@ -37,7 +39,15 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 function PrivateScreen() {
   const { data: session } = useQuery(sessionQuery)
   const temporal = useProfileTimeContext()
-  return <h1>{`${session?.user.displayName}|${temporal.today}|${temporal.timeZone}`}</h1>
+  // Estado de React abaixo da barreira: numa tela real é o sheet aberto ou o rascunho do formulário.
+  const [taps, setTaps] = useState(0)
+  return (
+    <>
+      <h1>{`${session?.user.displayName}|${temporal.today}|${temporal.timeZone}`}</h1>
+      <button onClick={() => setTaps((count) => count + 1)} type="button">Contar</button>
+      <output aria-label="Toques">{taps}</output>
+    </>
+  )
 }
 
 function renderProtected(queryClient: QueryClient) {
@@ -85,8 +95,11 @@ describe('fronteira de identidade ao recuperar foco', () => {
       throw new Error(`Requisição não esperada: ${path}`)
     })
     const queryClient = preparedClient()
+    const user = setupUser()
     renderProtected(queryClient)
     expect(screen.getByRole('heading', { name: 'Conta A|2026-08-12|America/Sao_Paulo' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Contar' }))
+    expect(screen.getByLabelText('Toques')).toHaveTextContent('1')
 
     returnToTab()
 
@@ -107,6 +120,28 @@ describe('fronteira de identidade ao recuperar foco', () => {
     expect(queryClient.getQueryData(sessionQuery.queryKey)).toEqual(accountB)
     expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/profile/time-context')).toBe(true)
     expect(screen.queryByText(/Conta A/)).not.toBeInTheDocument()
+    // Limpar o cache não alcança o estado de React das telas; a troca de conta remonta a árvore
+    // para que um sheet ou rascunho da Conta A não apareça para a Conta B.
+    expect(screen.getByLabelText('Toques')).toHaveTextContent('0')
+  })
+
+  it('preserva o estado das telas quando a revalidação confirma a mesma conta', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const path = String(input)
+      if (path === '/api/v1/auth/session') return jsonResponse(accountA)
+      if (path === '/api/v1/profile/time-context') return jsonResponse(fixedProfileTimeContext)
+      throw new Error(`Requisição não esperada: ${path}`)
+    })
+    const queryClient = preparedClient()
+    const user = setupUser()
+    renderProtected(queryClient)
+    await user.click(screen.getByRole('button', { name: 'Contar' }))
+
+    returnToTab()
+
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(screen.getByRole('heading', { name: 'Conta A|2026-08-12|America/Sao_Paulo' })).toBeVisible()
+    expect(screen.getByLabelText('Toques')).toHaveTextContent('1')
   })
 
   it('limpa dados privados e redireciona quando outra aba encerra a sessão', async () => {
