@@ -601,11 +601,24 @@ os nomes de item subiram de 12,3px para 17px — a troca que o plano assumiu por
 - **`.meal-total small` e `.weight-metric-grid` estavam declaradas duas vezes**, além das
   duplicatas que o plano listou.
 
-### O que não foi feito
+### Fase 8 — feita, com autorização do dono
 
-- **Fase 8, a fusão de Hoje e Diário.** É decisão do dono e o plano a coloca por último de
-  propósito. O passo de uma linha que a antecede — o `<h1>` do Diário deixar de ser "Hoje" — foi
-  feito, e sozinho já tira a ambiguidade dos dois títulos.
+`/` passou a conter o dia inteiro: cabeçalho, pílula de data, faixa da semana, anel com faixa de
+meta e classificação, refeições, água, totais e fechamento. O registro virou componente e recebe a
+data de quem o hospeda. O slot liberado foi para **Análises**, que respondia "estou melhorando?" a
+dois níveis de profundidade. `/diary` sobrevive redirecionando para `/` com a query intacta —
+nenhuma rota foi renomeada em toda a reforma, e os atalhos do ícone instalado continuam válidos.
+
+A fusão revelou três defeitos que ela mesma criou, e os três foram corrigidos:
+
+1. O registro estava pendurado no portão de carregamento do resumo — uma falha no cálculo do dia
+   escondia as refeições e o botão de água. As duas consultas têm portões independentes.
+2. O resumo e o anel mostravam o mesmo total na mesma tela. `DiarySummary` ganhou `showCalories`, e
+   o que resta dele é o único lugar onde sódio aparece.
+3. Sem o `<h2>` do total, o número mais importante do dia ficava **sem nome acessível** quando não
+   há meta configurada: o rótulo do anel dizia o assunto, nunca o valor. Agora carrega o valor.
+
+### O que não foi feito
 - **Cortes de densidade restantes:** o sheet de treino em `<details>`, os sete cartões de
   `/progress/weight`, os filtros por chips, e a redução de `/analytics/monthly` abaixo de três
   telas. As telas com pior razão altura/conteúdo já foram tratadas.
