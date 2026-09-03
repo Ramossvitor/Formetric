@@ -6,32 +6,16 @@ import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { useModalBehavior } from '../components/useModalBehavior'
-import { Icon, type IconName } from '../components/Icon'
+import { Icon } from '../components/Icon'
 import { InstallPrompt } from '../pwa/InstallPrompt'
 import { UpdatePrompt } from '../pwa/UpdatePrompt'
 import { useConnectionStatus } from './useConnectionStatus'
+import { isDeepRoute, NAVIGATION, slotFor } from './navigation'
 import { useKeyboardInset } from './useKeyboardInset'
 
-// Quatro destinos e um botão de adicionar, para dez telas. "Evolução" e "Mais" são portas, não
-// telas finais: cada uma reúne o que não cabia na barra, e nenhum destino do app fica sem caminho
-// previsível — treinos, por exemplo, só era alcançável pelo cadastro rápido.
-const navigation: Array<{ label: string; icon: IconName; to: string }> = [
-  { label: 'Hoje', icon: 'home', to: '/' },
-  { label: 'Diário', icon: 'book', to: '/diary' },
-  { label: 'Evolução', icon: 'trend', to: '/progress' },
-  { label: 'Mais', icon: 'settings', to: '/more' },
-]
-
-const catalogNavigation: Array<{ label: string; icon: IconName; to: string }> = [
-  { label: 'Alimentos', icon: 'food', to: '/foods' },
-  { label: 'Receitas', icon: 'recipe', to: '/recipes' },
-]
-
-const trackingNavigation: Array<{ label: string; icon: IconName; to: string }> = [
-  { label: 'Análises', icon: 'trend', to: '/analytics/monthly' },
-  { label: 'Peso', icon: 'scale', to: '/progress/weight' },
-  { label: 'Treinos', icon: 'activity', to: '/workouts' },
-]
+// Quatro destinos e um botão de adicionar. "Evolução" e "Mais" são portas, não telas finais.
+// Qual deles fica aceso é decisão de `./navigation`, e as duas barras — a de baixo no celular e a
+// lateral no desktop — consomem a mesma lista, para que as duas plataformas tenham uma árvore só.
 
 function initials(name: string) {
   return name
@@ -64,7 +48,8 @@ export function AuthenticatedLayout() {
   // Telas fora dos quatro destinos da barra são "profundas": num app instalado não há botão voltar
   // do navegador, e sair de /foods/:id dependia do gesto do sistema, que no iOS praticamente não
   // existe em modo standalone.
-  const deep = !navigation.some((item) => item.to === location.pathname)
+  const deep = isDeepRoute(location.pathname)
+  const slot = slotFor(location.pathname)
   // O react-router guarda a posição de cada entrada em `history.state.idx`, e 0 é a primeira do
   // app: aí voltar sairia dele, e o caminho certo é subir para a tela inicial. `location.key` não
   // serve para isso porque um `replace` — os atalhos do ícone instalado e a troca de data fazem um —
@@ -95,32 +80,10 @@ export function AuthenticatedLayout() {
       <aside className="sidebar">
         <Brand />
         <nav aria-label="Navegação principal" className="sidebar-nav">
-          {navigation.map((item) => (
+          {NAVIGATION.map((item) => (
             <NavLink
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              className={slot === item.to ? 'nav-link active' : 'nav-link'}
               end={item.to === '/'}
-              key={item.to}
-              to={item.to}
-            >
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-          <span className="nav-section-label">Acompanhamento</span>
-          {trackingNavigation.map((item) => (
-            <NavLink
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-              key={item.to}
-              to={item.to}
-            >
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-          <span className="nav-section-label">Biblioteca</span>
-          {catalogNavigation.map((item) => (
-            <NavLink
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
               key={item.to}
               to={item.to}
             >
@@ -194,9 +157,9 @@ export function AuthenticatedLayout() {
         <ErrorBoundary resetKey={location.pathname} scope="esta tela"><Outlet /></ErrorBoundary>
 
         <nav aria-label="Navegação principal" className="bottom-nav">
-          {navigation.slice(0, 2).map((item) => (
+          {NAVIGATION.slice(0, 2).map((item) => (
             <NavLink
-              className={({ isActive }) => (isActive ? 'bottom-nav-item active' : 'bottom-nav-item')}
+              className={slot === item.to ? 'bottom-nav-item active' : 'bottom-nav-item'}
               end={item.to === '/'}
               key={item.to}
               to={item.to}
@@ -209,9 +172,9 @@ export function AuthenticatedLayout() {
             <span><Icon name="plus" size={26} /></span>
             <small>Adicionar</small>
           </button>
-          {navigation.slice(2).map((item) => (
+          {NAVIGATION.slice(2).map((item) => (
             <NavLink
-              className={({ isActive }) => (isActive ? 'bottom-nav-item active' : 'bottom-nav-item')}
+              className={slot === item.to ? 'bottom-nav-item active' : 'bottom-nav-item'}
               key={item.to}
               to={item.to}
             >
