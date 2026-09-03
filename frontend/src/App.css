@@ -1141,7 +1141,7 @@ h2 {
 .field-group textarea {
   width: 100%;
   min-height: 48px;
-  padding: 0 13px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: 12px;
   color: var(--text);
@@ -1766,15 +1766,15 @@ h2 {
 .catalog-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding: 10px;
-  border-radius: 16px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
 }
 
 .catalog-status-filter {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .search-field {
@@ -1782,10 +1782,10 @@ h2 {
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 9px;
-  padding-inline: 12px;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
   color: var(--text-soft);
   background: var(--surface-subtle);
 }
@@ -1973,7 +1973,7 @@ h2 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: var(--space-4);
   color: var(--text-muted);
   text-align: center;
 }
@@ -1987,7 +1987,7 @@ h2 {
 }
 
 .catalog-feedback {
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 
 .result-count {
@@ -1998,7 +1998,7 @@ h2 {
 
 .catalog-list {
   display: grid;
-  gap: 9px;
+  gap: var(--space-2);
 }
 
 .catalog-list-card,
@@ -2017,9 +2017,9 @@ h2 {
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   /* Reserva à direita para o botão de favorito sobreposto, que saiu de 38px para 44px. */
-  padding: 13px 60px 13px 13px;
+  padding: var(--space-4) 60px var(--space-4) var(--space-4);
   color: inherit;
   text-decoration: none;
 }
@@ -2042,7 +2042,7 @@ h2 {
   height: 46px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--radius-chip);
   font-size: 1rem;
   font-weight: 700;
 }
@@ -2081,7 +2081,7 @@ h2 {
 .catalog-card-copy small,
 .recipe-copy small {
   overflow: hidden;
-  margin-top: 3px;
+  margin-top: var(--space-1);
   color: var(--text-soft);
   font-size: var(--fs-caption);
   text-overflow: ellipsis;
@@ -2090,8 +2090,8 @@ h2 {
 
 .catalog-macros {
   display: flex;
-  gap: 9px;
-  margin-top: 6px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
   color: var(--text-muted);
   font-size: var(--fs-caption);
 }
@@ -2121,14 +2121,14 @@ h2 {
 
 .favorite-button {
   position: absolute;
-  inset: 50% 11px auto auto;
+  inset: 50% var(--space-3) auto auto;
   display: grid;
   width: 44px;
   height: 44px;
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 11px;
+  border-radius: var(--radius-chip);
   color: var(--text-soft);
   background: transparent;
   cursor: pointer;
@@ -2163,12 +2163,12 @@ h2 {
 
 .catalog-editor {
   max-width: 920px;
-  padding: 17px;
+  padding: var(--space-4);
 }
 
 .catalog-form {
   display: grid;
-  gap: 18px;
+  gap: var(--space-4);
 }
 
 .form-section {
@@ -2197,8 +2197,8 @@ h2 {
 
 .catalog-form-grid {
   display: grid;
-  gap: 14px;
-  margin-top: 14px;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
 }
 
 .optional-label {
@@ -2226,19 +2226,19 @@ h2 {
 .serving-list,
 .ingredient-list {
   display: grid;
-  gap: 10px;
-  margin-top: 14px;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .serving-row,
 .ingredient-row {
   position: relative;
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   /* A reserva à direita acompanha o botão de remover, que saiu de 30px para 44px. */
-  padding: 14px 58px 14px 14px;
+  padding: var(--space-4) 58px var(--space-4) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   background: var(--surface-subtle);
 }
 
@@ -2320,7 +2320,7 @@ h2 {
 .nutrition-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
   margin: 0;
 }
 
@@ -2443,7 +2443,7 @@ h2 {
 
 .recipe-grid {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .recipe-grid > .result-count {
@@ -2480,13 +2480,13 @@ h2 {
 
 .recipe-nutrition-grid {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .recipe-nutrition-block {
-  padding: 14px;
+  padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   background: var(--surface-subtle);
 }
 
@@ -3393,9 +3393,9 @@ main {
   display: grid;
   min-height: 56px;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   grid-template-columns: auto minmax(0, 1fr);
-  padding: 10px 14px;
+  padding: var(--space-3) var(--space-4);
   cursor: pointer;
 }
 
@@ -3417,7 +3417,7 @@ main {
 .catalog-choice-copy {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .catalog-choice-copy strong {
