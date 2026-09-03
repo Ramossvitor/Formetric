@@ -111,11 +111,16 @@ test('serves the packaged SPA and preserves a protected deep link through login'
 
   await completeLogin(page)
 
-  await expect(page).toHaveURL(new RegExp(`/diary\\?date=${date}$`))
-  await expect(page.getByRole('heading', { name: 'Diário' })).toBeVisible()
+  // O registro do dia virou um bloco da tela Hoje, e `/diary` sobrevive como porta: os atalhos do
+  // ícone instalado apontam para lá e são contrato. O que se guarda aqui é o deep link atravessar o
+  // login E o redirecionamento entregar a data pedida — perder a data seria pior que perder a rota,
+  // porque o usuário veria o dia errado sem perceber que pediu outro.
+  await expect(page).toHaveURL(new RegExp(`/\\?date=${date}$`))
+  await expect(page.getByRole('navigation', { name: 'Selecionar dia' })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Diário' })).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`/\\?date=${date}$`))
+  await expect(page.getByRole('navigation', { name: 'Selecionar dia' })).toBeVisible()
 })
 
 test('persists a proportional food entry, water and daily closure through the integrated image', async ({ page }, testInfo) => {
@@ -159,7 +164,10 @@ test('persists a proportional food entry, water and daily closure through the in
   await itemDialog.getByRole('button', { name: 'Adicionar ao diário' }).click()
 
   await expect(page.getByText(foodName, { exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '84 kcal' })).toBeVisible()
+  // O total do dia deixou de ter um `<h2>` próprio quando o Diário virou bloco da tela Hoje: o anel
+  // já mostrava o mesmo número na primeira dobra, e repeti-lo no rodapé era o mesmo fato duas vezes.
+  // Quem carrega o valor agora é o rótulo do anel, que é também onde um leitor de tela o encontra.
+  await expect(page.getByRole('group', { name: /^84 kcal consumidas/ })).toBeVisible()
 
   await page.getByRole('button', { name: '+250 ml' }).click()
   await expect(page.getByRole('heading', { name: /Água · 0,25 L/ })).toBeVisible()

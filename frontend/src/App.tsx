@@ -1,10 +1,9 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { OwnerRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { UnexpectedUnauthorizedBoundary } from './auth/UnexpectedUnauthorizedBoundary'
 import { ToastProvider } from './components/Toast'
 import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
-import { DiaryPage } from './pages/DiaryPage'
 import { FoodDetailPage } from './pages/FoodDetailPage'
 import { FoodsPage } from './pages/FoodsPage'
 import { HomePage } from './pages/HomePage'
@@ -32,6 +31,12 @@ const BodyEvaluationComparisonPage = lazy(() => import('./pages/BodyEvaluationCo
 const MonthlyAnalyticsPage = lazy(() => import('./pages/MonthlyAnalyticsPage').then((module) => ({ default: module.MonthlyAnalyticsPage })))
 const AnalyticsChartsPage = lazy(() => import('./pages/AnalyticsChartsPage').then((module) => ({ default: module.AnalyticsChartsPage })))
 
+/** Redireciona /diary para / preservando a query, que é onde vivem `date` e `action`. */
+function DiaryRedirect() {
+  const { search } = useLocation()
+  return <Navigate replace to={{ pathname: '/', search }} />
+}
+
 function LazyRoute({ label, children }: { label: string; children: ReactNode }) {
   return <Suspense fallback={<div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando {label}…</p></div>}>{children}</Suspense>
 }
@@ -45,7 +50,11 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AuthenticatedLayout />}>
           <Route index element={<HomePage />} />
-          <Route element={<DiaryPage />} path="diary" />
+          {/* O Diário virou um bloco da tela Hoje, e a rota sobrevive como porta: os atalhos do
+              ícone instalado apontam para /diary?action=quick e são contrato — nenhuma rota foi
+              renomeada nesta reforma. Os parâmetros vão inteiros para não perder nem a data
+              pedida nem a ação. */}
+          <Route element={<DiaryRedirect />} path="diary" />
           <Route element={<ProgressHubPage />} path="progress" />
           <Route element={<MorePage />} path="more" />
           <Route

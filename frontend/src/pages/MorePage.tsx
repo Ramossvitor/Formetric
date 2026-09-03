@@ -61,7 +61,6 @@ export function MorePage() {
         <div>
           <p className="eyebrow">Menu</p>
           <h1>Mais</h1>
-          <p className="heading-copy">Biblioteca, planejamento e conta.</p>
         </div>
       </header>
 

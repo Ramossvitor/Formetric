@@ -63,7 +63,7 @@ export function CatalogTruncationHint({ id, message }: { id?: string; message: s
 
 export function CatalogLoadMore({ isLoading, onLoadMore }: { isLoading: boolean; onLoadMore: () => void }) {
   return (
-    <button className="secondary-button catalog-load-more" disabled={isLoading} onClick={onLoadMore} type="button">
+    <button className="secondary-button" disabled={isLoading} onClick={onLoadMore} type="button">
       {isLoading ? 'Carregando…' : 'Carregar mais'}
     </button>
   )

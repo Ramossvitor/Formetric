@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// As folhas de estilo do app são globais e escritas à mão, e os quatro defeitos que esta reforma
+// As folhas de estilo do app são globais e escritas à mão, e os cinco defeitos que esta reforma
 // corrige podem voltar sem que nenhum teste de componente perceba: jsdom não calcula layout, e a
 // suíte de componentes busca por texto e papel, nunca por pixel. Este scanner lê o CSS como texto
 // e é a única barreira automática contra a reintrodução deles:
@@ -14,7 +14,9 @@ import { fileURLToPath } from 'node:url'
 //   - `vh`, que no Safari mede o viewport grande e deixa a borda inferior de todo sheet ancorado
 //     embaixo fora da área visível;
 //   - `env(safe-area-inset-*)` sem fallback, que invalida a declaração inteira onde não há
-//     suporte — e o que cai costuma ser justamente o padding que afastava o conteúdo da borda.
+//     suporte — e o que cai costuma ser justamente o padding que afastava o conteúdo da borda;
+//   - medida fora da escala declarada, que é como o arquivo chegou a onze recuos de cartão e
+//     dezesseis raios num sistema que declara cinco.
 //
 // Ele não interpreta a cascata: resolver herança exigiria um motor de CSS. As regras acima foram
 // escolhidas por serem decidíveis a partir de um bloco isolado, sem falso positivo.
@@ -24,7 +26,12 @@ const STYLESHEETS = ['index.css', 'App.css', 'planning/NutritionGoals.css']
 /** Abaixo disto o Safari do iOS amplia o viewport ao focar o campo, e não desfaz o zoom. */
 export const MIN_CONTROL_FONT_PX = 16
 
-export type ContractRule = 'controle-abaixo-de-16px' | 'controle-sem-tamanho-proprio' | 'altura-de-viewport-fixa' | 'safe-area-sem-fallback'
+export type ContractRule =
+  | 'controle-abaixo-de-16px'
+  | 'controle-sem-tamanho-proprio'
+  | 'altura-de-viewport-fixa'
+  | 'safe-area-sem-fallback'
+  | 'valor-fora-da-escala'
 
 export interface Violation {
   /** `regra@arquivo:linha`, relativo a `frontend/src`. Identidade estável na linha de base. */
@@ -38,6 +45,8 @@ interface Block {
   selector: string
   body: string
   line: number
+  /** O prelúdio da at-rule que envolve o bloco (`@media (min-width: 840px)`), ou vazio na raiz. */
+  context: string
 }
 
 const SOURCE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src')
@@ -79,15 +88,22 @@ function readBlocks(css: string): Block[] {
     const selector = css.slice(selectorStart, bodyStart).trim()
     selectorStart = cursor + 1
 
-    // Uma regra que contém outras regras (`@media`, `@supports`) é reaberta para as folhas dela.
+    // Uma regra que contém outras regras (`@media`, `@supports`) é reaberta para as folhas dela. O
+    // prelúdio acompanha cada folha porque a mesma declaração costuma existir na raiz e dentro de
+    // uma `@media` — sem ele as duas teriam a mesma identidade na linha de base, e corrigir uma
+    // deixaria a outra invisível.
     if (body.includes('{')) {
       for (const nested of readBlocks(body)) {
-        blocks.push({ ...nested, line: nested.line + lineAt(css, bodyStart) - 1 })
+        blocks.push({
+          ...nested,
+          context: nested.context ? `${selector} ${nested.context}` : selector,
+          line: nested.line + lineAt(css, bodyStart) - 1,
+        })
       }
       continue
     }
 
-    blocks.push({ selector, body, line: lineAt(css, bodyStart) })
+    blocks.push({ selector, body, line: lineAt(css, bodyStart), context: '' })
   }
 
   return blocks
@@ -114,6 +130,70 @@ function fontSizeInPx(value: string) {
   if (!Number.isFinite(amount)) return null
   // O app não redefine `font-size` na raiz, então 1rem e 1em valem os 16px do navegador.
   return match[2] === 'px' ? amount : amount * 16
+}
+
+/**
+ * A escala declarada em `index.css`, em pixels, por família de propriedade.
+ *
+ * Uma escala declarada e não cobrada não reduz variação: acrescenta mais um valor aos que já
+ * existiam, porque agora alguns blocos usam `var(--space-4)`, outros `16px` e outros `17px`, e o
+ * leitor não consegue mais distinguir qual é deliberado. É por isto que esta regra existe.
+ */
+const SCALE_PX: Record<string, number[]> = {
+  // --space-1..8, mais o zero.
+  espaco: [0, 4, 8, 12, 16, 20, 24, 32, 40],
+  // --radius-chip/control/card/hero/pill, mais o zero.
+  raio: [0, 12, 16, 20, 24, 999],
+  // --fs-caption..numeral, os oito degraus.
+  tipo: [12, 13, 15, 17, 20, 28, 40, 44],
+}
+
+/**
+ * Valores que não pertencem à escala e ainda assim são corretos, cada um pelo seu motivo. Existem
+ * nomeados para que a lista seja curta e discutível — uma exceção sem nome vira permissão geral.
+ */
+const ALLOWED_PX: Record<string, number[]> = {
+  // Fio de 1px: borda e divisor não são espaçamento e não têm degrau na régua.
+  espaco: [1],
+  raio: [1],
+  tipo: [],
+}
+
+/**
+ * Reservas de coluna: recuo que não é respiro, e sim espaço vago para um controle sobreposto ao
+ * card (o botão de favorito, as ações da linha). O número sai da largura do controle, não da
+ * régua, e por isso não cabe num degrau. Ficam aqui até virarem token com o nome do que reservam.
+ */
+const COLUMN_RESERVATIONS_PX = [58, 60, 76, 94]
+
+const PROPERTY_FAMILY: Array<[RegExp, keyof typeof SCALE_PX]> = [
+  [/^(padding|margin)(-(top|right|bottom|left|inline|block)(-(start|end))?)?$/, 'espaco'],
+  [/^(gap|row-gap|column-gap)$/, 'espaco'],
+  [/^border(-(start|end)-(start|end))?-?radius$/, 'raio'],
+  [/^font-size$/, 'tipo'],
+]
+
+function familyOf(property: string) {
+  return PROPERTY_FAMILY.find(([pattern]) => pattern.test(property))?.[1]
+}
+
+/**
+ * Todos os comprimentos literais de um valor, em pixels.
+ *
+ * Percorre `calc()` e valores compostos sem os interpretar: `calc(20px + var(--safe-bottom))` rende
+ * 20, e `22px 22px 0 0` rende 22 duas vezes. O que não é `px` nem `rem` — porcentagem, `ch`, `fr`,
+ * `auto` — sai de fora, porque não há degrau com que comparar.
+ */
+function literalLengthsInPx(value: string): number[] {
+  const found: number[] = []
+  for (const match of value.matchAll(/(-?\d*\.?\d+)(px|rem)\b/g)) {
+    const amount = Number(match[1])
+    // O app não redefine `font-size` na raiz, então 1rem vale os 16px do navegador.
+    found.push(Math.abs(match[2] === 'px' ? amount : amount * 16))
+  }
+  // `padding: 0` e `margin: 0 auto` não casam a regex acima porque não trazem unidade — e um zero
+  // sem unidade é sempre válido, então não precisa entrar.
+  return found
 }
 
 function declarations(body: string) {
@@ -143,8 +223,39 @@ export function scanCss(source: string, file: string): Violation[] {
   const add = (line: number, rule: ContractRule, property: string, snippet: string) =>
     violations.push({ key: `${rule}@${file}:${line}:${property}`, rule, snippet })
 
+  /**
+   * Identidade por SELETOR, não por linha, e só para `valor-fora-da-escala`.
+   *
+   * As outras quatro regras têm linha de base vazia e nunca voltam a encher; esta nasce com
+   * centenas de entradas e vai encolher ao longo de várias passadas, cada uma delas mexendo no meio
+   * do arquivo. Com número de linha, editar uma regra invalidaria a chave de todas as que estão
+   * abaixo dela, o teste de entrada obsoleta acusaria dezenas de falsos, e o único caminho prático
+   * seria regenerar a linha de base a cada commit — que é o mesmo que não ter catraca.
+   * Pelo seletor, a entrada só muda quando a declaração ofensora muda, que é exatamente quando
+   * queremos saber.
+   */
+  const addBySelector = (block: Block, rule: ContractRule, property: string, snippet: string) => {
+    const where = `${block.context} ${block.selector}`.replace(/\s+/g, ' ').trim()
+    violations.push({ key: `${rule}@${file}:${where}:${property}`, rule, snippet })
+  }
+
   for (const block of readBlocks(raw)) {
     const declared = declarations(block.body)
+
+    for (const { property, value } of declared) {
+      const family = familyOf(property)
+      if (family && !value.includes('env(')) {
+        const permitted = new Set([
+          ...SCALE_PX[family],
+          ...ALLOWED_PX[family],
+          ...(family === 'espaco' ? COLUMN_RESERVATIONS_PX : []),
+        ])
+        const offenders = literalLengthsInPx(value).filter((length) => !permitted.has(length))
+        if (offenders.length > 0) {
+          addBySelector(block, 'valor-fora-da-escala', property, `${block.selector} { ${property}: ${value} }`)
+        }
+      }
+    }
 
     for (const { property, value } of declared) {
       if (/\b\d[\d.]*vh\b/.test(value)) {

@@ -81,8 +81,20 @@
 
   --nav-height: calc(72px + var(--safe-bottom));
   --nav-overhang: 20px;
-  --content-gutter-bottom: 40px;
+  --content-gutter-bottom: var(--space-8);
   --nav-clearance: calc(var(--nav-height) + var(--nav-overhang) + var(--content-gutter-bottom));
+
+  /* Quanto da tela o teclado virtual está cobrindo. Quem escreve o valor é `useKeyboardInset`; o
+     zero aqui é o que vale quando ele NÃO escreveu — antes do primeiro efeito, num navegador sem
+     `visualViewport`, e depois do desmonte, que chama `removeProperty`.
+
+     Sem esta linha o token simplesmente não existe nesses momentos, e `var()` sem alternativa
+     invalida a DECLARAÇÃO INTEIRA em que aparece, não só a parte que falta. Medido: o
+     `.dialog-backdrop` cai de `32px 0 0` para `0` — perde inclusive o afastamento de safe-area — e
+     o `max-height` do sheet cai de 812px para `none`, ou seja, um painel alto passa a crescer para
+     fora da tela em vez de rolar por dentro. São cinco declarações em quatro seletores, e é o
+     mesmo defeito que o fallback `, 0px` dos `env()` acima já evita. */
+  --keyboard-inset: 0px;
 
   /* Piso de qualquer controle de formulário. Abaixo de 16px o Safari do iOS amplia o viewport ao
      focar o campo — e nunca desfaz o zoom. */
@@ -91,7 +103,7 @@
   /* Escala tipográfica. 154 das 246 declarações de tamanho do app estavam abaixo de 12px,
      espalhadas por dezenove valores entre 0,56rem e 0,74rem escolhidos um a um — é essa densidade,
      e não o espaçamento, que produzia a impressão de coisa achatada. Oito degraus com propósito
-     declarado substituem os dezenove escolhidos no olho.
+     declarado substituem os dezenove escolhidos no olho — seis para texto e dois para número.
 
      `--fs-footnote` é o piso de qualquer texto que se LEIA; `--fs-caption` fica reservado a rótulo
      curto em caixa alta e peso alto, onde 12px ainda se lê à distância de braço. */
@@ -101,6 +113,17 @@
   --fs-headline: 1.0625rem; /* 17px — nome de refeição, nome de item, valor de macro */
   --fs-title: 1.25rem;      /* 20px — título de seção, título de sheet */
   --fs-title-lg: 1.75rem;   /* 28px — h1 no celular */
+  /* Os dois degraus do NÚMERO, que a escala prometia e nunca declarou. Sem eles o maior número do
+     produto é 2rem contra um h1 de 1,75rem — e no desktop, onde o h1 vira `clamp(2rem, 4vw,
+     2.75rem)`, a hierarquia se inverte: o título da página fica maior que o número que a página
+     existe para mostrar. */
+  --fs-display: 2.5rem;     /* 40px — kcal do cartão do Diário */
+  --fs-numeral: 2.75rem;    /* 44px — número dentro do anel */
+
+  /* A entrelinha do corpo, herdada por tudo que não a redefine. Os degraus por tamanho e a medida
+     de leitura entram no commit que os consumir: token declarado sem consumidor é escala
+     prometida e não cobrada, que é o que esta reforma veio desfazer. */
+  --lh-body: 1.5;
 
   /* Espaçamento em base 4. O arquivo tinha 3, 7, 9, 11, 13, 15, 21, 25, 27, 29 e 31px espalhados,
      todos decididos um a um; a régua existe para que a próxima decisão não seja mais uma dessas. */
@@ -111,17 +134,31 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-7: 32px;
+  --space-8: 40px;
 
-  /* Raios, consolidando 9/10/11/12/13/14/17/18/20/22 em quatro degraus com significado. */
+  /* Raios, consolidando 9/10/11/12/13/14/17/18/20/22 em cinco degraus com significado. O degrau
+     cresce com o tamanho da caixa, e por isso o raio DIMINUI para dentro: um chip dentro de um
+     cartão com o mesmo raio do cartão parece maior do que é. */
   --radius-chip: 12px;
   --radius-control: 16px;
   --radius-card: 20px;
+  --radius-hero: 24px;
   --radius-pill: 999px;
 
   /* Alvos de toque. 44px é o mínimo; 52px é a altura de um botão de largura plena, que é o que
      separa uma ação principal de um controle embutido numa linha. */
   --tap: 44px;
   --tap-lg: 52px;
+
+  /* Largura do sidebar do desktop. É a largura de um painel fixo, não respiro: `.page` se desloca
+     exatamente por ela, e um valor da régua de espaço aqui põe o conteúdo por baixo do painel. */
+  --sidebar-w: 264px;
+
+  /* Altura de linha de lista, por PAPEL e não por tela. O app decidiu 68, 69, 70, 56, 52, 45 e 43
+     caso a caso; são papéis, e portanto uma altura por papel. A linha simples (56px) entra quando
+     a primeira regra a consumir. */
+  --row-lg: 68px; /* linha com dois níveis de texto: destino de hub, ação do cadastro rápido */
+  --chip: 24px;   /* altura de chip de estado ou de qualidade */
 
   /* Fio de separação entre itens de lista. Mais leve que --border, porque separar linhas de uma
      mesma lista não é o mesmo que delimitar um cartão. */
@@ -166,6 +203,9 @@ body {
   min-height: var(--fill-h);
   margin: 0;
   background: var(--background);
+  /* Entrelinha do corpo, herdada. Parear tamanho e entrelinha em cada regra seria repetir a
+     decisão 185 vezes; a herança resolve com esta e a dúzia de degraus que divergem dela. */
+  line-height: var(--lh-body);
 }
 
 button,

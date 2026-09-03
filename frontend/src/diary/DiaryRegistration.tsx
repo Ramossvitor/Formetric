@@ -22,18 +22,17 @@ import {
   type MealItem,
   type MealItemInput,
   type WaterLog,
-} from '../diary/api'
-import { CopyPanel } from '../diary/CopyPanel'
-import { DiaryDialog } from '../diary/DiaryDialog'
-import { DiarySummary } from '../diary/DiarySummary'
-import { displayDate, number, requiresFastingConfirmation } from '../diary/format'
-import { ItemEditor } from '../diary/ItemEditor'
-import { MealEditor } from '../diary/MealEditor'
-import { dailyLogQuery } from '../diary/queries'
-import { useQuickWater } from '../diary/useQuickWater'
+} from './api'
+import { CopyPanel } from './CopyPanel'
+import { DiaryDialog } from './DiaryDialog'
+import { DiarySummary } from './DiarySummary'
+import { number, requiresFastingConfirmation } from './format'
+import { ItemEditor } from './ItemEditor'
+import { MealEditor } from './MealEditor'
+import { dailyLogQuery } from './queries'
+import { useQuickWater } from './useQuickWater'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
 import { formatInstantDateTime, formatInstantTime } from '../time/instant'
-import { addPlainDateDays, comparePlainDates, formatPlainDate, isPlainDate } from '../time/plainDate'
 
 type Editor =
   | { type: 'quick' }
@@ -53,23 +52,6 @@ type Editor =
   | null
 
 type DialogMutation = { isError: boolean; error: Error | null; reset: () => void }
-
-/**
- * A janela de sete dias que a faixa mostra.
- *
- * Termina em amanhã para o dia seguinte ficar alcançável — quem registra o jantar depois da
- * meia-noite precisa dele — mas nunca passa de amanhã, porque registrar num futuro distante é erro
- * de toque, não intenção. Quando a data escolhida é hoje, a janela vira a semana que passou, que é
- * o que se quer olhar na maior parte das vezes.
- */
-function weekWindow(date: string, today: string) {
-  const tomorrow = addPlainDateDays(today, 1)
-  const start = comparePlainDates(date, today) >= 0
-    ? addPlainDateDays(date, -6)
-    : addPlainDateDays(date, -3)
-  return Array.from({ length: 7 }, (_, index) => addPlainDateDays(start, index))
-    .filter((candidate) => comparePlainDates(candidate, tomorrow) <= 0)
-}
 
 function formatTime(value: string | null) {
   return value ? value.slice(0, 5) : null
@@ -108,11 +90,17 @@ function RowActionSheet({ busy, danger, onCancel, onConfirmDelete, onDuplicate, 
   )
 }
 
-export function DiaryPage() {
+/**
+ * A superfície de REGISTRO do dia: refeições, água, totais e o fechamento.
+ *
+ * Deixou de ser uma tela e passou a ser um bloco da tela Hoje. As duas tinham o mesmo seletor de
+ * data, o mesmo indicador de estado e um resumo nutricional cada — o mesmo dia contado duas vezes,
+ * em dois slots da barra, com o mesmo título quando a data era hoje. A data agora vem de quem
+ * hospeda, que é o único lugar onde ela é escolhida.
+ */
+export function DiaryRegistration({ date }: { date: string }) {
   const { locale, timeZone, today } = useProfileTimeContext()
   const [searchParams, setSearchParams] = useSearchParams()
-  const requestedDate = searchParams.get('date')
-  const date = requestedDate && isPlainDate(requestedDate) ? requestedDate : today
   const [editor, setEditor] = useState<Editor>(null)
   const [fastingConfirmed, setFastingConfirmed] = useState(false)
   const queryClient = useQueryClient()
@@ -210,16 +198,6 @@ export function DiaryPage() {
     setSearchParams(next, { replace: true })
   }, [resetWater, searchParams, setSearchParams])
 
-  function selectDate(nextDate: string) {
-    const params = new URLSearchParams()
-    if (nextDate !== today) params.set('date', nextDate)
-    closeEditor()
-    // `replace` porque percorrer a semana com as setas empilhava uma entrada de histórico por dia:
-    // depois de sete toques, sair da tela exigia sete toques em voltar. Num aplicativo instalado,
-    // onde voltar é o gesto mais usado, isso transformava a navegação de data numa armadilha.
-    setSearchParams(params, { replace: true })
-  }
-
   if (query.isPending) {
     return <div className="catalog-state" role="status"><span className="route-spinner" /><p>Carregando diário…</p></div>
   }
@@ -232,45 +210,7 @@ export function DiaryPage() {
   const open = dayOpen
 
   return (
-    <main id="conteudo">
-      <header className="page-heading diary-heading">
-        <div>
-          <p className="eyebrow">Registro diário</p>
-          <h1>{date === today ? 'Hoje' : 'Diário'}</h1>
-          <p className="heading-copy date-copy">{displayDate(date, locale)}</p>
-        </div>
-        <div className="date-navigation">
-          {/* O seletor de data nativo vive sob o botão de calendário: invisível, mas ainda um
-              `<input type="date">` completo, com o rótulo que o leitor de tela lê. Assim o alvo tem
-              44px e o teclado continua chegando ao campo. */}
-          <label className="date-picker-button" htmlFor="diary-date">
-            <span className="visually-hidden">Selecionar data</span>
-            <Icon name="calendar" size={18} />
-            <input id="diary-date" onChange={(event) => selectDate(event.target.value)} type="date" value={date} />
-          </label>
-          {date !== today ? <button className="text-button" onClick={() => selectDate(today)} type="button">Ir para hoje</button> : null}
-        </div>
-      </header>
-
-      {/* Trocar de dia era um toque num alvo de 34px sem contexto nenhum: não dava para saber que
-          dia se estava deixando nem para onde se ia. A faixa mostra a semana e resolve em um toque,
-          com o dia atual marcado. */}
-      <nav aria-label="Selecionar dia" className="day-strip">
-        {weekWindow(date, today).map((candidate) => (
-          <button
-            aria-label={formatPlainDate(candidate, locale, { dateStyle: 'full' })}
-            aria-pressed={candidate === date}
-            className={`day-strip-item${candidate === date ? ' selected' : ''}${candidate === today ? ' today' : ''}`}
-            key={candidate}
-            onClick={() => selectDate(candidate)}
-            type="button"
-          >
-            <span>{formatPlainDate(candidate, locale, { weekday: 'short' }).replace('.', '')}</span>
-            <strong>{formatPlainDate(candidate, locale, { day: 'numeric' })}</strong>
-          </button>
-        ))}
-      </nav>
-
+    <>
       <div className="diary-status-row">
         <span className={open ? 'diary-status open' : 'diary-status closed'}>{log ? statusLabel(log.status) : 'Sem registro'}</span>
         {log?.closedAt ? <span>Fechado em {formatInstantDateTime(log.closedAt, locale, timeZone)}</span> : <span>Alterações são salvas imediatamente</span>}
@@ -291,15 +231,13 @@ export function DiaryPage() {
         </section>
       ) : (
         <>
-          <DiarySummary log={log} />
-
           {!open ? (
             <div className="closed-notice" role="note"><strong>Histórico confirmado</strong><span>As mutações estão bloqueadas. Os valores abaixo são snapshots preservados; reabra o dia para alterar.</span></div>
           ) : null}
 
           <section aria-labelledby="meals-title" className="diary-section">
             <div className="section-title-row diary-section-heading">
-              <div><p className="eyebrow">Alimentação</p><h2 id="meals-title">Refeições</h2></div>
+              <div><h2 id="meals-title">Refeições</h2></div>
               {open ? <button className="compact-button" onClick={() => openEditor({ type: 'meal' })} type="button">+ Refeição</button> : null}
             </div>
             {log.meals.length === 0 ? <div className="inline-empty-state"><p>Nenhuma refeição.</p><span>Adicione uma refeição para começar o registro alimentar.</span></div> : (
@@ -340,10 +278,16 @@ export function DiaryPage() {
           </section>
 
           <section aria-labelledby="water-title" className="diary-section water-section surface-card">
-            <div className="section-title-row diary-section-heading"><div><p className="eyebrow">Hidratação</p><h2 id="water-title">Água · {number(log.waterTotalMl / 1000, 2)} L</h2></div></div>
+            <div className="section-title-row diary-section-heading"><div><h2 id="water-title">Água · {number(log.waterTotalMl / 1000, 2)} L</h2></div></div>
             {open ? <div className="water-buttons">{[250, 500, 750, 1000].map((volume) => <button key={volume} onClick={() => water.mutate(volume)} type="button">+{volume === 1000 ? '1 L' : `${volume} ml`}</button>)}</div> : null}
             {log.waterLogs.length > 0 ? <ol className="water-history">{log.waterLogs.map((entry) => <li key={entry.id}><time dateTime={entry.loggedAt}>{formatInstantTime(entry.loggedAt, locale, timeZone)}</time><strong>{number(entry.volumeMl, 0)} ml</strong>{open ? <button aria-label={`Excluir água de ${number(entry.volumeMl, 0)} ml`} className="icon-button danger-icon" onClick={() => openEditor({ type: 'water-actions', entry })} type="button">×</button> : null}</li>)}</ol> : <p className="inline-hint">Nenhum registro de água.</p>}
           </section>
+
+          {/* Os totais do dia fecham o que está acima em vez de anunciá-lo. Antes da fusão este bloco
+              abria o Diário; agora o anel da tela já mostra consumo contra meta na primeira dobra, e
+              repetir macro logo abaixo dele seria o mesmo fato duas vezes. Aqui ele soma — e é o
+              único lugar onde sódio aparece. */}
+          <DiarySummary log={log} showCalories={false} />
         </>
       )}
 
@@ -392,6 +336,6 @@ export function DiaryPage() {
         </DiaryDialog>
       ) : null}
       {editor?.type === 'quick' && open ? <DiaryDialog error={dialogError} onClose={closeEditor} title="Cadastro rápido"><div className="quick-action-grid"><button onClick={() => openEditor({ type: 'meal' })} type="button"><strong>Refeição</strong><span>Criar novo agrupamento</span></button>{log?.meals.map((meal) => <button key={meal.id} onClick={() => openEditor({ type: 'item', mealId: meal.id })} type="button"><strong>Item em {meal.name}</strong><span>Alimento ou receita</span></button>)}<button onClick={() => water.mutate(250, { onSuccess: () => setEditor(null) })} type="button"><strong>+250 ml</strong><span>Registrar água agora</span></button><button onClick={() => openEditor({ type: 'copy' })} type="button"><strong>Copiar</strong><span>Refeição ou dia anterior</span></button></div></DiaryDialog> : null}
-    </main>
+    </>
   )
 }

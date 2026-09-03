@@ -186,6 +186,10 @@ describe('painéis determinísticos', () => {
         }
         return jsonResponse(openDaily)
       }
+      // A tela Hoje hospeda o registro do dia desde a fusão, então busca o diário também.
+      if (path.startsWith('/api/v1/daily-logs/')) {
+        return new Response(JSON.stringify({ title: 'Registro não encontrado', status: 404 }), { status: 404, headers: { 'Content-Type': 'application/problem+json' } })
+      }
       throw new Error(`Requisição não esperada: ${path}`)
     })
     const user = setupUser()

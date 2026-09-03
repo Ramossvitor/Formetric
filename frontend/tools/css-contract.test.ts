@@ -41,22 +41,43 @@ describe('contrato das folhas de estilo globais', () => {
     expect(baseline.filter((key) => !present.has(key))).toEqual([])
   })
 
-  it('enxerga as quatro classes de defeito', () => {
+  it('enxerga as cinco classes de defeito', () => {
     // Guarda o próprio scanner contra um regex quebrado: sem isto, um scanner cego aprovaria tudo e
     // os dois testes acima ficariam verdes para sempre — um silêncio que se pareceria com sucesso.
     // O exercício é contra um CSS de mentira, e não contra as folhas reais, justamente porque elas
     // agora estão limpas: um teste que dependesse dos defeitos existirem morreria ao corrigi-los.
+    // Um defeito por regra, de propósito. O campo usa 0,9375rem — 15px, que ESTÁ na escala e ainda
+    // assim está abaixo do piso de 16px: é o único tamanho que separa as duas regras, e usá-lo aqui
+    // impede que este teste passe por acidente porque uma delas cobriu a falha da outra.
     const defeituoso = `
-      .campo input { font-size: 0.9rem; }
+      .campo input { font-size: 0.9375rem; }
       .rotulo select { font: inherit; }
       .tela { min-height: 100vh; }
       .barra { padding-bottom: env(safe-area-inset-bottom); }
+      .cartao { padding: 17px; }
     `
     expect(scanCss(defeituoso, 'falso.css').map(({ rule }) => rule).sort()).toEqual([
       'altura-de-viewport-fixa',
       'controle-abaixo-de-16px',
       'controle-sem-tamanho-proprio',
       'safe-area-sem-fallback',
+      'valor-fora-da-escala',
+    ])
+  })
+
+  it('cobra a escala em cada família de propriedade', () => {
+    // O defeito que motivou a quinta regra não é um valor errado: são onze recuos de cartão e
+    // dezesseis raios coexistindo. Cada família precisa da própria régua, senão 22px passa por ser
+    // um espaçamento válido quando o que se está escrevendo é um raio.
+    const foraDaEscala = `
+      .a { padding: 15px; }
+      .b { gap: 9px; }
+      .c { margin-top: 21px; }
+      .d { border-radius: 22px; }
+      .e { font-size: 0.77rem; }
+    `
+    expect(scanCss(foraDaEscala, 'falso.css').map(({ key }) => key.split(':').at(-1))).toEqual([
+      'padding', 'gap', 'margin-top', 'border-radius', 'font-size',
     ])
   })
 
@@ -64,12 +85,26 @@ describe('contrato das folhas de estilo globais', () => {
     // O outro lado da guarda: um scanner cego demais é inútil, mas um que acusa CSS válido é pior,
     // porque ensina a ignorar a falha. `font: inherit` seguido de tamanho explícito é o padrão do
     // arquivo; `env()` com fallback e `svh`/`dvh` são exatamente o que a reforma pede.
+    //
+    // Na escala entram também os casos que a régua não cobre e ainda assim estão certos: o token,
+    // o zero, o fio de 1px, a pílula de 999px, a porcentagem, o `calc()` cujo literal é um degrau,
+    // a lista de quatro valores toda na régua, e a reserva de coluna, que é largura de um controle
+    // sobreposto e não respiro.
     const correto = `
       .campo input { font: inherit; font-size: var(--field-font); }
       .estado input:focus { border-color: red; }
       .tela { min-height: 100svh; }
       .sheet { max-height: calc(100dvh - 32px); }
       .barra { padding-bottom: env(safe-area-inset-bottom, 0px); }
+      .token { padding: var(--space-4) var(--space-5); }
+      .zero { margin: 0 auto; }
+      .fio { border-radius: 1px; }
+      .pilula { border-radius: 999px; }
+      .circulo { border-radius: 50%; }
+      .conta { padding-bottom: calc(20px + var(--safe-bottom)); }
+      .lista { border-radius: 24px 24px 0 0; }
+      .reserva { padding: 12px 60px 12px 12px; }
+      .degrau { font-size: 1.0625rem; }
     `
     expect(scanCss(correto, 'falso.css')).toEqual([])
   })

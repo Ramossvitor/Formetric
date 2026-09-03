@@ -21,7 +21,6 @@ export function NotFoundPage() {
         </p>
         <div className="empty-actions">
           <Link className="submit-button" to="/">Ir para Hoje</Link>
-          <Link className="secondary-button" to="/diary">Abrir o diário</Link>
         </div>
       </section>
     </main>
