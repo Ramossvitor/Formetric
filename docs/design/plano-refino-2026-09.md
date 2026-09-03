@@ -625,3 +625,8 @@ A fusão revelou três defeitos que ela mesma criou, e os três foram corrigidos
 - **Aperto pré-existente na faixa 840–1100px:** o card de avaliação corporal quebra o título e
   "Dados insuficientes" parte no meio da palavra. Não são falhas de guarda; são densidade e
   tipografia numa faixa que agora, pela primeira vez, está sob medição.
+- **As duas correções de paridade do desktop (seção 4):** o `.primary-action` do sidebar ainda é
+  "Novo alimento" e não abre o `QuickAddSheet`, e o bloco de perfil ainda não é um link. E a
+  **primeira camada do FAB** continua navegando: nenhuma das ações executa no shell, a água
+  inclusive. As três dependem de decidir o que o sheet faz com o dia selecionado quando o usuário
+  não está em `/`, e ficaram para a passada seguinte.
