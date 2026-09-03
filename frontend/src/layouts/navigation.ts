@@ -20,7 +20,7 @@ export interface NavigationDestination {
 
 export const NAVIGATION: NavigationDestination[] = [
   { label: 'Hoje', icon: 'home', to: '/' },
-  { label: 'Diário', icon: 'book', to: '/diary' },
+  { label: 'Análises', icon: 'calendar', to: '/analytics' },
   { label: 'Evolução', icon: 'trend', to: '/progress' },
   { label: 'Mais', icon: 'settings', to: '/more' },
 ]
@@ -32,9 +32,12 @@ export const NAVIGATION: NavigationDestination[] = [
  * Sem isso, uma rota nova cujo nome comece igual ao de outra acenderia o slot errado em silêncio.
  */
 const SLOT_PREFIXES: Array<[slot: string, prefixes: string[]]> = [
-  ['/diary', ['/diary']],
-  ['/progress', ['/progress', '/workouts', '/analytics']],
+  ['/analytics', ['/analytics']],
+  ['/progress', ['/progress', '/workouts']],
   ['/more', ['/more', '/foods', '/recipes', '/settings', '/profile']],
+  // O registro do dia mora na tela Hoje desde a fusão; /diary redireciona para lá e, enquanto a
+  // navegação acontece, o slot aceso já é o certo.
+  ['/', ['/diary']],
 ]
 
 function startsWithSegment(pathname: string, prefix: string) {

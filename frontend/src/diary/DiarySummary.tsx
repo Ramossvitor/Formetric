@@ -83,7 +83,15 @@ function latestClosureConfirmsFasting(log: DailyLog) {
   return log.status === 'CLOSED' && latestClosure?.fastingConfirmed === true
 }
 
-export function DiarySummary({ log }: { log: DailyLog }) {
+/**
+ * Totais do dia.
+ *
+ * `showCalories` existe por causa da fusão: na tela Hoje o anel já mostra o consumo contra a meta
+ * na primeira dobra, e repetir o mesmo número no rodapé seria o mesmo fato duas vezes na mesma
+ * tela. O que só existe aqui é a grade — sódio, em particular, não aparece em nenhum outro lugar.
+ * O padrão continua sendo mostrar tudo, para quem renderiza o componente sozinho.
+ */
+export function DiarySummary({ log, showCalories = true }: { log: DailyLog; showCalories?: boolean }) {
   const energy = log.energyBalanceKcal
   const progress = [...log.goalProgress].sort(
     (first, second) => nutrientOrder[first.nutrient] - nutrientOrder[second.nutrient],
@@ -102,6 +110,7 @@ export function DiarySummary({ log }: { log: DailyLog }) {
 
   return (
     <section aria-labelledby="diary-summary-title" className="diary-summary surface-card">
+      {showCalories ? (
       <div className="diary-calories">
         <div>
           <p className="eyebrow">Consumido</p>
@@ -122,6 +131,7 @@ export function DiarySummary({ log }: { log: DailyLog }) {
           {log.tdeeKcal != null ? <small>TDEE {number(log.tdeeKcal, 0)} kcal</small> : null}
         </div>
       </div>
+      ) : null}
       <dl className="diary-macro-grid">
         <div><dt>Proteína</dt><dd>{nutritionAmount(log.totals.proteinG, 'g')}</dd></div>
         <div><dt>Carboidratos</dt><dd>{nutritionAmount(log.totals.carbohydrateG, 'g')}</dd></div>

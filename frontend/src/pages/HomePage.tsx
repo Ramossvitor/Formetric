@@ -15,7 +15,8 @@ import { Icon } from '../components/Icon'
 import { formatGoalComparison, formatGoalRange } from '../diary/format'
 import { useQuickWater } from '../diary/useQuickWater'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
-import { isPlainDate } from '../time/plainDate'
+import { formatPlainDate, isPlainDate } from '../time/plainDate'
+import { DiaryRegistration, weekWindow } from './DiaryPage'
 
 const macroDefinitions: Array<{
   nutrient: MacroNutrientType
@@ -209,10 +210,6 @@ function DayOverview({ data, onQuickWater, quickWaterPending }: {
         <span aria-hidden="true" className="day-overview-chevron"><Icon name="chevron" size={16} /></span>
       </Link>
 
-      <div className="day-overview-footer">
-        <Link to="/analytics/monthly">Ver mês</Link>
-        <Link to="/analytics/charts">Gráficos</Link>
-      </div>
     </div>
   )
 }
@@ -262,8 +259,15 @@ function DailyDashboard({ data, onQuickWater, quickWaterPending }: {
             <div><p className="eyebrow">Consumido</p><h2 id="resumo-nutricional">Nutrição do dia</h2></div>
           </div>
 
+          {/* O rótulo do anel carrega o NÚMERO, não só o assunto. Com meta cadastrada quem anuncia o
+              valor é o `aria-valuetext`; sem meta não há progresso a anunciar, e o rótulo estático
+              que existia aqui ("Consumo calórico em relação à meta nominal") deixava o número mais
+              importante do dia como um `<strong>` sem nome acessível. É também onde o teste de fluxo
+              passa a encontrá-lo, desde que o total deixou de ter um `<h2>` próprio com a fusão. */}
           <div
-            aria-label="Consumo calórico em relação à meta nominal"
+            aria-label={calories == null
+              ? 'Sem consumo registrado neste dia'
+              : `${formatNumber(calories)} kcal consumidas${data.calorieTargetKcal == null ? ', sem meta configurada' : ''}`}
             aria-valuemax={hasCalorieProgress ? data.calorieTargetKcal! : undefined}
             aria-valuemin={hasCalorieProgress ? 0 : undefined}
             aria-valuenow={hasCalorieProgress ? Math.min(calories!, data.calorieTargetKcal!) : undefined}
@@ -372,22 +376,52 @@ export function HomePage() {
 
   return (
     <main id="conteudo">
-      <header className="page-heading analytics-page-heading">
+      {/* `diary-heading` e não `analytics-page-heading`: a segunda traz uma regra que empilha o
+          cabeçalho abaixo de 520px, escrita quando o controle de data era um campo de largura plena
+          que não cabia ao lado do título. O controle agora é a pílula de 44px, que cabe — e empilhada
+          ela virava um botão órfão sob o h1. */}
+      <header className="page-heading diary-heading">
         <div>
           <p className="eyebrow">Resumo diário</p>
           <h1>{date === today ? 'Hoje' : formatLongDate(date, locale)}</h1>
         </div>
-        <div className="analytics-date-group">
-          <label className="analytics-date-control">
-            <span>Data do resumo</span>
-            <input max={today} onChange={(event) => selectDate(event.target.value)} type="date" value={date} />
+        <div className="date-navigation">
+          {/* O seletor nativo vive sob o botão de calendário: invisível, mas ainda um
+              `<input type="date">` completo e rotulado. O alvo tem 44px e o teclado continua
+              chegando ao campo. */}
+          <label className="date-picker-button" htmlFor="resumo-date">
+            <span className="visually-hidden">Selecionar data</span>
+            <Icon name="calendar" size={18} />
+            <input id="resumo-date" max={today} onChange={(event) => selectDate(event.target.value)} type="date" value={date} />
           </label>
           {date === today ? null : (
-            <button className="text-button" onClick={() => selectDate(today)} type="button">Voltar para hoje</button>
+            <button className="text-button" onClick={() => selectDate(today)} type="button">Ir para hoje</button>
           )}
         </div>
       </header>
 
+      {/* Trocar de dia em um toque, com a semana visível. Veio do Diário junto com o registro: a
+          faixa é o melhor controle de data que o app tem, e mantê-la só numa das duas telas era
+          parte do que fazia as duas parecerem telas diferentes para o mesmo dia. */}
+      <nav aria-label="Selecionar dia" className="day-strip">
+        {weekWindow(date, today).map((candidate) => (
+          <button
+            aria-label={formatPlainDate(candidate, locale, { dateStyle: 'full' })}
+            aria-pressed={candidate === date}
+            className={`day-strip-item${candidate === date ? ' selected' : ''}${candidate === today ? ' today' : ''}`}
+            key={candidate}
+            onClick={() => selectDate(candidate)}
+            type="button"
+          >
+            <span>{formatPlainDate(candidate, locale, { weekday: 'short' }).replace('.', '')}</span>
+            <strong>{formatPlainDate(candidate, locale, { day: 'numeric' })}</strong>
+          </button>
+        ))}
+      </nav>
+
+      {/* Duas consultas, duas portas independentes. O resumo é derivado e o registro é o dado:
+          pendurar o segundo no primeiro faria uma falha no cálculo do dia esconder as refeições
+          e o botão de água — o registro sumiria por causa de um número que ele mesmo alimenta. */}
       {pending ? (
         <div className="catalog-state" role="status"><span className="route-spinner" /><p>Calculando o resumo diário…</p></div>
       ) : error ? (
@@ -402,6 +436,8 @@ export function HomePage() {
           />
         </>
       ) : null}
+
+      <DiaryRegistration date={date} />
     </main>
   )
 }

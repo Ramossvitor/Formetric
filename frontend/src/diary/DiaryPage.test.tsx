@@ -7,6 +7,7 @@ import { fixedProfileTimeContext, seedProfileTimeContext } from '../test/profile
 import type { ProfileTimeContext } from '../time/api'
 import { parseInstant } from '../time/instant'
 import { clearCsrfToken } from '../api/http'
+import type { DailyAnalytics } from '../analytics/api'
 import { analyticsQueryKey } from '../analytics/queries'
 
 const session = {
@@ -60,6 +61,31 @@ function page(content: unknown[]) {
   return { content, page: 0, size: 100, totalElements: content.length, totalPages: content.length ? 1 : 0 }
 }
 
+/**
+ * Resumo do dia vazio, para os testes do registro.
+ *
+ * O registro deixou de ser uma tela e passou a ser um bloco da tela Hoje, que também busca
+ * `/api/v1/analytics/daily`. Estes testes não afirmam nada sobre o resumo — só precisam que ele
+ * responda, para o mock não estourar e para o painel não montar com um objeto pela metade.
+ */
+const emptyDaily: DailyAnalytics = {
+  date: '2026-08-12',
+  diaryStatus: 'MISSING',
+  fastingConfirmed: false,
+  historicalEligible: false,
+  foodItemCount: 0,
+  waterEntryCount: 0,
+  nutrition: { caloriesKcal: null, proteinG: null, carbohydrateG: null, fatG: null, fiberG: null, waterMl: null },
+  tdeeKcal: null,
+  energyBalanceKcal: null,
+  projectedEnergyBalanceKcal: null,
+  energyBalanceAvailability: 'MISSING_TDEE',
+  calorieTargetKcal: null,
+  goalProgress: [],
+  weightKg: null,
+  workouts: { sessionCount: 0, trainingDays: 0, totalDurationMinutes: 0, sessionsPerWeek: null, modalities: [] },
+}
+
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), { status: 200, ...init, headers: { 'Content-Type': 'application/json', ...init.headers } })
 }
@@ -85,6 +111,7 @@ describe('diário', () => {
   it('resolve hoje e o cadastro rápido pelo contexto do perfil, não pelo navegador', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return notFound()
       throw new Error(`Requisição não esperada: ${path}`)
@@ -92,7 +119,7 @@ describe('diário', () => {
 
     renderDiary('/diary?action=quick')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Diário' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
     expect(await screen.findByRole('dialog', { name: 'Cadastro rápido' })).toBeInTheDocument()
     expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/daily-logs/2026-08-12')).toBe(true)
   })
@@ -112,6 +139,7 @@ describe('diário', () => {
     })
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/daily-logs/2026-08-12') return jsonResponse(closed)
       throw new Error(`Requisição não esperada: ${path}`)
@@ -127,6 +155,7 @@ describe('diário', () => {
     const created = dailyLog({ meals: [meal()] })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'diary-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return notFound()
@@ -136,7 +165,10 @@ describe('diário', () => {
     const user = setupUser()
     const analyticsKey = [...analyticsQueryKey, 'daily', '2026-08-12'] as const
     const { queryClient } = renderDiary()
-    queryClient.setQueryData(analyticsKey, { nutrition: { caloriesKcal: 0 } })
+    // Um payload VÁLIDO, não um esboço: a tela que hospeda o registro monta o painel de resumo a
+    // partir desta chave, e um objeto pela metade derrubava a página inteira no ErrorBoundary. O que
+    // o teste afirma continua sendo a invalidação da chave, no fim.
+    queryClient.setQueryData(analyticsKey, emptyDaily)
 
     expect(await screen.findByRole('heading', { name: 'Nenhum registro neste dia' })).toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Adicionar refeição' }).at(-1)!)
@@ -147,7 +179,10 @@ describe('diário', () => {
     const call = fetchMock.mock.calls.find(([path, init]) => path === '/api/v1/daily-logs/2026-08-12/meals' && init?.method === 'POST')
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({ name: 'Almoço', mealTime: null, position: null, requestId: '11111111-1111-4111-8111-111111111111' })
     expect(new Headers(call?.[1]?.headers).get('X-XSRF-TOKEN')).toBe('diary-csrf')
-    expect(queryClient.getQueryState(analyticsKey)?.isInvalidated).toBe(true)
+    // O resumo agora tem observador na própria tela, então invalidar não deixa a chave marcada:
+    // dispara refetch na hora. O que se afirma é o efeito, e não o estado intermediário — o resumo
+    // foi buscado de novo depois de a refeição entrar.
+    expect(fetchMock.mock.calls.filter(([path]) => String(path).startsWith('/api/v1/analytics/daily')).length).toBeGreaterThan(1)
   })
 
   it('adiciona item usando servingOptionId e snapshot retornado', async () => {
@@ -161,6 +196,7 @@ describe('diário', () => {
     const updated = dailyLog({ meals: [updatedMeal], totals: itemTotals, energyBalanceKcal: -2888 })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'item-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12') return jsonResponse(initial)
@@ -196,6 +232,7 @@ describe('diário', () => {
     const withWater = dailyLog({ waterLogs: [{ id: 'water-1', loggedAt: '2026-08-12T14:30:00Z', volumeMl: 500 }], waterTotalMl: 500 })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'water-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12') return jsonResponse(initial)
@@ -229,6 +266,7 @@ describe('diário', () => {
     const emptied = dailyLog()
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'meal-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(withMeal)
@@ -256,6 +294,7 @@ describe('diário', () => {
     const reopened = dailyLog({ stateEvents: [{ type: 'REOPENED', fastingConfirmed: false, actorUserId: 'user-1', occurredAt: '2026-08-13T08:00:00Z' }] })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'close-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12') return jsonResponse(initial)
@@ -285,6 +324,7 @@ describe('diário', () => {
     const closed = dailyLog({ ...waterOnly, status: 'CLOSED', closedAt: '2026-08-12T23:00:00Z' })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'close-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12') return jsonResponse(waterOnly)
@@ -306,6 +346,7 @@ describe('diário', () => {
     const target = dailyLog({ meals: [meal({ id: 'copied-meal' })] })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'copy-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(dailyLog())
@@ -334,6 +375,7 @@ describe('diário', () => {
     const target = dailyLog({ meals: [meal({ id: 'copied-meal' })] })
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'copy-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(dailyLog())
@@ -354,6 +396,7 @@ describe('diário', () => {
     const initial = dailyLog({ meals: [] })
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'diary-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(initial)
@@ -379,6 +422,7 @@ describe('diário', () => {
     const initial = dailyLog({ meals: [] })
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'diary-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(initial)
@@ -405,6 +449,7 @@ describe('diário', () => {
     const initial = dailyLog({ meals: [] })
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const path = String(input)
+      if (path.startsWith('/api/v1/analytics/daily')) return jsonResponse(emptyDaily)
       if (path === '/api/v1/auth/session') return jsonResponse(session)
       if (path === '/api/v1/auth/csrf') return jsonResponse({ token: 'diary-csrf', headerName: 'X-XSRF-TOKEN' })
       if (path === '/api/v1/daily-logs/2026-08-12' && !init?.method) return jsonResponse(initial)
