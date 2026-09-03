@@ -11,11 +11,11 @@
   top: 12px;
   left: 12px;
   z-index: var(--z-skip);
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-chip);
   color: #fff;
   background: var(--primary-strong);
-  font-size: 0.875rem;
+  font-size: var(--fs-footnote);
   font-weight: 700;
   text-decoration: none;
   transform: translateY(-160%);
@@ -37,7 +37,7 @@
   z-index: var(--z-sidebar);
   display: none;
   width: 264px;
-  padding: 32px 22px 24px;
+  padding: var(--space-7) var(--space-6) var(--space-6);
   border-right: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(18px);
@@ -47,9 +47,9 @@
   display: inline-flex;
   min-height: 44px;
   align-items: center;
-  gap: 11px;
+  gap: var(--space-3);
   color: var(--text);
-  font-size: 1.22rem;
+  font-size: var(--fs-title);
   font-weight: 700;
   letter-spacing: -0.035em;
   text-decoration: none;
@@ -61,7 +61,7 @@
   width: 32px;
   height: 32px;
   place-items: center;
-  border-radius: 10px 10px 5px 10px;
+  border-radius: var(--radius-chip) var(--radius-chip) 5px var(--radius-chip);
   background: var(--primary);
   transform: rotate(-5deg);
 }
@@ -86,19 +86,19 @@
 
 .sidebar-nav {
   display: grid;
-  gap: 7px;
-  margin-top: 54px;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
 }
 
 .nav-link {
   display: flex;
   min-height: 48px;
   align-items: center;
-  gap: 13px;
-  padding: 0 14px;
-  border-radius: 13px;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
-  font-size: 0.92rem;
+  font-size: var(--fs-body);
   font-weight: 600;
   text-decoration: none;
   transition: color 150ms ease, background 150ms ease, transform 150ms ease;
@@ -123,21 +123,21 @@
   min-height: 50px;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  margin-top: 24px;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   color: #fff;
   background: var(--primary-strong);
   box-shadow: 0 9px 22px color-mix(in srgb, var(--primary-strong) 22%, transparent);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: var(--fs-body);
   font-weight: 700;
   text-decoration: none;
 }
 
 .nav-section-label {
-  margin: 20px 14px 3px;
+  margin: var(--space-5) var(--space-4) var(--space-1);
   color: var(--text-soft);
   font-size: var(--fs-caption);
   font-weight: 700;
@@ -162,7 +162,7 @@
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-chip);
   color: var(--text-soft);
   background: transparent;
   cursor: pointer;
@@ -181,7 +181,7 @@
 }
 
 .sidebar-error {
-  margin: 10px 0 0;
+  margin: var(--space-3) 0 0;
   color: var(--danger);
   font-size: var(--fs-footnote);
   line-height: 1.4;
@@ -196,7 +196,7 @@
 }
 
 .sidebar-profile strong {
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
 .sidebar-profile small {
@@ -281,7 +281,7 @@
   display: grid;
   min-width: 0;
   flex: 1;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .install-prompt-copy strong {
@@ -314,9 +314,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
-  padding: 10px calc(var(--page-gutter) + var(--safe-right)) 10px calc(var(--page-gutter) + var(--safe-left));
+  padding: var(--space-3) calc(var(--page-gutter) + var(--safe-right)) var(--space-3) calc(var(--page-gutter) + var(--safe-left));
   color: var(--orange-text);
   background: var(--orange-soft);
   font-size: var(--fs-footnote);
@@ -410,29 +410,29 @@ h2 {
   display: none;
   min-height: 44px;
   align-items: center;
-  gap: 9px;
-  padding: 0 13px;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--surface);
   box-shadow: var(--shadow);
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: var(--fs-body);
   font-weight: 600;
 }
 
 .demo-notice {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding: 10px 13px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-3);
   border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: color-mix(in srgb, var(--primary-soft) 58%, var(--surface));
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
   line-height: 1.45;
 }
 
@@ -446,7 +446,7 @@ h2 {
   height: 28px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 9px;
+  border-radius: var(--radius-chip);
   color: var(--accent-strong);
   background: var(--surface);
 }
@@ -490,8 +490,8 @@ h2 {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 14px;
-  gap: 16px;
+  margin-bottom: var(--space-4);
+  gap: var(--space-4);
 }
 
 .section-heading.compact {
@@ -514,7 +514,7 @@ h2 {
 
 .status-chip {
   min-height: 27px;
-  padding: 0 10px;
+  padding: 0 var(--space-3);
   color: var(--success-text);
   background: var(--primary-soft);
   font-size: var(--fs-caption);
@@ -548,7 +548,7 @@ h2 {
 }
 
 .calorie-progress strong {
-  font-size: 2rem;
+  font-size: var(--fs-numeral);
   font-weight: 700;
   letter-spacing: -0.055em;
   line-height: 1;
@@ -628,7 +628,7 @@ h2 {
   width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 10px;
+  border-radius: var(--radius-chip);
   color: var(--success);
   background: var(--primary-soft);
 }
@@ -645,7 +645,7 @@ h2 {
 
 .energy-balance strong {
   margin-top: 1px;
-  font-size: 0.82rem;
+  font-size: var(--fs-footnote);
 }
 
 .estimate-label {
@@ -679,7 +679,7 @@ h2 {
   gap: var(--space-4);
   margin-bottom: var(--space-2);
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .macro-meta > span:first-child {
@@ -694,7 +694,7 @@ h2 {
 
 .macro-meta strong {
   color: var(--text);
-  font-size: 0.86rem;
+  font-size: var(--fs-footnote);
 }
 
 /* `.linear-progress` e as cinco variantes de `.progress-fill` saíram: seis regras sem um único
@@ -882,7 +882,7 @@ h2 {
   border-radius: 50%;
   color: var(--success);
   background: var(--primary-soft);
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
   font-weight: 700;
 }
 
@@ -909,7 +909,7 @@ h2 {
 }
 
 .cycle-copy strong {
-  font-size: 1.08rem;
+  font-size: var(--fs-headline);
 }
 
 .cycle-progress {
@@ -1079,7 +1079,7 @@ h2 {
   width: 100%;
   min-height: var(--fill-h);
   place-items: center;
-  padding: 24px 18px;
+  padding: var(--space-6) var(--space-5);
   background:
     radial-gradient(circle at 20% 12%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 30%),
     radial-gradient(circle at 85% 82%, color-mix(in srgb, var(--blue) 8%, transparent), transparent 32%),
@@ -1088,9 +1088,9 @@ h2 {
 
 .auth-card {
   width: min(100%, 460px);
-  padding: 25px;
+  padding: var(--space-6);
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: var(--radius-hero);
   background: var(--surface);
   box-shadow: var(--shadow-floating);
 }
@@ -1100,7 +1100,7 @@ h2 {
 }
 
 .auth-heading {
-  margin: 38px 0 27px;
+  margin: var(--space-8) 0 var(--space-6);
 }
 
 .auth-heading.centered {
@@ -1108,14 +1108,14 @@ h2 {
 }
 
 .auth-heading h1 {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
   font-size: clamp(1.8rem, 7vw, 2.35rem);
 }
 
 .auth-heading p:last-child {
   margin-bottom: 0;
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: var(--fs-body);
   line-height: 1.6;
 }
 
@@ -1127,12 +1127,12 @@ h2 {
 
 .field-group {
   display: grid;
-  gap: 7px;
+  gap: var(--space-2);
 }
 
 .field-group label {
   color: var(--text);
-  font-size: 0.78rem;
+  font-size: var(--fs-body);
   font-weight: 700;
 }
 
@@ -1194,9 +1194,9 @@ h2 {
 .form-error,
 .form-success {
   margin: 0;
-  padding: 11px 13px;
-  border-radius: 11px;
-  font-size: 0.76rem;
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-chip);
+  font-size: var(--fs-caption);
   line-height: 1.45;
 }
 
@@ -1259,7 +1259,7 @@ h2 {
 .auth-footnote {
   margin: 24px 0 0;
   color: var(--text-soft);
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
   line-height: 1.5;
   text-align: center;
 }
@@ -1273,12 +1273,12 @@ h2 {
   display: grid;
   width: 58px;
   height: 58px;
-  margin: 37px auto -17px;
+  margin: var(--space-8) auto calc(-1 * var(--space-4));
   place-items: center;
-  border-radius: 18px;
+  border-radius: var(--radius-card);
   color: var(--success);
   background: var(--primary-soft);
-  font-size: 1.4rem;
+  font-size: var(--fs-title);
   font-weight: 700;
   transform: rotate(-4deg);
 }
@@ -1404,7 +1404,7 @@ h2 {
 
 .settings-link strong {
   margin-bottom: 4px;
-  font-size: 0.84rem;
+  font-size: var(--fs-footnote);
 }
 
 .settings-link small {
@@ -1415,7 +1415,7 @@ h2 {
 
 .settings-link > span:last-child {
   color: var(--text-soft);
-  font-size: 1.5rem;
+  font-size: var(--fs-title);
 }
 
 .profile-section-heading {
@@ -1513,7 +1513,7 @@ h2 {
   margin: 0;
   overflow-wrap: anywhere;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
 .empty-state {
@@ -1521,22 +1521,22 @@ h2 {
   min-height: 300px;
   place-items: center;
   align-content: center;
-  gap: 9px;
-  padding: 30px;
-  border-radius: 20px;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border-radius: var(--radius-card);
   color: var(--text-muted);
   text-align: center;
 }
 
 .empty-state > span {
   color: var(--accent-strong);
-  font-size: 3rem;
+  font-size: var(--fs-numeral);
 }
 
 .empty-state p {
   max-width: 430px;
   margin-bottom: 0;
-  font-size: 0.83rem;
+  font-size: var(--fs-footnote);
   line-height: 1.6;
 }
 
@@ -1558,7 +1558,7 @@ h2 {
 }
 
 .effective-card h2 {
-  font-size: 1.3rem;
+  font-size: var(--fs-title);
 }
 
 .effective-card p:last-child {
@@ -1616,16 +1616,16 @@ h2 {
 
 .period-list {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .period-item {
-  padding: 15px;
+  padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   background: var(--surface-subtle);
 }
 
@@ -1642,7 +1642,7 @@ h2 {
 }
 
 .period-heading strong {
-  font-size: 0.86rem;
+  font-size: var(--fs-footnote);
 }
 
 .period-heading div > span {
@@ -1683,17 +1683,17 @@ h2 {
   min-height: 150px;
   place-items: center;
   align-content: center;
-  gap: 6px;
-  padding: 20px;
+  gap: var(--space-2);
+  padding: var(--space-5);
   border: 1px dashed var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   color: var(--text-muted);
   text-align: center;
 }
 
 .inline-empty-state p {
   margin-bottom: 0;
-  font-size: 0.83rem;
+  font-size: var(--fs-footnote);
   font-weight: 700;
 }
 
@@ -1815,7 +1815,7 @@ h2 {
 .filter-chip,
 .compact-button {
   min-height: 44px;
-  padding: 0 13px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   background: var(--surface);
   cursor: pointer;
@@ -1830,7 +1830,7 @@ h2 {
 }
 
 .compact-button {
-  border-radius: 10px;
+  border-radius: var(--radius-chip);
   color: var(--primary);
 }
 
@@ -1871,7 +1871,7 @@ h2 {
 
 .skeleton-rows {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .catalog-skeleton {
@@ -1991,7 +1991,7 @@ h2 {
 }
 
 .result-count {
-  margin: 0 3px 8px;
+  margin: 0 var(--space-1) var(--space-2);
   color: var(--text-soft);
   font-size: var(--fs-footnote);
 }
@@ -2043,7 +2043,7 @@ h2 {
   flex: 0 0 auto;
   place-items: center;
   border-radius: var(--radius-chip);
-  font-size: 1rem;
+  font-size: var(--fs-body);
   font-weight: 700;
 }
 
@@ -2073,7 +2073,7 @@ h2 {
      só que agora depois de o nome ter tido chance de se distinguir. */
   display: -webkit-box;
   overflow: hidden;
-  font-size: 0.88rem;
+  font-size: var(--fs-headline);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -2132,7 +2132,7 @@ h2 {
   color: var(--text-soft);
   background: transparent;
   cursor: pointer;
-  font-size: 1.25rem;
+  font-size: var(--fs-title);
   transform: translateY(-50%);
 }
 
@@ -2158,7 +2158,7 @@ h2 {
 
 .catalog-editor,
 .detail-card {
-  border-radius: 20px;
+  border-radius: var(--radius-card);
 }
 
 .catalog-editor {
@@ -2173,7 +2173,7 @@ h2 {
 
 .form-section {
   min-width: 0;
-  padding: 0 0 19px;
+  padding: 0 0 var(--space-5);
   border: 0;
   border-bottom: 1px solid var(--border);
   margin: 0;
@@ -2183,13 +2183,13 @@ h2 {
 .fieldset-heading legend {
   padding: 0;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: var(--fs-body);
   font-weight: 700;
 }
 
 .form-section-hint,
 .inline-hint {
-  margin: 5px 0 14px;
+  margin: var(--space-1) 0 var(--space-4);
   color: var(--text-soft);
   font-size: var(--fs-caption);
   line-height: 1.5;
@@ -2251,11 +2251,11 @@ h2 {
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--radius-chip);
   color: var(--danger);
   background: var(--danger-soft);
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: var(--fs-headline);
 }
 
 .remove-row-button:disabled {
@@ -2269,10 +2269,10 @@ h2 {
   z-index: var(--z-sticky-actions);
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 10px;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 15px;
+  border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   box-shadow: var(--shadow-floating);
   backdrop-filter: blur(16px);
@@ -2291,28 +2291,28 @@ h2 {
 .heading-actions .submit-button,
 .heading-actions .secondary-button {
   min-height: 44px;
-  padding-inline: 13px;
+  padding-inline: var(--space-3);
   font-size: var(--fs-footnote);
 }
 
 .danger-action {
   min-height: 42px;
-  padding-inline: 9px;
+  padding-inline: var(--space-2);
   color: var(--danger);
 }
 
 .detail-grid {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
 }
 
 .detail-card {
   min-width: 0;
-  padding: 19px;
+  padding: var(--space-4);
 }
 
 .reference-copy {
-  margin: -12px 0 19px;
+  margin: calc(-1 * var(--space-3)) 0 var(--space-5);
   color: var(--text-muted);
   font-size: var(--fs-footnote);
 }
@@ -2325,9 +2325,9 @@ h2 {
 }
 
 .nutrition-grid div {
-  padding: 13px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
   background: var(--surface-subtle);
 }
 
@@ -2340,16 +2340,16 @@ h2 {
 .nutrition-grid dd,
 .recipe-nutrition-block dd {
   margin: 4px 0 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-footnote);
   font-weight: 700;
 }
 
 .detail-notes {
-  margin: 17px 0 0;
-  padding-top: 15px;
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
   line-height: 1.6;
 }
 
@@ -2374,7 +2374,7 @@ h2 {
 }
 
 .simple-list strong {
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .simple-list span {
@@ -2387,8 +2387,8 @@ h2 {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 11px 0;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -2401,7 +2401,7 @@ h2 {
   min-width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 10px;
+  border-radius: var(--radius-chip);
   color: var(--primary-strong);
   background: var(--primary-soft);
   font-size: var(--fs-caption);
@@ -2414,23 +2414,23 @@ h2 {
 }
 
 .version-list strong {
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .version-list small,
 .version-list time {
-  margin-top: 3px;
+  margin-top: var(--space-1);
   color: var(--text-soft);
   font-size: var(--fs-caption);
 }
 
 .version-warning {
   display: grid;
-  gap: 4px;
-  margin-bottom: 18px;
-  padding: 13px;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  padding: var(--space-3);
   border: 1px solid color-mix(in srgb, var(--blue) 28%, var(--border));
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--blue-soft);
   font-size: var(--fs-footnote);
@@ -2438,7 +2438,7 @@ h2 {
 
 .version-warning strong {
   color: var(--text);
-  font-size: 0.8rem;
+  font-size: var(--fs-footnote);
 }
 
 .recipe-grid {
@@ -2464,18 +2464,18 @@ h2 {
 }
 
 .recipe-energy b {
-  font-size: 0.86rem;
+  font-size: var(--fs-footnote);
 }
 
 .recipe-energy small {
-  margin-top: 2px;
+  margin-top: var(--space-1);
   color: var(--text-soft);
   font-size: var(--fs-caption);
 }
 
 .compact-empty {
   min-height: 120px;
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .recipe-nutrition-grid {
@@ -2492,13 +2492,13 @@ h2 {
 
 .recipe-nutrition-block h3 {
   margin: 0 0 12px;
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .recipe-nutrition-block dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
   margin: 0;
 }
 
@@ -2513,7 +2513,7 @@ h2 {
 }
 
 .date-copy {
-  margin-top: 6px;
+  margin-top: var(--space-2);
   text-transform: capitalize;
 }
 
@@ -2521,7 +2521,7 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 /* Botão de calendário com o campo nativo por baixo: o campo continua sendo um `input[type=date]`
@@ -2680,13 +2680,13 @@ h2 {
 }
 
 .diary-calories h2 {
-  font-size: 2rem;
+  font-size: var(--fs-display);
   letter-spacing: -0.05em;
 }
 
 .diary-calories h2 small {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--fs-footnote);
   font-weight: 600;
   letter-spacing: 0;
 }
@@ -2700,9 +2700,9 @@ h2 {
 .energy-pill {
   display: grid;
   align-content: center;
-  gap: 3px;
-  padding: 13px;
-  border-radius: 14px;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
 }
 
 .energy-pill.deficit {
@@ -2727,7 +2727,7 @@ h2 {
 
 .energy-pill strong {
   color: var(--text);
-  font-size: 0.86rem;
+  font-size: var(--fs-footnote);
 }
 
 .diary-macro-grid {
@@ -2750,8 +2750,8 @@ h2 {
 }
 
 .diary-macro-grid dd {
-  margin: 4px 0 0;
-  font-size: 0.8rem;
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-headline);
   font-weight: 700;
 }
 
@@ -2842,7 +2842,7 @@ h2 {
 
 .goal-state strong {
   margin: var(--space-1) 0;
-  font-size: 0.75rem;
+  font-size: var(--fs-body);
 }
 
 .goal-state strong,
@@ -2870,7 +2870,7 @@ h2 {
 
 .summary-footnote {
   margin: 0;
-  padding: 13px 16px;
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border);
   color: var(--text-soft);
   font-size: var(--fs-caption);
@@ -2878,11 +2878,11 @@ h2 {
 
 .closed-notice {
   display: grid;
-  gap: 3px;
-  margin-top: 13px;
-  padding: 13px 15px;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid color-mix(in srgb, var(--blue) 30%, var(--border));
-  border-radius: 13px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--blue-soft);
   font-size: var(--fs-caption);
@@ -2890,7 +2890,7 @@ h2 {
 
 .closed-notice strong {
   color: var(--text);
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .diary-section {
@@ -2929,7 +2929,7 @@ h2 {
 
 .meal-heading h3 {
   margin: var(--space-1) 0 0;
-  font-size: 0.92rem;
+  font-size: var(--fs-headline);
 }
 
 .meal-total {
@@ -2939,7 +2939,7 @@ h2 {
 .meal-total strong,
 
 .meal-total strong {
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
 }
 
 .meal-total small {
@@ -3066,7 +3066,7 @@ h2 {
   /* O nome do alimento é a informação mais importante da linha, e truncá-lo com reticências torna
      "Guarda de layout 2026-08-…" indistinguível do item seguinte. Quebrar em duas linhas custa
      altura; não saber o que se comeu custa o registro. */
-  font-size: 0.77rem;
+  font-size: var(--fs-headline);
   overflow-wrap: anywhere;
 }
 
@@ -3088,7 +3088,7 @@ h2 {
 .item-quality {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .item-quality small {
@@ -3211,7 +3211,7 @@ h2 {
 }
 
 .diary-day-actions > div:first-child strong {
-  font-size: 0.82rem;
+  font-size: var(--fs-footnote);
 }
 
 .diary-day-actions > div:first-child span {
@@ -3336,11 +3336,11 @@ main {
 }
 
 .dialog-heading h2 {
-  font-size: 1.08rem;
+  font-size: var(--fs-headline);
 }
 
 .dialog-close {
-  font-size: 1.25rem;
+  font-size: var(--fs-title);
 }
 
 .dialog-form {
@@ -3455,9 +3455,9 @@ main {
 
 .inline-empty-copy {
   margin: 0;
-  padding: 13px;
+  padding: var(--space-3);
   border: 1px dashed var(--border-strong);
-  border-radius: 11px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   font-size: var(--fs-footnote);
   text-align: center;
@@ -3466,17 +3466,17 @@ main {
 .close-copy {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
   line-height: 1.6;
 }
 
 .fasting-confirmation {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
-  padding: 14px;
+  gap: var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--border-strong);
-  border-radius: 13px;
+  border-radius: var(--radius-chip);
   background: var(--surface-subtle);
   cursor: pointer;
 }
@@ -3495,7 +3495,7 @@ main {
 }
 
 .fasting-confirmation strong {
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
 }
 
 .fasting-confirmation small {
@@ -3508,17 +3508,17 @@ main {
 .quick-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  gap: var(--space-2);
 }
 
 .quick-action-grid button {
   display: grid;
   min-height: 88px;
   align-content: center;
-  gap: 5px;
-  padding: 12px;
+  gap: var(--space-1);
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   color: var(--text);
   background: var(--surface-subtle);
   cursor: pointer;
@@ -3533,7 +3533,7 @@ main {
 }
 
 .quick-action-grid strong {
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .quick-action-grid span {
@@ -3582,7 +3582,7 @@ main {
 
 @media (min-width: 560px) {
   .auth-card {
-    padding: 36px;
+    padding: var(--space-8);
   }
 
   .profile-form {
@@ -3621,7 +3621,7 @@ main {
   }
 
   .catalog-editor {
-    padding: 25px;
+    padding: var(--space-6);
   }
 
   .catalog-form-grid {
@@ -3709,7 +3709,7 @@ main {
 
 @media (min-width: 560px) {
   main {
-    padding-inline: 28px;
+    padding-inline: var(--space-7);
   }
 
   .date-button {
@@ -3724,7 +3724,7 @@ main {
   }
 
   .page {
-    margin-left: 264px;
+    margin-left: var(--space-8);
   }
 
   .mobile-header,
@@ -3733,7 +3733,7 @@ main {
   }
 
   main {
-    padding: 56px 42px 60px;
+    padding: var(--space-8);
   }
 
   .page-heading {
@@ -3749,7 +3749,7 @@ main {
 
   .demo-notice {
     width: fit-content;
-    margin-bottom: 18px;
+    margin-bottom: var(--space-5);
   }
 
   .nutrition-card {
@@ -3930,7 +3930,7 @@ main {
 .body-evaluation-main h2 {
   overflow: hidden;
   margin: 0;
-  font-size: 0.89rem;
+  font-size: var(--fs-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3944,7 +3944,7 @@ main {
 
 .body-card-chevron {
   color: var(--text-soft);
-  font-size: 1.5rem;
+  font-size: var(--fs-title);
 }
 
 .body-card-results {
@@ -4009,8 +4009,8 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  margin-top: 20px;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
 }
 
 .pagination span {
@@ -4158,7 +4158,7 @@ main {
 
 .body-form-group legend {
   padding: 0 var(--space-2);
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
   font-weight: 700;
 }
 
@@ -4199,7 +4199,7 @@ main {
 
 .compact-select {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   color: var(--text-muted);
   font-size: var(--fs-caption);
 }
@@ -4322,7 +4322,7 @@ main {
 
 .body-review-details h3 {
   margin: 0;
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .body-review-details ul {
@@ -4439,7 +4439,7 @@ main {
 
 .body-result-title h3 {
   margin: 0;
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
 }
 
 .body-result-title > span {
@@ -4449,7 +4449,7 @@ main {
 }
 
 .body-result-grid dd {
-  font-size: 0.86rem;
+  font-size: var(--fs-footnote);
 }
 
 .body-result-grid small {
@@ -4593,7 +4593,7 @@ main {
 }
 
 .comparison-points article > strong {
-  font-size: 0.83rem;
+  font-size: var(--fs-footnote);
 }
 
 .days-between {
@@ -4635,7 +4635,7 @@ main {
 
 .comparison-weight-delta strong {
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: var(--fs-body);
 }
 
 .comparison-warnings {
@@ -4679,7 +4679,7 @@ main {
 
 .comparison-result-card h3 {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
 .comparison-result-card header div > span,
@@ -4689,7 +4689,7 @@ main {
 }
 
 .compatibility-chip {
-  padding: 5px 7px;
+  padding: var(--space-1) var(--space-2);
   border-radius: 999px;
   background: var(--surface-subtle);
   font-weight: 700;
@@ -4762,9 +4762,9 @@ main {
 .site-delta-grid article {
   display: grid;
   min-width: 0;
-  gap: 5px;
-  padding: 12px;
-  border-radius: 13px;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-chip);
 }
 
 .site-delta-grid h3 {
@@ -5037,7 +5037,7 @@ main {
 .activity-summary-card strong,
 .weight-metric strong {
   overflow-wrap: anywhere;
-  font-size: 1.2rem;
+  font-size: var(--fs-title);
   letter-spacing: -0.035em;
 }
 
@@ -5086,7 +5086,7 @@ main {
 }
 
 .workout-date strong {
-  font-size: 1.02rem;
+  font-size: var(--fs-headline);
 }
 
 .workout-date span {
@@ -5109,7 +5109,7 @@ main {
 
 .workout-title-row h3 {
   margin: var(--space-1) 0 0;
-  font-size: 0.92rem;
+  font-size: var(--fs-body);
 }
 
 .activity-chip {
@@ -5147,14 +5147,14 @@ main {
 .muscle-chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin: 11px 0 0;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
   padding: 0;
   list-style: none;
 }
 
 .muscle-chip-list li {
-  padding: 5px 8px;
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--text-muted);
@@ -5224,9 +5224,9 @@ main {
 
 .existing-entry-note {
   margin: 0;
-  padding: 10px 12px;
+  padding: var(--space-3) var(--space-3);
   border: 1px solid color-mix(in srgb, var(--blue) 30%, var(--border));
-  border-radius: 11px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--blue-soft);
   font-size: var(--fs-caption);
@@ -5237,10 +5237,10 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 11px 12px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
   border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
-  border-radius: 11px;
+  border-radius: var(--radius-chip);
   color: var(--danger);
   background: var(--danger-soft);
   font-size: var(--fs-caption);
@@ -5250,7 +5250,7 @@ main {
 .lookup-error .secondary-button {
   min-height: 44px;
   flex: 0 0 auto;
-  padding-inline: 11px;
+  padding-inline: var(--space-3);
   font-size: var(--fs-caption);
 }
 
@@ -5286,7 +5286,7 @@ main {
 }
 
 .weight-entry time strong {
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
 }
 
 .weight-entry time span,
@@ -5301,7 +5301,7 @@ main {
 }
 
 .weight-entry-value strong {
-  font-size: 0.88rem;
+  font-size: var(--fs-body);
 }
 
 .weight-entry > p {
@@ -5343,7 +5343,7 @@ main {
 }
 
 .quick-add-menu .dialog-heading .eyebrow {
-  margin-bottom: 5px;
+  margin-bottom: var(--space-1);
 }
 
 .shell-quick-actions {
@@ -5374,7 +5374,7 @@ main {
 }
 
 .shell-quick-actions strong {
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
 .shell-quick-actions small {
@@ -5504,7 +5504,7 @@ main {
   display: grid;
   gap: var(--space-2);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
   font-weight: 700;
 }
 
@@ -5532,13 +5532,13 @@ main {
   border-radius: 12px;
   color: var(--text-muted);
   background: var(--surface);
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
   line-height: 1.45;
 }
 
 .analytics-context strong {
   color: var(--text);
-  font-size: 0.82rem;
+  font-size: var(--fs-footnote);
 }
 
 .analytics-context-open {
@@ -5718,7 +5718,7 @@ main {
   padding: var(--space-3) var(--space-3);
   border-radius: var(--radius-chip);
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--fs-caption);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -5762,7 +5762,7 @@ main {
 }
 
 .analytics-coverage strong {
-  font-size: 1.35rem;
+  font-size: var(--fs-title);
 }
 
 .analytics-section {
@@ -5785,7 +5785,7 @@ main {
 }
 
 .analytics-aggregate-card strong {
-  font-size: 1.25rem;
+  font-size: var(--fs-title);
   letter-spacing: -0.035em;
 }
 
@@ -5839,7 +5839,7 @@ main {
 }
 
 .analytics-energy-metric strong {
-  font-size: 1rem;
+  font-size: var(--fs-body);
 }
 
 .analytics-energy-missing {
@@ -5873,7 +5873,7 @@ main {
 }
 
 .analytics-extremes-grid strong {
-  font-size: 0.86rem;
+  font-size: var(--fs-footnote);
 }
 
 .analytics-split-grid {
@@ -5910,7 +5910,7 @@ main {
 }
 
 .attainment-list strong {
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
 .attainment-list span {
@@ -5920,7 +5920,7 @@ main {
 
 .attainment-value {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--fs-caption);
   font-weight: 700;
 }
 
@@ -5947,7 +5947,7 @@ main {
 }
 
 .analytics-activity-total strong {
-  font-size: 1.8rem;
+  font-size: var(--fs-title-lg);
   letter-spacing: -0.05em;
 }
 
@@ -5993,7 +5993,7 @@ main {
 .analytics-missing-block {
   margin: var(--space-6) 0;
   color: var(--text-soft);
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
 .analytics-chart-controls {
@@ -6129,7 +6129,7 @@ main {
 
 .analytics-chart-empty strong {
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: var(--fs-body);
 }
 
 .analytics-chart-empty span {

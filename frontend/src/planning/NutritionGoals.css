@@ -74,7 +74,7 @@
 .goal-target-editor > legend {
   padding: 0 var(--space-2);
   color: var(--text);
-  font-size: 0.96rem;
+  font-size: var(--fs-body);
   font-weight: 700;
 }
 
@@ -175,7 +175,7 @@
 }
 
 .goal-band-heading strong {
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
 .goal-band-heading span {
@@ -201,7 +201,7 @@
   background: var(--surface-subtle);
   cursor: pointer;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-body);
   font-weight: 700;
 }
 
@@ -224,10 +224,13 @@
   min-height: 44px;
   align-items: center;
   gap: 8px;
-  color: var(--text-muted) !important;
+  /* Sem `!important`. Os três existiam para vencer `.field-group label`, e enquanto estavam aqui
+     este era o único tamanho do app que não se resolvia por cascata — um de-para de escala falharia
+     em silêncio justamente nele. A especificidade da regra já basta. */
+  color: var(--text-muted);
   cursor: pointer;
-  font-size: var(--fs-caption) !important;
-  font-weight: 600 !important;
+  font-size: var(--fs-body);
+  font-weight: 600;
   line-height: 1.35;
 }
 
