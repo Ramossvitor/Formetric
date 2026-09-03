@@ -1005,12 +1005,14 @@ h2 {
 
 .quick-add > span {
   display: grid;
-  width: 52px;
-  height: 52px;
-  margin-top: -26px;
+  width: var(--tap-lg);
+  height: var(--tap-lg);
+  /* Metade da própria altura: é o que faz o losango transbordar a barra pela metade. Escrito como
+     conta para deixar de ser um número solto que deixa de bater se a altura mudar. */
+  margin-top: calc(var(--tap-lg) / -2);
   place-items: center;
   border: 5px solid var(--surface);
-  border-radius: 17px;
+  border-radius: var(--radius-control);
   color: #fff;
   background: var(--primary-strong);
   box-shadow: var(--shadow-floating);
@@ -3295,18 +3297,34 @@ main {
   z-index: var(--z-overlay);
   display: grid;
   align-items: end;
-  padding: 32px var(--safe-right) var(--keyboard-inset) var(--safe-left);
+  padding: var(--space-7) var(--safe-right) var(--keyboard-inset) var(--safe-left);
   background: rgba(8, 14, 11, 0.56);
   backdrop-filter: blur(5px);
 }
 
-.diary-dialog {
+/* Um corpo só para os dois sheets de formulário.
+   Estavam escritos duas vezes, declaração por declaração idênticas, a 1.890 linhas de distância —
+   e foi assim que divergiram: a diferença visível entre eles não era decisão de design, era o anel
+   de foco do navegador aparecendo num deles conforme o sheet abrisse por deep link ou por toque.
+   O `outline: none` fecha isso; o painel recebe foco por programa, para o leitor de tela, e não
+   é navegável por teclado, então não há anel a preservar aqui.
+   A largura é a única diferença real, e vive em `--sheet-w`. */
+.diary-dialog,
+.activity-dialog {
   overflow: auto;
   width: 100%;
-  max-height: calc(var(--sheet-h) - 32px - var(--keyboard-inset));
-  padding: 20px 20px calc(20px + var(--safe-bottom));
-  border-radius: 22px 22px 0 0;
+  max-height: calc(var(--sheet-h) - var(--space-7) - var(--keyboard-inset));
+  padding: var(--space-5) var(--space-5) calc(var(--space-5) + var(--safe-bottom));
+  border-radius: var(--radius-hero) var(--radius-hero) 0 0;
   box-shadow: var(--shadow-floating);
+  outline: none;
+}
+
+/* Largura do painel a partir de 560px, declarada junto do sheet a que pertence em vez de dentro da
+   media query: as três larguras são decisão de produto, e ficam num lugar só onde se lê quanto cada
+   sheet mede. Abaixo de 560px nada as consome. */
+.diary-dialog {
+  --sheet-w: 620px;
 }
 
 .dialog-heading {
@@ -3427,8 +3445,8 @@ main {
 
 .snapshot-note {
   margin: 0;
-  padding: 11px;
-  border-radius: 11px;
+  padding: var(--space-3);
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--blue-soft);
   font-size: var(--fs-caption);
@@ -3681,13 +3699,6 @@ main {
   .dialog-backdrop {
     place-items: center;
     padding: 24px;
-  }
-
-  .diary-dialog {
-    width: min(100%, 620px);
-    max-height: calc(var(--sheet-h) - 48px);
-    padding: 26px;
-    border-radius: 22px;
   }
 
   .item-measure-grid,
@@ -5190,13 +5201,9 @@ main {
   backdrop-filter: blur(5px);
 }
 
+/* O corpo deste sheet vive junto com o do diário; ver a nota lá. */
 .activity-dialog {
-  overflow: auto;
-  width: 100%;
-  max-height: calc(var(--sheet-h) - 32px - var(--keyboard-inset));
-  padding: 20px 20px calc(20px + var(--safe-bottom));
-  border-radius: 22px 22px 0 0;
-  box-shadow: var(--shadow-floating);
+  --sheet-w: 650px;
 }
 
 .activity-form {
@@ -5320,13 +5327,14 @@ main {
 }
 
 .shell-dialog-backdrop {
-  padding: 20px calc(16px + var(--safe-right)) calc(var(--nav-height) + 18px) calc(16px + var(--safe-left));
+  padding: var(--space-5) calc(var(--space-4) + var(--safe-right)) calc(var(--nav-height) + var(--space-4)) calc(var(--space-4) + var(--safe-left));
 }
 
 .quick-add-menu {
+  --sheet-w: 440px;
   width: 100%;
-  padding: 20px;
-  border-radius: 20px;
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-floating);
 }
 
@@ -5417,11 +5425,20 @@ main {
     padding: 24px;
   }
 
+  /* As três larguras deliberadas continuam existindo; o que some é o corpo repetido em volta
+     delas. O recuo do teclado entra também aqui: acima de 560px o painel é centrado, e antes
+     desta linha ele perdia a conta e ficava atrás do teclado como o sheet ficava antes. */
+  .diary-dialog,
   .activity-dialog {
-    width: min(100%, 650px);
-    max-height: calc(var(--sheet-h) - 48px);
-    padding: 26px;
-    border-radius: 22px;
+    max-height: calc(var(--sheet-h) - var(--space-7) - var(--space-4) - var(--keyboard-inset));
+    border-radius: var(--radius-hero);
+  }
+
+  .diary-dialog,
+  .activity-dialog,
+  .quick-add-menu {
+    width: min(100%, var(--sheet-w));
+    padding: var(--space-6);
   }
 
   .weight-metric-grid {
@@ -5456,10 +5473,6 @@ main {
     padding: 24px;
   }
 
-  .quick-add-menu {
-    width: min(100%, 440px);
-    padding: 24px;
-  }
 }
 
 @media (min-width: 840px) {
