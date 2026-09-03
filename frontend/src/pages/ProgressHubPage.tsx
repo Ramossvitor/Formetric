@@ -25,7 +25,6 @@ export function ProgressHubPage() {
         <div>
           <p className="eyebrow">Acompanhamento</p>
           <h1>Evolução</h1>
-          <p className="heading-copy">O que muda ao longo do tempo, reunido num lugar só.</p>
         </div>
       </header>
 

@@ -201,7 +201,7 @@ function DayOverview({ data, onQuickWater, quickWaterPending }: {
         <span className="metric-icon purple"><Icon name="scale" /></span>
         <span className="metric-copy">
           <span className="metric-label">Peso</span>
-          <span className="metric-note">Pesagem oficial nesta data</span>
+          <span className="metric-note">{data.weightKg == null ? "Sem pesagem" : "Pesagem oficial"}</span>
         </span>
         {data.weightKg == null
           ? <MissingValue>Não registrado</MissingValue>
@@ -260,7 +260,6 @@ function DailyDashboard({ data, onQuickWater, quickWaterPending }: {
         <div className="calorie-summary">
           <div className="section-heading">
             <div><p className="eyebrow">Consumido</p><h2 id="resumo-nutricional">Nutrição do dia</h2></div>
-            <span className={`status-chip daily-status-${data.diaryStatus.toLowerCase()}`}>{diaryStatusLabels[data.diaryStatus]}</span>
           </div>
 
           <div
@@ -310,7 +309,7 @@ function DailyDashboard({ data, onQuickWater, quickWaterPending }: {
 
         <div className="macro-summary">
           <div className="section-heading compact">
-            <div><p className="eyebrow">Nutrientes</p><h2>Classificação das metas</h2></div>
+            <div><h2>Classificação das metas</h2></div>
             <Link className="text-button" to={`/diary?date=${data.date}`}>Ver diário</Link>
           </div>
           <div className="macro-list">
@@ -342,7 +341,7 @@ function DailyDashboard({ data, onQuickWater, quickWaterPending }: {
 
       <section aria-labelledby="panorama" className="overview-section">
         <div className="section-title-row">
-          <div><p className="eyebrow">Panorama</p><h2 id="panorama">Demais registros do dia</h2></div>
+          <div><h2 id="panorama">Demais registros do dia</h2></div>
         </div>
         <DayOverview data={data} onQuickWater={onQuickWater} quickWaterPending={quickWaterPending} />
       </section>
@@ -377,7 +376,6 @@ export function HomePage() {
         <div>
           <p className="eyebrow">Resumo diário</p>
           <h1>{date === today ? 'Hoje' : formatLongDate(date, locale)}</h1>
-          <p className="heading-copy">Dados registrados, cálculos do sistema e disponibilidade explícita.</p>
         </div>
         <div className="analytics-date-group">
           <label className="analytics-date-control">

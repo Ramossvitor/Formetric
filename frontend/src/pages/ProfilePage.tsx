@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
 import { ApiError, getErrorMessage } from '../api/http'
 import { invalidateAnalytics } from '../analytics/queries'
 import { getProfile, updateProfile, type UserProfile } from '../auth/api'
@@ -248,86 +247,6 @@ export function ProfilePage() {
           </div>
           {logout.isError ? <p className="form-error full-field" role="alert">{getErrorMessage(logout.error)}</p> : null}
         </form>
-      </section>
-
-      {profile.data.role === 'OWNER' ? (
-        <section className="profile-card settings-card surface-card" aria-labelledby="administration-settings-title">
-          <div className="section-heading profile-section-heading">
-            <div>
-              <p className="eyebrow">Administração</p>
-              <h2 id="administration-settings-title">Acessos</h2>
-            </div>
-          </div>
-          <nav aria-label="Administração de acessos" className="settings-link-list">
-            <Link className="settings-link" to="/settings/invitations">
-              <span>
-                <strong>Convites</strong>
-                <small>Crie links privados para novas contas.</small>
-              </span>
-              <span aria-hidden="true">›</span>
-            </Link>
-          </nav>
-        </section>
-      ) : null}
-
-      <section className="profile-card settings-card surface-card" aria-labelledby="planning-settings-title">
-        <div className="section-heading profile-section-heading">
-          <div>
-            <p className="eyebrow">Planejamento</p>
-            <h2 id="planning-settings-title">Metas e energia</h2>
-          </div>
-        </div>
-        <nav aria-label="Configurações de planejamento" className="settings-link-list">
-          <Link className="settings-link" to="/settings/nutrition-goals">
-            <span>
-              <strong>Metas nutricionais</strong>
-              <small>Calorias, macros, fibras, água e faixas históricas.</small>
-            </span>
-            <span aria-hidden="true">›</span>
-          </Link>
-          <Link className="settings-link" to="/settings/tdee">
-            <span>
-              <strong>TDEE</strong>
-              <small>Gasto energético estimado e vigência de cada valor.</small>
-            </span>
-            <span aria-hidden="true">›</span>
-          </Link>
-        </nav>
-      </section>
-
-      <section className="profile-card settings-card surface-card" aria-labelledby="catalog-settings-title">
-        <div className="section-heading profile-section-heading">
-          <div>
-            <p className="eyebrow">Biblioteca</p>
-            <h2 id="catalog-settings-title">Alimentos e receitas</h2>
-          </div>
-        </div>
-        <nav aria-label="Biblioteca de alimentos" className="settings-link-list">
-          <Link className="settings-link" to="/foods">
-            <span><strong>Alimentos</strong><small>Dados nutricionais, favoritos, porções e versões.</small></span>
-            <span aria-hidden="true">›</span>
-          </Link>
-          <Link className="settings-link" to="/recipes">
-            <span><strong>Receitas</strong><small>Ingredientes e cálculos por rendimento e porção.</small></span>
-            <span aria-hidden="true">›</span>
-          </Link>
-        </nav>
-      </section>
-
-      <section className="profile-card settings-card surface-card" aria-labelledby="body-settings-title">
-        <div className="section-heading profile-section-heading">
-          <div><p className="eyebrow">Evolução</p><h2 id="body-settings-title">Corpo e medidas</h2></div>
-        </div>
-        <nav aria-label="Acompanhamento corporal" className="settings-link-list">
-          <Link className="settings-link" to="/progress/evaluations">
-            <span><strong>Avaliações corporais</strong><small>Snapshots, protocolos, laudos e comparações.</small></span>
-            <span aria-hidden="true">›</span>
-          </Link>
-          <Link className="settings-link" to="/progress/weight">
-            <span><strong>Histórico de peso</strong><small>Pesagens, médias móveis e tendência.</small></span>
-            <span aria-hidden="true">›</span>
-          </Link>
-        </nav>
       </section>
     </main>
   )

@@ -75,6 +75,9 @@ function AttainmentRow({ item }: { item: GoalAttainment }) {
 function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
   const { locale } = useProfileTimeContext()
   const hasElapsedDays = data.elapsedCalendarDays > 0
+  // Nenhuma das seis médias tem amostra: a tela não tem o que dizer sobre nutrição neste mês.
+  const semNenhumaAmostra = [data.nutrition.caloriesKcal, data.nutrition.proteinG, data.nutrition.carbohydrateG, data.nutrition.fatG, data.nutrition.fiberG, data.nutrition.waterMl]
+    .every((agregado) => agregado.sampleCount === 0)
   const orderedGoalAttainment = [...data.goalAttainment].sort(
     (first, second) => attainmentOrder[first.nutrient] - attainmentOrder[second.nutrient],
   )
@@ -93,15 +96,25 @@ function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
 
       <section aria-labelledby="monthly-nutrition-title" className="analytics-section">
         <div className="section-title-row"><div><p className="eyebrow">Nutrição</p><h2 id="monthly-nutrition-title">Médias dos dias elegíveis</h2></div></div>
-        <div className="analytics-aggregate-grid">
-          <AggregateCard aggregate={data.nutrition.caloriesKcal} label="Calorias" unit="kcal" />
-          <AggregateCard aggregate={data.nutrition.proteinG} fractionDigits={1} label="Proteína" unit="g" />
-          <AggregateCard aggregate={data.nutrition.carbohydrateG} fractionDigits={1} label="Carboidratos" unit="g" />
-          <AggregateCard aggregate={data.nutrition.fatG} fractionDigits={1} label="Gorduras" unit="g" />
-          <AggregateCard aggregate={data.nutrition.fiberG} fractionDigits={1} label="Fibras" unit="g" />
-          <AggregateCard aggregate={data.nutrition.waterMl} fractionDigits={0} label="Água" unit="ml" />
-        </div>
-        <p className="analytics-method-note" role="note">Cada média mostra seu próprio número de amostras. Diários abertos e valores ausentes não são transformados em zero.</p>
+        {semNenhumaAmostra ? (
+          /* Seis cartões vazios eram 398px de rolagem para doze repetições de "Sem média" e
+             "nenhum dia elegível" — a mesma ausência dita doze vezes, que faz o leitor procurar
+             uma diferença de significado que não existe. Um bloco diz o mesmo e aponta a saída. */
+          <div className="inline-empty-state">
+            <p>Nenhum dia deste mês entrou nas médias.</p>
+            <Link className="goal-setup-link" to="/diary">Registrar e fechar um dia <span aria-hidden="true">›</span></Link>
+          </div>
+        ) : (
+          <div className="analytics-aggregate-grid">
+            <AggregateCard aggregate={data.nutrition.caloriesKcal} label="Calorias" unit="kcal" />
+            <AggregateCard aggregate={data.nutrition.proteinG} fractionDigits={1} label="Proteína" unit="g" />
+            <AggregateCard aggregate={data.nutrition.carbohydrateG} fractionDigits={1} label="Carboidratos" unit="g" />
+            <AggregateCard aggregate={data.nutrition.fatG} fractionDigits={1} label="Gorduras" unit="g" />
+            <AggregateCard aggregate={data.nutrition.fiberG} fractionDigits={1} label="Fibras" unit="g" />
+            <AggregateCard aggregate={data.nutrition.waterMl} fractionDigits={0} label="Água" unit="ml" />
+          </div>
+        )}
+        {semNenhumaAmostra ? null : <p className="analytics-method-note" role="note">Cada média mostra seu próprio número de amostras. Diários abertos e valores ausentes não são transformados em zero.</p>}
       </section>
 
       <section aria-labelledby="monthly-energy-title" className="analytics-section analytics-energy-panel surface-card">

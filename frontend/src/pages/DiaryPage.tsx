@@ -299,7 +299,7 @@ export function DiaryPage() {
 
           <section aria-labelledby="meals-title" className="diary-section">
             <div className="section-title-row diary-section-heading">
-              <div><p className="eyebrow">Alimentação</p><h2 id="meals-title">Refeições</h2></div>
+              <div><h2 id="meals-title">Refeições</h2></div>
               {open ? <button className="compact-button" onClick={() => openEditor({ type: 'meal' })} type="button">+ Refeição</button> : null}
             </div>
             {log.meals.length === 0 ? <div className="inline-empty-state"><p>Nenhuma refeição.</p><span>Adicione uma refeição para começar o registro alimentar.</span></div> : (
@@ -340,7 +340,7 @@ export function DiaryPage() {
           </section>
 
           <section aria-labelledby="water-title" className="diary-section water-section surface-card">
-            <div className="section-title-row diary-section-heading"><div><p className="eyebrow">Hidratação</p><h2 id="water-title">Água · {number(log.waterTotalMl / 1000, 2)} L</h2></div></div>
+            <div className="section-title-row diary-section-heading"><div><h2 id="water-title">Água · {number(log.waterTotalMl / 1000, 2)} L</h2></div></div>
             {open ? <div className="water-buttons">{[250, 500, 750, 1000].map((volume) => <button key={volume} onClick={() => water.mutate(volume)} type="button">+{volume === 1000 ? '1 L' : `${volume} ml`}</button>)}</div> : null}
             {log.waterLogs.length > 0 ? <ol className="water-history">{log.waterLogs.map((entry) => <li key={entry.id}><time dateTime={entry.loggedAt}>{formatInstantTime(entry.loggedAt, locale, timeZone)}</time><strong>{number(entry.volumeMl, 0)} ml</strong>{open ? <button aria-label={`Excluir água de ${number(entry.volumeMl, 0)} ml`} className="icon-button danger-icon" onClick={() => openEditor({ type: 'water-actions', entry })} type="button">×</button> : null}</li>)}</ol> : <p className="inline-hint">Nenhum registro de água.</p>}
           </section>

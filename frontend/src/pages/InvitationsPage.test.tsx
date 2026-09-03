@@ -8,6 +8,7 @@ import { OwnerRoute, ProtectedRoute } from '../auth/ProtectedRoute'
 import { sessionQuery } from '../auth/queries'
 import { seedProfileTimeContext } from '../test/profileTimeContext'
 import { InvitationsPage } from './InvitationsPage'
+import { MorePage } from './MorePage'
 import { ProfilePage } from './ProfilePage'
 
 const ownerSession: AuthSession = {
@@ -78,6 +79,7 @@ function renderPrivateRoute(route: string, session: AuthSession) {
               <Route element={<InvitationsPage />} path="settings/invitations" />
             </Route>
             <Route element={<ProfilePage />} path="profile" />
+            <Route element={<MorePage />} path="more" />
           </Route>
         </Routes>
       </MemoryRouter>
@@ -101,13 +103,15 @@ afterEach(() => {
 })
 
 describe('administração de convites', () => {
-  it('oferece o acesso aos convites na navegação de perfil do proprietário', async () => {
+  it('oferece o acesso aos convites na tela Mais do proprietário', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       if (String(input) === '/api/v1/profile') return jsonResponse(ownerProfile)
       throw new Error(`Requisição não esperada: ${String(input)}`)
     })
 
-    renderPrivateRoute('/profile', ownerSession)
+    // O destino mora em /more desde que as telas-porta nasceram; o Perfil listava os mesmos sete
+    // destinos em paralelo, e era essa duplicata que ocupava 41% da tela.
+    renderPrivateRoute('/more', ownerSession)
 
     expect(await screen.findByRole('link', { name: /Convites/ })).toHaveAttribute('href', '/settings/invitations')
   })
