@@ -105,6 +105,16 @@ export function NutrientBandEditor({
         )}
       </div>
 
+      {/* As faixas de cada nutriente entram fechadas, menos as de Calorias.
+          A tela expunha de uma vez até vinte faixas para seis nutrientes, cada faixa num cartão com
+          mínimo, máximo, rótulo, tom e caixa de seleção: 10.760px de formulário, e a dica abaixo
+          repetida seis vezes. Fechada, a mesma tela cabe em duas telas de altura e continua com
+          tudo dentro — nada foi removido, só recolhido.
+          O `open` também reage a erro: um campo inválido dentro de um bloco fechado seria uma
+          mensagem que ninguém vê, e o formulário viraria um beco. */}
+      <details className="goal-target-disclosure" open={safeNutrient === 'CALORIES' || Boolean(targetErrors)}>
+        <summary>{bands.fields.length === 1 ? '1 faixa' : `${bands.fields.length} faixas`}</summary>
+
       <p className="goal-target-hint">
         A ordem é usada na classificação. Deixe um limite vazio para torná-lo aberto e evite
         sobreposição entre faixas vizinhas.
@@ -321,6 +331,7 @@ export function NutrientBandEditor({
       {bands.fields.length >= 20 ? (
         <span className="field-hint" role="status">Limite de 20 faixas atingido.</span>
       ) : null}
+      </details>
     </fieldset>
   )
 }
