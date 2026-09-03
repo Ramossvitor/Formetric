@@ -149,9 +149,9 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 11px;
+  gap: var(--space-3);
   margin-top: auto;
-  padding-top: 20px;
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border);
 }
 
@@ -200,7 +200,7 @@
 }
 
 .sidebar-profile small {
-  margin-top: 2px;
+  margin-top: var(--space-1);
   color: var(--text-soft);
   font-size: var(--fs-footnote);
 }
@@ -1122,7 +1122,7 @@ h2 {
 .auth-form,
 .profile-form {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .field-group {
@@ -1284,13 +1284,13 @@ h2 {
 }
 
 .profile-heading {
-  margin-bottom: 25px;
+  margin-bottom: var(--space-6);
 }
 
 .profile-card {
   max-width: 780px;
-  padding: 22px;
-  border-radius: 20px;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
 }
 
 .settings-card {
@@ -1342,7 +1342,7 @@ h2 {
 .hub-copy {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .hub-copy strong {
@@ -1372,7 +1372,7 @@ h2 {
 
 .settings-link-list {
   display: grid;
-  gap: 9px;
+  gap: var(--space-2);
 }
 
 .settings-link {
@@ -1380,10 +1380,10 @@ h2 {
   min-height: 70px;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 13px 15px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--radius-chip);
   background: var(--surface-subtle);
   text-decoration: none;
   transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
@@ -1419,7 +1419,7 @@ h2 {
 }
 
 .profile-section-heading {
-  margin-bottom: 27px;
+  margin-bottom: var(--space-4);
 }
 
 .profile-form {
@@ -1429,8 +1429,8 @@ h2 {
 .profile-actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 5px;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
 }
 
 .logout-button {
@@ -1444,18 +1444,18 @@ h2 {
 }
 
 .invitation-card {
-  padding: 22px;
-  border-radius: 20px;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
 }
 
 .invitation-form {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .invitation-result {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .invitation-result .profile-section-heading,
@@ -1469,7 +1469,7 @@ h2 {
 
 .invitation-link-row {
   display: grid;
-  gap: 9px;
+  gap: var(--space-2);
 }
 
 .invitation-link-row input {
@@ -1487,16 +1487,16 @@ h2 {
 
 .invitation-metadata {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   margin: 0;
 }
 
 .invitation-metadata > div {
   display: grid;
-  gap: 3px;
-  padding: 11px 13px;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: var(--radius-chip);
   background: var(--surface-subtle);
 }
 
@@ -1549,10 +1549,10 @@ h2 {
   min-height: 116px;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 15px;
-  padding: 21px;
-  border-radius: 18px;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--primary-soft) 64%, var(--surface)), var(--surface));
 }
@@ -1562,25 +1562,25 @@ h2 {
 }
 
 .effective-card p:last-child {
-  margin: 7px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--text-muted);
   font-size: var(--fs-footnote);
 }
 
 .planning-grid {
   display: grid;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 .planning-card {
   min-width: 0;
-  padding: 21px;
-  border-radius: 18px;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
 }
 
 .planning-form {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .number-with-unit {
@@ -1654,9 +1654,9 @@ h2 {
 .goal-summary-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin: 15px 0 0;
-  padding-top: 13px;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-3);
   border-top: 1px solid var(--border);
 }
 
@@ -1670,7 +1670,7 @@ h2 {
 }
 
 .goal-summary-list dd {
-  margin: 3px 0 0;
+  margin: var(--space-1) 0 0;
   overflow: hidden;
   font-size: var(--fs-footnote);
   font-weight: 700;
@@ -1705,11 +1705,11 @@ h2 {
 }
 
 .validity-note {
-  margin: 13px 0 0;
+  margin: var(--space-3) 0 0;
 }
 
 .tdee-period {
-  padding-block: 18px;
+  padding-block: var(--space-5);
 }
 
 .planning-state {
@@ -1718,7 +1718,7 @@ h2 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: var(--space-4);
   color: var(--text-muted);
   text-align: center;
 }
@@ -3433,13 +3433,13 @@ main {
 .item-measure-grid,
 .snapshot-settings {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .snapshot-settings {
-  padding: 13px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--radius-chip);
   background: var(--surface-subtle);
 }
 
@@ -3587,7 +3587,7 @@ main {
 
   .profile-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 16px;
+    column-gap: var(--space-4);
   }
 
   .full-field {
@@ -3600,7 +3600,7 @@ main {
 
   .invitation-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 16px;
+    column-gap: var(--space-4);
   }
 
   .invitation-link-row {
@@ -3613,7 +3613,7 @@ main {
 
   .planning-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 16px;
+    column-gap: var(--space-4);
   }
 
   .goal-summary-list {
@@ -5356,10 +5356,10 @@ main {
   min-height: 69px;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 13px;
-  padding: 12px 14px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--radius-chip);
   background: var(--surface-subtle);
   text-decoration: none;
 }
@@ -5378,7 +5378,7 @@ main {
 }
 
 .shell-quick-actions small {
-  margin-top: 3px;
+  margin-top: var(--space-1);
   color: var(--text-muted);
   font-size: var(--fs-caption);
 }
@@ -5497,12 +5497,12 @@ main {
 .analytics-date-group {
   display: grid;
   justify-items: end;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .analytics-date-control {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   color: var(--text-muted);
   font-size: 0.75rem;
   font-weight: 700;
@@ -5701,21 +5701,22 @@ main {
 
 .analytics-tabs {
   display: flex;
-  gap: 5px;
+  gap: var(--space-1);
   width: fit-content;
   max-width: 100%;
-  margin: -8px 0 22px;
-  padding: 4px;
+  /* Sem margem negativa: quem paga o vão é o bloco de cima. */
+  margin: 0 0 var(--space-6);
+  padding: var(--space-1);
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--radius-chip);
   background: var(--surface);
 }
 
 .analytics-tabs a {
   min-width: 44px;
   min-height: 44px;
-  padding: 10px 13px;
-  border-radius: 9px;
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   font-size: 0.76rem;
   font-weight: 700;
@@ -5732,13 +5733,13 @@ main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   overflow: hidden;
-  border-radius: 17px;
+  border-radius: var(--radius-control);
 }
 
 .analytics-coverage > div {
   display: grid;
-  gap: 4px;
-  padding: 15px;
+  gap: var(--space-1);
+  padding: var(--space-4);
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
@@ -5765,22 +5766,22 @@ main {
 }
 
 .analytics-section {
-  margin-top: 28px;
+  margin-top: var(--space-7);
 }
 
 .analytics-aggregate-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .analytics-aggregate-card {
   display: grid;
   min-height: 126px;
   align-content: space-between;
-  gap: 10px;
-  padding: 16px;
-  border-radius: 15px;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
 }
 
 .analytics-aggregate-card strong {
@@ -5813,18 +5814,18 @@ main {
 .analytics-detail-card,
 .analytics-chart-panel,
 .analytics-chart-controls {
-  padding: 18px;
-  border-radius: 18px;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
 }
 
 .analytics-energy-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  margin-top: 18px;
+  margin-top: var(--space-5);
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   background: var(--border);
 }
 
@@ -5832,8 +5833,8 @@ main {
   display: grid;
   min-height: 118px;
   align-content: space-between;
-  gap: 9px;
-  padding: 14px;
+  gap: var(--space-2);
+  padding: var(--space-4);
   background: var(--surface-subtle);
 }
 
@@ -5844,12 +5845,12 @@ main {
 .analytics-energy-missing {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 10px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .analytics-energy-missing span {
-  padding: 6px 9px;
+  padding: var(--space-2) var(--space-2);
   border-radius: 999px;
   color: var(--text-muted);
   background: var(--surface-subtle);
@@ -5859,16 +5860,16 @@ main {
 .analytics-extremes-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-  margin-top: 18px;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
 .analytics-extremes-grid article {
   display: grid;
-  gap: 6px;
-  padding: 13px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
 }
 
 .analytics-extremes-grid strong {
@@ -5896,7 +5897,7 @@ main {
 .attainment-list li {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 7px 12px;
+  gap: var(--space-2) var(--space-3);
 }
 
 .attainment-list li.unconfigured {
@@ -5905,7 +5906,7 @@ main {
 
 .attainment-list li > div:first-child {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .attainment-list strong {
@@ -5958,14 +5959,14 @@ main {
 .analytics-description-list {
   display: grid;
   gap: 0;
-  margin: 15px 0 0;
+  margin: var(--space-4) 0 0;
 }
 
 .analytics-description-list > div {
   display: flex;
   justify-content: space-between;
-  gap: 14px;
-  padding: 10px 0;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
   border-top: 1px solid var(--border);
   font-size: var(--fs-footnote);
 }
@@ -5990,19 +5991,19 @@ main {
 }
 
 .analytics-missing-block {
-  margin: 22px 0;
+  margin: var(--space-6) 0;
   color: var(--text-soft);
   font-size: 0.78rem;
 }
 
 .analytics-chart-controls {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .analytics-chart-controls label {
   display: grid;
-  gap: 7px;
+  gap: var(--space-2);
   color: var(--text-muted);
   font-size: var(--fs-footnote);
   font-weight: 700;
@@ -6016,7 +6017,7 @@ main {
 }
 
 .analytics-chart-controls legend {
-  margin-bottom: 7px;
+  margin-bottom: var(--space-2);
   color: var(--text-muted);
   font-size: var(--fs-footnote);
   font-weight: 700;
@@ -6024,18 +6025,18 @@ main {
 
 .analytics-range-buttons {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: var(--space-1);
 }
 
 .analytics-range-buttons button {
   min-width: 44px;
   min-height: 44px;
   flex: 0 0 auto;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--surface-subtle);
   cursor: pointer;
@@ -6050,7 +6051,7 @@ main {
 }
 
 .analytics-chart-panel {
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .analytics-chart-figure {
@@ -6121,7 +6122,7 @@ main {
   display: grid;
   min-height: 230px;
   place-content: center;
-  gap: 6px;
+  gap: var(--space-2);
   color: var(--text-muted);
   text-align: center;
 }
@@ -6149,8 +6150,8 @@ main {
 .analytics-availability-list li {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 9px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--text-muted);

@@ -6,16 +6,16 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .effective-goal-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
-  margin: 17px 0 0;
-  padding-top: 15px;
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
 
@@ -37,7 +37,7 @@
 }
 
 .nutrition-goal-editor {
-  padding: 17px;
+  padding: var(--space-4);
 }
 
 .planning-form.nutrition-goal-form {
@@ -46,11 +46,12 @@
 
 .goal-period-fields {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
 }
 
+/* Sem margem negativa: o vão pertence ao bloco de cima. */
 .goal-validity-hint {
-  margin: -7px 0 0;
+  margin: 0;
   color: var(--text-soft);
   font-size: var(--fs-caption);
   line-height: 1.55;
@@ -58,20 +59,20 @@
 
 .goal-target-list {
   display: grid;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 .goal-target-editor {
   min-width: 0;
   margin: 0;
-  padding: 17px;
+  padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-control);
   background: var(--surface-subtle);
 }
 
 .goal-target-editor > legend {
-  padding: 0 7px;
+  padding: 0 var(--space-2);
   color: var(--text);
   font-size: 0.96rem;
   font-weight: 700;
@@ -82,7 +83,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 9px 12px;
+  gap: var(--space-2) var(--space-3);
 }
 
 .goal-target-heading p,
@@ -101,16 +102,16 @@
 }
 
 .goal-target-hint {
-  margin: 9px 0 13px;
+  margin: var(--space-2) 0 var(--space-3);
 }
 
 .goal-calorie-preset {
   display: grid;
-  gap: 12px;
-  margin: 0 0 14px;
-  padding: 13px;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-chip);
   background: var(--surface);
 }
 
@@ -121,7 +122,7 @@
 .calorie-preset-action {
   display: grid;
   align-content: end;
-  gap: 7px;
+  gap: var(--space-2);
 }
 
 .calorie-preset-action > span {
@@ -136,9 +137,9 @@
 
 .goal-preset-button {
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--surface);
   cursor: pointer;
@@ -149,14 +150,14 @@
 
 .goal-band-list {
   display: grid;
-  gap: 11px;
+  gap: var(--space-3);
 }
 
 .goal-band-card {
   min-width: 0;
-  padding: 14px;
+  padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   background: var(--surface);
 }
 
@@ -164,8 +165,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .goal-band-heading strong,
@@ -178,7 +179,7 @@
 }
 
 .goal-band-heading span {
-  margin-top: 2px;
+  margin-top: var(--space-1);
   color: var(--text-soft);
   font-size: var(--fs-caption);
 }
@@ -195,7 +196,7 @@
   place-items: center;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--surface-subtle);
   cursor: pointer;
@@ -215,7 +216,7 @@
 
 .goal-band-fields {
   display: grid;
-  gap: 14px;
+  gap: var(--space-4);
 }
 
 .goal-checkbox {
@@ -249,20 +250,20 @@
 }
 
 .goal-attainment {
-  margin-top: 10px;
-  padding: 9px 11px;
-  border-radius: 10px;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-chip);
   background: var(--primary-soft);
 }
 
 .goal-add-band {
   width: 100%;
-  margin-top: 11px;
+  margin-top: var(--space-3);
 }
 
 .goal-add-band + .field-hint {
   display: block;
-  margin-top: 7px;
+  margin-top: var(--space-2);
   text-align: center;
 }
 
@@ -275,7 +276,7 @@
 
 @media (min-width: 560px) {
   .nutrition-goal-editor {
-    padding: 23px;
+    padding: var(--space-6);
   }
 
   .goal-period-fields {
