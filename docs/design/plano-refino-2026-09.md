@@ -535,3 +535,80 @@ O plano inteiro é **CSS em classes que já existem, mais `<details>` nativo, ma
 14. **Renomear qualquer rota.** Zero. É promessa registrada e é o que mantém os três shortcuts do manifest e a preparação para TWA.
 15. **Trocar `.filter-chip.active` do laranja para o verde da marca.** Isso é decisão de paleta e vai para o documento, não para um PR de CSS. O que entra é a linha que já foi decidida: `color: var(--orange-text)`, que leva o contraste de 2,42:1 para ≥4,5:1 mantendo o fundo pastel.
 16. **Um terceiro `role="status"`/`role="alert"` global.** Restrição 6. Onde o plano precisa avisar algo novo (deep link em dia fechado), usa o `useToast()` existente, que é deliberadamente sem `role`.
+---
+
+## Resultado da execução — 03/09/2026
+
+Branch `feat/refino-ui-2026-09`, 18 commits. Verificado em volume limpo a cada passo: typecheck,
+lint, 132 testes de componente e 74 E2E em quatro larguras (320, 375, 412, 900) e 17 rotas.
+
+### A catraca
+
+`valor-fora-da-escala` saiu de **505 violações para 6**. As seis que ficam são deliberadas: o
+recuo da bottom-nav (restrição 2, decisão registrada do dono), dois `clamp()` de título, os
+rótulos SVG do gráfico e o raio da marca.
+
+### Bordas esquerdas, por rota, ao fim
+
+| Rota | Antes | Depois |
+| --- | --- | --- |
+| `/analytics/monthly` | 11, com 5 pares de 1px | 4, sem pares |
+| `/diary` | 7, com 2 pares | 3 |
+| `/settings/nutrition-goals` | 6 | 5, sem pares |
+| `/` | 5 | 5, um par estrutural |
+| `/foods/new`, `/recipes`, `/progress/weight`, `/settings/tdee`, `/profile`, `/analytics/charts` | 2 a 4 | **2** |
+
+O par `20/21` que resta em cinco telas é o único legítimo: é a borda de 1px do card, e separa o
+que está fora dele do que está dentro. Sobra **um** par de 1px real, em `/progress/evaluations`.
+
+### Altura de rolagem
+
+| Rota | Antes | Depois |
+| --- | --- | --- |
+| `/settings/nutrition-goals` | 12,6 telas | **5,5** |
+| `/profile` | 2,7 | **1,7** |
+| `/analytics/monthly` | 3,7 | 3,5 |
+
+`/diary` cresceu (2,1 → 3,4) porque a conta de teste acumulou refeições entre execuções, e porque
+os nomes de item subiram de 12,3px para 17px — a troca que o plano assumiu por escrito.
+
+### O que o plano previu e não se confirmou
+
+- **A ordem de importação do `NutritionGoals.css` não causava nada.** Os dois arquivos não
+  compartilham um único seletor.
+- **`.date-navigation > label input` não era regra morta.** Casava e vencia por especificidade.
+- **O bloco `.metric-*` não era todo morto** — quatro seletores eram, as cinco classes não.
+- **`.catalog-load-more` não renderizava em meia coluna.** `.catalog-list` é grid de uma coluna.
+- **A conferência "captura byte-idêntica" não funciona neste ambiente:** duas capturas do mesmo
+  build já diferem. Foi substituída por prova de consumo de token, que é determinística.
+- **As doze asserções orçadas para reabrir os `<details>` não foram necessárias** — e não porque a
+  mudança seja invisível: o jsdom não remove da árvore de acessibilidade o conteúdo de um
+  `<details>` fechado. A suíte de componentes não distingue dobrado de aberto. Quem verificou foi
+  a guarda de layout, que mede o Chromium.
+
+### O que a execução descobriu e o plano não tinha
+
+- **A largura de 900px achou quatro estouros horizontais, não um.** Entre 840 e ~1100px o sidebar
+  já consome 264px e sobram ~552px de conteúdo; quatro grades tinham sido escritas contra um
+  número de viewport que parou de significar algo quando o sidebar apareceu.
+- **Zerar o mínimo de um grid nem sempre é a correção certa.** Em dois dos quatro casos trocou
+  rolagem lateral por campos sobrepostos dentro do card: a guarda ficou verde e a tela piorou.
+  Onde isso aconteceu, `auto-fit` decide pelo espaço real do container.
+- **A "borda escura" do sheet de atividade era o anel de foco do navegador**, não CSS: aparecia
+  quando o sheet abria por deep link e não quando abria por toque.
+- **Acima de 560px o painel tinha perdido o `--keyboard-inset` da conta** e voltava a ficar atrás
+  do teclado.
+- **`.meal-total small` e `.weight-metric-grid` estavam declaradas duas vezes**, além das
+  duplicatas que o plano listou.
+
+### O que não foi feito
+
+- **Fase 8, a fusão de Hoje e Diário.** É decisão do dono e o plano a coloca por último de
+  propósito. O passo de uma linha que a antecede — o `<h1>` do Diário deixar de ser "Hoje" — foi
+  feito, e sozinho já tira a ambiguidade dos dois títulos.
+- **Cortes de densidade restantes:** o sheet de treino em `<details>`, os sete cartões de
+  `/progress/weight`, os filtros por chips, e a redução de `/analytics/monthly` abaixo de três
+  telas. As telas com pior razão altura/conteúdo já foram tratadas.
+- **Aperto pré-existente na faixa 840–1100px:** o card de avaliação corporal quebra o título e
+  "Dados insuficientes" parte no meio da palavra. Não são falhas de guarda; são densidade e
+  tipografia numa faixa que agora, pela primeira vez, está sob medição.
