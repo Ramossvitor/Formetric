@@ -92,7 +92,7 @@ describe('diário', () => {
 
     renderDiary('/diary?action=quick')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Hoje' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Diário' })).toBeInTheDocument()
     expect(await screen.findByRole('dialog', { name: 'Cadastro rápido' })).toBeInTheDocument()
     expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/daily-logs/2026-08-12')).toBe(true)
   })

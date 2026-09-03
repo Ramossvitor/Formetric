@@ -236,7 +236,10 @@ export function DiaryPage() {
       <header className="page-heading diary-heading">
         <div>
           <p className="eyebrow">Registro diário</p>
-          <h1>{date === today ? 'Hoje' : 'Diário'}</h1>
+          {/* 'Diário' sempre. Duas telas da barra tinham a mesma palavra por título quando a data era
+              hoje, e uma asserção chegou a codificar a ambiguidade: getAllByRole('link', { name:
+              'Hoje' }) com toHaveLength(2). A data já aparece na linha abaixo e na faixa de dias. */}
+          <h1>Diário</h1>
           <p className="heading-copy date-copy">{displayDate(date, locale)}</p>
         </div>
         <div className="date-navigation">
