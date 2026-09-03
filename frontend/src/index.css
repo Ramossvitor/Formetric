@@ -209,6 +209,9 @@ body {
   min-height: var(--fill-h);
   margin: 0;
   background: var(--background);
+  /* Entrelinha do corpo, herdada. Parear tamanho e entrelinha em cada regra seria repetir a
+     decisão 185 vezes; a herança resolve com esta e a dúzia de degraus que divergem dela. */
+  line-height: var(--lh-body);
 }
 
 button,

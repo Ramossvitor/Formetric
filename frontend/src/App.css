@@ -290,7 +290,7 @@
 
 .install-prompt-copy small {
   color: var(--text-muted);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
 }
 
 .install-prompt-dismiss {
@@ -1700,7 +1700,7 @@ h2 {
 .inline-empty-state span,
 .validity-note {
   color: var(--text-soft);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   line-height: 1.5;
 }
 
@@ -2191,7 +2191,7 @@ h2 {
 .inline-hint {
   margin: var(--space-1) 0 var(--space-4);
   color: var(--text-soft);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   line-height: 1.5;
 }
 
@@ -2505,7 +2505,7 @@ h2 {
 .recipe-nutrition-block p {
   margin: 0;
   color: var(--text-soft);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
 }
 
 .diary-heading {
@@ -3449,7 +3449,7 @@ main {
   border-radius: var(--radius-chip);
   color: var(--text-muted);
   background: var(--blue-soft);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   line-height: 1.55;
 }
 
@@ -3466,7 +3466,7 @@ main {
 .close-copy {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   line-height: 1.6;
 }
 
@@ -3938,7 +3938,7 @@ main {
 .body-evaluation-main p {
   margin: var(--space-1) 0 0;
   color: var(--text-muted);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   line-height: 1.45;
 }
 
@@ -4120,7 +4120,7 @@ main {
 .body-step-copy,
 .comparison-missing-note {
   color: var(--text-muted);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   line-height: 1.55;
 }
 
@@ -4408,7 +4408,7 @@ main {
 .comparison-warnings > p {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
   line-height: 1.5;
 }
 
