@@ -65,6 +65,28 @@ export function subtractPlainDateDays(value: string, days: number): PlainDate {
   return addPlainDateDays(value, -days)
 }
 
+/**
+ * A janela de sete dias que a faixa de dias mostra.
+ *
+ * Termina em amanhã para o dia seguinte ficar alcançável — quem registra o jantar depois da
+ * meia-noite precisa dele — mas nunca passa de amanhã, porque registrar num futuro distante é erro
+ * de toque, não intenção. Quando a data escolhida é hoje, a janela vira a semana que passou, que é
+ * o que se quer olhar na maior parte das vezes.
+ */
+export function weekWindow(date: string, today: string): PlainDate[] {
+  const tomorrow = addPlainDateDays(today, 1)
+  const start = comparePlainDates(date, today) >= 0
+    ? addPlainDateDays(date, -6)
+    : addPlainDateDays(date, -3)
+  const window: PlainDate[] = []
+  for (let offset = 0; offset < 7; offset += 1) {
+    const candidate = addPlainDateDays(start, offset)
+    if (comparePlainDates(candidate, tomorrow) > 0) break
+    window.push(candidate)
+  }
+  return window
+}
+
 function daysInMonth(year: number, month: number) {
   return utcDate(year, month + 1, 0).getUTCDate()
 }

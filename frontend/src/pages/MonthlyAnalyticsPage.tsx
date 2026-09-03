@@ -102,7 +102,7 @@ function MonthlyDashboard({ data }: { data: MonthlyAnalytics }) {
              uma diferença de significado que não existe. Um bloco diz o mesmo e aponta a saída. */
           <div className="inline-empty-state">
             <p>Nenhum dia deste mês entrou nas médias.</p>
-            <Link className="goal-setup-link" to="/diary">Registrar e fechar um dia <span aria-hidden="true">›</span></Link>
+            <Link className="goal-setup-link" to="/">Registrar e fechar um dia <span aria-hidden="true">›</span></Link>
           </div>
         ) : (
           <div className="analytics-aggregate-grid">

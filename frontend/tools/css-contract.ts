@@ -45,6 +45,8 @@ interface Block {
   selector: string
   body: string
   line: number
+  /** O prelúdio da at-rule que envolve o bloco (`@media (min-width: 840px)`), ou vazio na raiz. */
+  context: string
 }
 
 const SOURCE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src')
@@ -86,15 +88,22 @@ function readBlocks(css: string): Block[] {
     const selector = css.slice(selectorStart, bodyStart).trim()
     selectorStart = cursor + 1
 
-    // Uma regra que contém outras regras (`@media`, `@supports`) é reaberta para as folhas dela.
+    // Uma regra que contém outras regras (`@media`, `@supports`) é reaberta para as folhas dela. O
+    // prelúdio acompanha cada folha porque a mesma declaração costuma existir na raiz e dentro de
+    // uma `@media` — sem ele as duas teriam a mesma identidade na linha de base, e corrigir uma
+    // deixaria a outra invisível.
     if (body.includes('{')) {
       for (const nested of readBlocks(body)) {
-        blocks.push({ ...nested, line: nested.line + lineAt(css, bodyStart) - 1 })
+        blocks.push({
+          ...nested,
+          context: nested.context ? `${selector} ${nested.context}` : selector,
+          line: nested.line + lineAt(css, bodyStart) - 1,
+        })
       }
       continue
     }
 
-    blocks.push({ selector, body, line: lineAt(css, bodyStart) })
+    blocks.push({ selector, body, line: lineAt(css, bodyStart), context: '' })
   }
 
   return blocks
@@ -161,7 +170,6 @@ const PROPERTY_FAMILY: Array<[RegExp, keyof typeof SCALE_PX]> = [
   [/^(padding|margin)(-(top|right|bottom|left|inline|block)(-(start|end))?)?$/, 'espaco'],
   [/^(gap|row-gap|column-gap)$/, 'espaco'],
   [/^border(-(start|end)-(start|end))?-?radius$/, 'raio'],
-  [/^border-radius$/, 'raio'],
   [/^font-size$/, 'tipo'],
 ]
 
@@ -180,7 +188,6 @@ function literalLengthsInPx(value: string): number[] {
   const found: number[] = []
   for (const match of value.matchAll(/(-?\d*\.?\d+)(px|rem)\b/g)) {
     const amount = Number(match[1])
-    if (!Number.isFinite(amount)) continue
     // O app não redefine `font-size` na raiz, então 1rem vale os 16px do navegador.
     found.push(Math.abs(match[2] === 'px' ? amount : amount * 16))
   }
@@ -227,8 +234,10 @@ export function scanCss(source: string, file: string): Violation[] {
    * Pelo seletor, a entrada só muda quando a declaração ofensora muda, que é exatamente quando
    * queremos saber.
    */
-  const addBySelector = (selector: string, rule: ContractRule, property: string, snippet: string) =>
-    violations.push({ key: `${rule}@${file}:${selector.replace(/\s+/g, ' ')}:${property}`, rule, snippet })
+  const addBySelector = (block: Block, rule: ContractRule, property: string, snippet: string) => {
+    const where = `${block.context} ${block.selector}`.replace(/\s+/g, ' ').trim()
+    violations.push({ key: `${rule}@${file}:${where}:${property}`, rule, snippet })
+  }
 
   for (const block of readBlocks(raw)) {
     const declared = declarations(block.body)
@@ -243,7 +252,7 @@ export function scanCss(source: string, file: string): Violation[] {
         ])
         const offenders = literalLengthsInPx(value).filter((length) => !permitted.has(length))
         if (offenders.length > 0) {
-          addBySelector(block.selector, 'valor-fora-da-escala', property, `${block.selector} { ${property}: ${value} }`)
+          addBySelector(block, 'valor-fora-da-escala', property, `${block.selector} { ${property}: ${value} }`)
         }
       }
     }

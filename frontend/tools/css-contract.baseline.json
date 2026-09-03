@@ -1,8 +1,7 @@
 [
-  "valor-fora-da-escala@App.css:.analytics-missing:font-size",
   "valor-fora-da-escala@App.css:.auth-heading h1:font-size",
   "valor-fora-da-escala@App.css:.bottom-nav:padding",
   "valor-fora-da-escala@App.css:.brand-mark:border-radius",
   "valor-fora-da-escala@App.css:.chart-grid text, .chart-date-ticks text:font-size",
-  "valor-fora-da-escala@App.css:h1:font-size"
+  "valor-fora-da-escala@App.css:@media (min-width: 840px) h1:font-size"
 ]

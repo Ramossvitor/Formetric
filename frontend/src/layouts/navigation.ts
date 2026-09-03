@@ -20,7 +20,10 @@ export interface NavigationDestination {
 
 export const NAVIGATION: NavigationDestination[] = [
   { label: 'Hoje', icon: 'home', to: '/' },
-  { label: 'Análises', icon: 'calendar', to: '/analytics' },
+  // A raiz do slot é a rota que RENDERIZA. `/analytics` é só um redirecionamento para cá, e usá-lo
+  // como destino fazia a própria tela da aba contar como profunda: chevron de voltar no lugar da
+  // marca, num destino de primeiro nível.
+  { label: 'Análises', icon: 'calendar', to: '/analytics/monthly' },
   { label: 'Evolução', icon: 'trend', to: '/progress' },
   { label: 'Mais', icon: 'settings', to: '/more' },
 ]
@@ -32,7 +35,7 @@ export const NAVIGATION: NavigationDestination[] = [
  * Sem isso, uma rota nova cujo nome comece igual ao de outra acenderia o slot errado em silêncio.
  */
 const SLOT_PREFIXES: Array<[slot: string, prefixes: string[]]> = [
-  ['/analytics', ['/analytics']],
+  ['/analytics/monthly', ['/analytics']],
   ['/progress', ['/progress', '/workouts']],
   ['/more', ['/more', '/foods', '/recipes', '/settings', '/profile']],
   // O registro do dia mora na tela Hoje desde a fusão; /diary redireciona para lá e, enquanto a
@@ -56,8 +59,14 @@ export function slotFor(pathname: string): string | null {
   return pathname === '/' ? '/' : null
 }
 
+/**
+ * Abas irmãs da raiz de um slot: a mesma tela partida em duas rotas. Não são profundas — um
+ * "voltar" de Gráficos que levasse a Resumo mensal seria voltar de uma aba para a outra.
+ */
+const SIBLING_ROOTS = new Set(['/analytics/charts'])
+
 /** Uma rota é profunda quando acende um slot sem ser a raiz dele — é aí que o voltar faz falta. */
 export function isDeepRoute(pathname: string): boolean {
   const slot = slotFor(pathname)
-  return slot !== null && slot !== pathname
+  return slot !== null && slot !== pathname && !SIBLING_ROOTS.has(pathname)
 }

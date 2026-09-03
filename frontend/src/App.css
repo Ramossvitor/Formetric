@@ -36,7 +36,7 @@
   inset: 0 auto 0 0;
   z-index: var(--z-sidebar);
   display: none;
-  width: 264px;
+  width: var(--sidebar-w);
   padding: var(--space-7) var(--space-6) var(--space-6);
   border-right: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
@@ -134,15 +134,6 @@
   font-size: var(--fs-body);
   font-weight: 700;
   text-decoration: none;
-}
-
-.nav-section-label {
-  margin: var(--space-5) var(--space-4) var(--space-1);
-  color: var(--text-soft);
-  font-size: var(--fs-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .sidebar-profile {
@@ -482,10 +473,17 @@ h2 {
   background: var(--surface-subtle);
 }
 
-.section-heading,
-/* Uma declaração só. O `align-items` desta classe estava escrito duas vezes, `flex-start` aqui e
-   `flex-end` 240 linhas adiante, e quem vencia era o segundo — em TODO cabeçalho de seção do app,
-   não só na tela que motivou a segunda regra. O valor abaixo é o que sempre valeu. */
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* Uma declaração só. O `align-items` desta classe estava escrito duas vezes, `flex-start` num
+   bloco partilhado com `.section-heading` e `flex-end` 240 linhas adiante, e quem vencia era o
+   segundo. As duas classes ficam separadas de propósito: `.section-heading` nunca teve o
+   `flex-end` nem a margem inferior, e fundi-las mudaria todo cabeçalho de seção do app. */
 .section-title-row {
   display: flex;
   align-items: flex-end;
@@ -513,7 +511,7 @@ h2 {
 }
 
 .status-chip {
-  min-height: 27px;
+  min-height: var(--chip);
   padding: 0 var(--space-3);
   color: var(--success-text);
   background: var(--primary-soft);
@@ -616,6 +614,8 @@ h2 {
   align-items: center;
   gap: var(--space-3);
   max-width: 330px;
+  /* Margem superior de propósito: o bloco acima é condicional — a faixa de meta só existe com
+     meta vigente — e o vão precisa existir nos dois casos. Só este bloco está sempre presente. */
   margin: var(--space-5) auto 0;
   padding: var(--space-3);
   border: 1px solid var(--border);
@@ -679,7 +679,7 @@ h2 {
   gap: var(--space-4);
   margin-bottom: var(--space-2);
   color: var(--text-muted);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-footnote);
 }
 
 .macro-meta > span:first-child {
@@ -692,9 +692,10 @@ h2 {
   text-align: right;
 }
 
+/* Valor de macro é `--fs-headline`, como o nome do item e a grade de totais do diário. */
 .macro-meta strong {
   color: var(--text);
-  font-size: var(--fs-footnote);
+  font-size: var(--fs-headline);
 }
 
 /* `.linear-progress` e as cinco variantes de `.progress-fill` saíram: seis regras sem um único
@@ -797,27 +798,6 @@ h2 {
 .day-overview-water:disabled {
   cursor: wait;
   opacity: 0.55;
-}
-
-/* Substitui o quarto cartão, que não carregava dado nenhum — só dois links. */
-.day-overview-footer {
-  display: grid;
-  min-height: var(--tap-lg);
-  border-top: 1px solid var(--border);
-  grid-template-columns: 1fr 1fr;
-}
-
-.day-overview-footer a {
-  display: grid;
-  place-items: center;
-  color: var(--primary);
-  font-size: var(--fs-body);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.day-overview-footer a + a {
-  border-left: 1px solid var(--border);
 }
 
 .metric-icon {
@@ -1293,10 +1273,6 @@ h2 {
   border-radius: var(--radius-card);
 }
 
-.settings-card {
-  margin-top: 16px;
-}
-
 /* Lista de destinos de uma porta (Evolução, Mais). Mesma anatomia da lista agrupada do panorama:
    ícone, duas linhas de texto e chevron, com o fio começando depois do ícone. */
 .hub-section-title {
@@ -1316,7 +1292,7 @@ h2 {
 
 .hub-item {
   display: grid;
-  min-height: 68px;
+  min-height: var(--row-lg);
   align-items: center;
   gap: var(--space-3);
   grid-template-columns: 36px minmax(0, 1fr) var(--tap);
@@ -1368,54 +1344,6 @@ h2 {
   gap: var(--space-2);
   margin-top: var(--space-6);
   color: var(--danger-text);
-}
-
-.settings-link-list {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.settings-link {
-  display: flex;
-  min-height: 70px;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-chip);
-  background: var(--surface-subtle);
-  text-decoration: none;
-  transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
-}
-
-@media (hover: hover) {
-  .settings-link:hover {
-    border-color: var(--border-strong);
-    background: var(--surface);
-    transform: translateY(-1px);
-  }
-}
-
-.settings-link strong,
-.settings-link small {
-  display: block;
-}
-
-.settings-link strong {
-  margin-bottom: 4px;
-  font-size: var(--fs-footnote);
-}
-
-.settings-link small {
-  color: var(--text-muted);
-  font-size: var(--fs-footnote);
-  line-height: 1.4;
-}
-
-.settings-link > span:last-child {
-  color: var(--text-soft);
-  font-size: var(--fs-title);
 }
 
 .profile-section-heading {
@@ -2292,7 +2220,6 @@ h2 {
 .heading-actions .secondary-button {
   min-height: 44px;
   padding-inline: var(--space-3);
-  font-size: var(--fs-footnote);
 }
 
 .danger-action {
@@ -2312,7 +2239,7 @@ h2 {
 }
 
 .reference-copy {
-  margin: calc(-1 * var(--space-3)) 0 var(--space-5);
+  margin: 0 0 var(--space-4);
   color: var(--text-muted);
   font-size: var(--fs-footnote);
 }
@@ -2510,11 +2437,6 @@ h2 {
 
 .diary-heading {
   align-items: flex-start;
-}
-
-.date-copy {
-  margin-top: var(--space-2);
-  text-transform: capitalize;
 }
 
 .date-navigation {
@@ -2935,8 +2857,6 @@ h2 {
 .meal-total {
   text-align: right;
 }
-
-.meal-total strong,
 
 .meal-total strong {
   font-size: var(--fs-caption);
@@ -3533,7 +3453,7 @@ main {
 }
 
 .quick-action-grid strong {
-  font-size: var(--fs-caption);
+  font-size: var(--fs-body);
 }
 
 .quick-action-grid span {
@@ -3723,8 +3643,11 @@ main {
     flex-direction: column;
   }
 
+  /* O deslocamento É a largura do sidebar fixo, não respiro: qualquer outro valor põe o conteúdo
+     por baixo dele. A guarda de 900px mede estouro e alvo, nunca sobreposição — foi assim que um
+     de-para para a régua de espaço passou despercebido aqui. */
   .page {
-    margin-left: var(--space-8);
+    margin-left: var(--sidebar-w);
   }
 
   .mobile-header,
@@ -5353,7 +5276,7 @@ main {
 
 .shell-quick-actions a {
   display: grid;
-  min-height: 69px;
+  min-height: var(--row-lg);
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: var(--space-3);
@@ -5374,7 +5297,7 @@ main {
 }
 
 .shell-quick-actions strong {
-  font-size: var(--fs-caption);
+  font-size: var(--fs-body);
 }
 
 .shell-quick-actions small {
@@ -5494,12 +5417,6 @@ main {
   align-items: flex-start;
 }
 
-.analytics-date-group {
-  display: grid;
-  justify-items: end;
-  gap: var(--space-2);
-}
-
 .analytics-date-control {
   display: grid;
   gap: var(--space-2);
@@ -5560,9 +5477,12 @@ main {
   background: var(--border);
 }
 
+/* Os `!important` ficam porque a classe vai em cima de `strong` que outras regras dimensionam por
+   descendência (`.analytics-extremes-grid article strong`); o tamanho, porém, é um degrau da
+   escala — era o único valor fora dela que a linha de base não explicava. */
 .analytics-missing {
   color: var(--text-soft) !important;
-  font-size: 0.8rem !important;
+  font-size: var(--fs-footnote) !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
 }
@@ -5624,16 +5544,6 @@ main {
   font-size: var(--fs-footnote);
   font-weight: 700;
   text-decoration: none;
-}
-
-.daily-status-open {
-  color: var(--orange-text);
-  background: var(--orange-soft);
-}
-
-.daily-status-missing {
-  color: var(--text-muted);
-  background: var(--surface-subtle);
 }
 
 .daily-tdee {
@@ -5718,7 +5628,7 @@ main {
   padding: var(--space-3) var(--space-3);
   border-radius: var(--radius-chip);
   color: var(--text-muted);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-body);
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -6224,7 +6134,6 @@ main {
     display: grid;
   }
 
-  .analytics-date-group,
   .analytics-date-control {
     width: 100%;
     justify-items: stretch;

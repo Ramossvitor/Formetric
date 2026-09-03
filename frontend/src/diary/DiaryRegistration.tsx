@@ -22,18 +22,17 @@ import {
   type MealItem,
   type MealItemInput,
   type WaterLog,
-} from '../diary/api'
-import { CopyPanel } from '../diary/CopyPanel'
-import { DiaryDialog } from '../diary/DiaryDialog'
-import { DiarySummary } from '../diary/DiarySummary'
-import { number, requiresFastingConfirmation } from '../diary/format'
-import { ItemEditor } from '../diary/ItemEditor'
-import { MealEditor } from '../diary/MealEditor'
-import { dailyLogQuery } from '../diary/queries'
-import { useQuickWater } from '../diary/useQuickWater'
+} from './api'
+import { CopyPanel } from './CopyPanel'
+import { DiaryDialog } from './DiaryDialog'
+import { DiarySummary } from './DiarySummary'
+import { number, requiresFastingConfirmation } from './format'
+import { ItemEditor } from './ItemEditor'
+import { MealEditor } from './MealEditor'
+import { dailyLogQuery } from './queries'
+import { useQuickWater } from './useQuickWater'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
 import { formatInstantDateTime, formatInstantTime } from '../time/instant'
-import { addPlainDateDays, comparePlainDates } from '../time/plainDate'
 
 type Editor =
   | { type: 'quick' }
@@ -53,24 +52,6 @@ type Editor =
   | null
 
 type DialogMutation = { isError: boolean; error: Error | null; reset: () => void }
-
-/**
- * A janela de sete dias que a faixa mostra.
- *
- * Termina em amanhã para o dia seguinte ficar alcançável — quem registra o jantar depois da
- * meia-noite precisa dele — mas nunca passa de amanhã, porque registrar num futuro distante é erro
- * de toque, não intenção. Quando a data escolhida é hoje, a janela vira a semana que passou, que é
- * o que se quer olhar na maior parte das vezes.
- */
-/** Janela de sete dias terminando em amanhã. Exportada porque a faixa de dias vive na tela Hoje. */
-export function weekWindow(date: string, today: string) {
-  const tomorrow = addPlainDateDays(today, 1)
-  const start = comparePlainDates(date, today) >= 0
-    ? addPlainDateDays(date, -6)
-    : addPlainDateDays(date, -3)
-  return Array.from({ length: 7 }, (_, index) => addPlainDateDays(start, index))
-    .filter((candidate) => comparePlainDates(candidate, tomorrow) <= 0)
-}
 
 function formatTime(value: string | null) {
   return value ? value.slice(0, 5) : null

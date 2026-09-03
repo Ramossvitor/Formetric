@@ -1,6 +1,6 @@
 import { useIsFetching, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getErrorMessage } from '../api/http'
 import { sessionQuery, useLogout } from '../auth/queries'
 import { Brand } from '../components/Brand'
@@ -79,17 +79,20 @@ export function AuthenticatedLayout() {
 
       <aside className="sidebar">
         <Brand />
+        {/* `Link`, não `NavLink`: o item aceso é decidido por `slotFor`, e o `aria-current` tem
+            de vir da mesma decisão. O `NavLink` calcula o dele por casamento de caminho próprio,
+            e em /workouts ou /foods anunciava "nenhum" enquanto o slot estava aceso. */}
         <nav aria-label="Navegação principal" className="sidebar-nav">
           {NAVIGATION.map((item) => (
-            <NavLink
+            <Link
+              aria-current={slot === item.to ? 'page' : undefined}
               className={slot === item.to ? 'nav-link active' : 'nav-link'}
-              end={item.to === '/'}
               key={item.to}
               to={item.to}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-            </NavLink>
+            </Link>
           ))}
         </nav>
 
@@ -158,29 +161,30 @@ export function AuthenticatedLayout() {
 
         <nav aria-label="Navegação principal" className="bottom-nav">
           {NAVIGATION.slice(0, 2).map((item) => (
-            <NavLink
+            <Link
+              aria-current={slot === item.to ? 'page' : undefined}
               className={slot === item.to ? 'bottom-nav-item active' : 'bottom-nav-item'}
-              end={item.to === '/'}
               key={item.to}
               to={item.to}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-            </NavLink>
+            </Link>
           ))}
           <button aria-expanded={quickAddOpen} aria-label="Abrir cadastro rápido" className="quick-add" onClick={() => setQuickAddOpen(true)} type="button">
             <span><Icon name="plus" size={26} /></span>
             <small>Adicionar</small>
           </button>
           {NAVIGATION.slice(2).map((item) => (
-            <NavLink
+            <Link
+              aria-current={slot === item.to ? 'page' : undefined}
               className={slot === item.to ? 'bottom-nav-item active' : 'bottom-nav-item'}
               key={item.to}
               to={item.to}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-            </NavLink>
+            </Link>
           ))}
         </nav>
 
@@ -191,7 +195,7 @@ export function AuthenticatedLayout() {
                 <button aria-label="Fechar" className="icon-button dialog-close" onClick={() => setQuickAddOpen(false)} type="button">×</button>
               </div>
               <div className="shell-quick-actions">
-                <Link onClick={() => setQuickAddOpen(false)} to="/diary?action=quick"><Icon name="food" /><span><strong>Alimentação ou água</strong><small>Abrir cadastro do diário</small></span></Link>
+                <Link onClick={() => setQuickAddOpen(false)} to="/?action=quick"><Icon name="food" /><span><strong>Alimentação ou água</strong><small>Abrir cadastro do diário</small></span></Link>
                 <Link onClick={() => setQuickAddOpen(false)} to="/workouts?action=new"><Icon name="activity" /><span><strong>Treino</strong><small>Registrar uma sessão</small></span></Link>
                 <Link onClick={() => setQuickAddOpen(false)} to="/progress/weight?action=new"><Icon name="scale" /><span><strong>Peso</strong><small>Adicionar a pesagem do dia</small></span></Link>
                 <Link onClick={() => setQuickAddOpen(false)} to="/progress/evaluations/new"><Icon name="trend" /><span><strong>Avaliação corporal</strong><small>Criar um snapshot de medidas</small></span></Link>

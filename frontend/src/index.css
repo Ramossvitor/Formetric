@@ -120,20 +120,10 @@
   --fs-display: 2.5rem;     /* 40px — kcal do cartão do Diário */
   --fs-numeral: 2.75rem;    /* 44px — número dentro do anel */
 
-  /* Entrelinha por degrau. Texto pequeno precisa de mais entrelinha proporcional para se ler em
-     bloco; título precisa de menos para não se desmontar em linhas soltas. Ficam como token porque
-     parear tamanho e entrelinha em cada regra seria repetir a decisão 185 vezes — a herança resolve
-     com uma dúzia. */
-  --lh-caption: 1.35;
-  --lh-footnote: 1.45;
+  /* A entrelinha do corpo, herdada por tudo que não a redefine. Os degraus por tamanho e a medida
+     de leitura entram no commit que os consumir: token declarado sem consumidor é escala
+     prometida e não cobrada, que é o que esta reforma veio desfazer. */
   --lh-body: 1.5;
-  --lh-headline: 1.35;
-  --lh-title: 1.3;
-  --lh-title-lg: 1.05;
-
-  /* Medida de leitura. Acima disso o olho perde a linha ao voltar para a esquerda — só importa no
-     desktop, onde um parágrafo de nota chega a ocupar mil pixels de largura. */
-  --measure: 68ch;
 
   /* Espaçamento em base 4. O arquivo tinha 3, 7, 9, 11, 13, 15, 21, 25, 27, 29 e 31px espalhados,
      todos decididos um a um; a régua existe para que a próxima decisão não seja mais uma dessas. */
@@ -160,10 +150,14 @@
   --tap: 44px;
   --tap-lg: 52px;
 
+  /* Largura do sidebar do desktop. É a largura de um painel fixo, não respiro: `.page` se desloca
+     exatamente por ela, e um valor da régua de espaço aqui põe o conteúdo por baixo do painel. */
+  --sidebar-w: 264px;
+
   /* Altura de linha de lista, por PAPEL e não por tela. O app decidiu 68, 69, 70, 56, 52, 45 e 43
-     caso a caso; são três papéis, e portanto três alturas. */
-  --row-lg: 68px; /* linha com dois níveis de texto: destino de hub, linha de dado */
-  --row: 56px;    /* linha simples: ação de sheet, escolha de catálogo */
+     caso a caso; são papéis, e portanto uma altura por papel. A linha simples (56px) entra quando
+     a primeira regra a consumir. */
+  --row-lg: 68px; /* linha com dois níveis de texto: destino de hub, ação do cadastro rápido */
   --chip: 24px;   /* altura de chip de estado ou de qualidade */
 
   /* Fio de separação entre itens de lista. Mais leve que --border, porque separar linhas de uma

@@ -109,7 +109,13 @@ export function DiarySummary({ log, showCalories = true }: { log: DailyLog; show
     : 'Registre alimentos ou confirme o jejum para calcular o saldo'
 
   return (
-    <section aria-labelledby="diary-summary-title" className="diary-summary surface-card">
+    // Sem o bloco de calorias o `<h2>` que dava nome à região não existe, e um `aria-labelledby`
+    // apontando para um id ausente deixa a região sem nome nenhum. O nome vem de um rótulo então.
+    <section
+      aria-label={showCalories ? undefined : 'Totais do dia'}
+      aria-labelledby={showCalories ? 'diary-summary-title' : undefined}
+      className="diary-summary surface-card"
+    >
       {showCalories ? (
       <div className="diary-calories">
         <div>

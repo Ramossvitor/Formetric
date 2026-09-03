@@ -29,7 +29,6 @@ const BASELINE_PATH = join(dirname(fileURLToPath(import.meta.url)), 'layout-guar
  */
 const ROUTES = [
   '/',
-  '/diary',
   '/foods',
   '/foods/new',
   '/recipes',

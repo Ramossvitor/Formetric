@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFieldArray, useWatch } from 'react-hook-form'
 import type {
   Control,
@@ -73,6 +73,14 @@ export function NutrientBandEditor({
   const defaultTargets = defaultNutritionGoalValues('2000-01-01').targets
   const fallbackTarget = defaultTargets[targetIndex]
   const safeNutrient = nutrient ?? fallbackTarget?.nutrient ?? 'CALORIES'
+  // O estado do `<details>` é nosso, não um atributo calculado. Como atributo, o React só o
+  // reescreve quando o VALOR muda: um bloco que o usuário fechou à mão não reabria num erro novo
+  // (o valor já era `true`), e o bloco aberto por erro fechava sozinho, no meio da edição, assim
+  // que o último erro saía. Aqui o erro só abre; quem fecha é o usuário.
+  const [open, setOpen] = useState(safeNutrient === 'CALORIES')
+  useEffect(() => {
+    if (targetErrors) setOpen(true)
+  }, [targetErrors])
   const suggestedTarget = defaultTargets.find((target) => target.nutrient === safeNutrient)
   const nutrientLabel = nutrientLabels[safeNutrient]
   const unit = safeNutrient === 'CALORIES' ? 'kcal' : safeNutrient === 'WATER' ? 'ml' : 'g'
@@ -110,9 +118,9 @@ export function NutrientBandEditor({
           mínimo, máximo, rótulo, tom e caixa de seleção: 10.760px de formulário, e a dica abaixo
           repetida seis vezes. Fechada, a mesma tela cabe em duas telas de altura e continua com
           tudo dentro — nada foi removido, só recolhido.
-          O `open` também reage a erro: um campo inválido dentro de um bloco fechado seria uma
-          mensagem que ninguém vê, e o formulário viraria um beco. */}
-      <details className="goal-target-disclosure" open={safeNutrient === 'CALORIES' || Boolean(targetErrors)}>
+          Um erro abre o bloco: um campo inválido dentro de um bloco fechado seria uma mensagem
+          que ninguém vê, e o formulário viraria um beco. */}
+      <details className="goal-target-disclosure" onToggle={(event) => setOpen(event.currentTarget.open)} open={open}>
         <summary>{bands.fields.length === 1 ? '1 faixa' : `${bands.fields.length} faixas`}</summary>
 
       <p className="goal-target-hint">

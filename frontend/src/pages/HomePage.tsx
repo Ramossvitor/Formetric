@@ -13,10 +13,10 @@ import { goalBandGeometry } from '../analytics/goalBand'
 import { dailyAnalyticsQuery } from '../analytics/queries'
 import { Icon } from '../components/Icon'
 import { formatGoalComparison, formatGoalRange } from '../diary/format'
+import { DiaryRegistration } from '../diary/DiaryRegistration'
 import { useQuickWater } from '../diary/useQuickWater'
 import { useProfileTimeContext } from '../time/ProfileTimeContext'
-import { formatPlainDate, isPlainDate } from '../time/plainDate'
-import { DiaryRegistration, weekWindow } from './DiaryPage'
+import { formatPlainDate, isPlainDate, weekWindow } from '../time/plainDate'
 
 const macroDefinitions: Array<{
   nutrient: MacroNutrientType
@@ -314,7 +314,10 @@ function DailyDashboard({ data, onQuickWater, quickWaterPending }: {
         <div className="macro-summary">
           <div className="section-heading compact">
             <div><h2>Classificação das metas</h2></div>
-            <Link className="text-button" to={`/diary?date=${data.date}`}>Ver diário</Link>
+            {/* O registro está nesta mesma tela, abaixo do anel: âncora, não rota. Um Link para
+                `/diary` voltava para cá pelo redirecionamento, remontava a tela e a jogava para o
+                topo — o oposto do que o texto promete. */}
+            <a className="text-button" href="#meals-title">Ver diário</a>
           </div>
           <div className="macro-list">
             {macroDefinitions.map((macro) => (
@@ -337,7 +340,7 @@ function DailyDashboard({ data, onQuickWater, quickWaterPending }: {
       </section>
 
       {data.diaryStatus === 'MISSING' ? (
-        <Link className="start-day-action" to={`/diary?date=${data.date}&action=quick`}>
+        <Link className="start-day-action" to={`/?date=${data.date}&action=quick`}>
           <Icon name="plus" size={18} />
           Começar o registro deste dia
         </Link>
