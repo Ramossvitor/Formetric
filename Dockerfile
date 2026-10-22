@@ -12,7 +12,7 @@ COPY frontend/ ./
 RUN npm run build
 
 
-FROM eclipse-temurin:21-jdk-alpine@sha256:1ff763083f2993d57d0bf374ab10bb3e2cb873af6c13a04458ebbd3e0337dc76 AS backend-build
+FROM eclipse-temurin:24-jdk-alpine@sha256:8fdbcb6bc6b846640cea7058e6eeb56c311fae4efaa506a213789134065c6b90 AS backend-build
 
 WORKDIR /workspace/backend
 
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -ntp package -DskipTests
 
 
-FROM eclipse-temurin:21-jre-alpine@sha256:974b08960c5d96694c780e65b2d5705268ab1e1ca1a0dd0caf4ba6c3fe34d699 AS runtime
+FROM eclipse-temurin:24-jre-alpine@sha256:4044b6c87cb088885bcd0220f7dc7a8a4aab76577605fa471945d2e98270741f AS runtime
 
 # O digest congela os pacotes, não as CVEs descobertas depois; os pins abaixo corrigem base
 # vulnerável sem esperar imagem nova (openssl 3.5.8-r0 cobre a CVE-2026-14456; libexpat 2.8.4-r0
