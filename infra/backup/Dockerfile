@@ -3,7 +3,7 @@
 # A imagem oficial do PostgreSQL garante um pg_dump na mesma major do servidor — um cliente
 # mais antigo se recusa a exportar de um servidor 18. O upload usa a API JSON do Cloud
 # Storage com o token do metadata server, então a CLI do gcloud não é necessária aqui.
-FROM postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+FROM postgres:19-alpine@sha256:cac45fb483caee3668946088a1c0532db89d5285c28dbfeac889b4068296e06f
 
 # O gosu vem da imagem oficial para o entrypoint do servidor, que este job não usa — o
 # processo já nasce como o usuário `backup`. Removê-lo elimina um binário Go inteiro do
